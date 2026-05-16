@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 import type { InvoiceFormState } from "../actions";
 import { formatMoney, type Currency, CURRENCIES } from "@/lib/format";
@@ -156,14 +157,70 @@ export function InvoiceForm({
   }));
 
   return (
-    <form action={formAction} className="odoo">
+    <form action={formAction} className="odoo relative">
       <input type="hidden" name="items" value={JSON.stringify(itemsForServer)} />
+
+      {pending && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-[1px]">
+          <div className="w-[320px] rounded-md border border-gray-200 bg-white px-5 py-4 shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 animate-spin rounded-full border-2 border-[#b91c1c]/20 border-t-[#b91c1c]" />
+              <div>
+                <div className="text-[14px] font-semibold text-gray-900">
+                  ກຳລັງບັນທຶກ ແລະສົ່ງ eTax
+                </div>
+                <div className="mt-0.5 text-[12px] text-gray-500">
+                  ກະລຸນາລໍຖ້າຈົນ eTax approve
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {state?.success && state.pdfUrl && state.detailUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 px-4">
+          <div className="w-full max-w-sm rounded-md border border-gray-200 bg-white shadow-xl">
+            <div className="border-b border-gray-100 px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+                  ✓
+                </div>
+                <div>
+                  <div className="text-[15px] font-semibold text-gray-900">
+                    ບັນທຶກສຳເລັດ
+                  </div>
+                  <div className="mt-0.5 text-[12px] text-gray-500">
+                    {state.invoiceNumber ?? "Invoice"} ພ້ອມເປີດ PDF
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 px-5 py-4">
+              <Link
+                href={state.detailUrl}
+                className="rounded px-3 py-1.5 text-[13px] text-gray-700 hover:bg-gray-100"
+              >
+                ໄປໜ້າບິນ
+              </Link>
+              <a
+                href={state.pdfUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded bg-[#b91c1c] px-3 py-1.5 text-[13px] font-medium text-white hover:bg-[#991b1b]"
+              >
+                ເປີດ PDF
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Breadcrumb */}
       <div className="text-xs text-gray-500 px-1 mb-2">
-        <a href="/invoices" className="hover:underline">
+        <Link href="/invoices" className="hover:underline">
           ບິນອາກອນລູກຄ້າ
-        </a>
+        </Link>
         <span className="mx-1.5 text-gray-400">›</span>
         <span className="text-gray-700">
           {isEdit ? initial?.number ?? "ແກ້ໄຂ" : "ໃໝ່"}

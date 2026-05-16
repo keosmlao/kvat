@@ -35,10 +35,11 @@ export default async function SettingsPage() {
         enableReports: setting?.enableReports ?? true,
         enableDashboard: setting?.enableDashboard ?? true,
         etaxAutoSubmit: setting?.etaxAutoSubmit ?? false,
-        etaxEnv: setting?.etaxEnv ?? "",
-        etaxUsername: setting?.etaxUsername ?? "",
-        etaxSecret: setting?.etaxSecret ?? "",
-        etaxIssueCode: setting?.etaxIssueCode ?? "",
+        bankName: setting?.bankName ?? "",
+        bankAccount: setting?.bankAccount ?? "",
+        bankAccountName: setting?.bankAccountName ?? "",
+        licenseNumber: setting?.licenseNumber ?? "",
+        licenseDate: setting?.licenseDate ?? "",
       }}
       userCount={userCount}
       tenantInfo={{

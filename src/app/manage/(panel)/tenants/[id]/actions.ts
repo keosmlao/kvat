@@ -2,14 +2,21 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 import { masterPrisma } from "@/lib/master-prisma";
+import { getTenantPrisma } from "@/lib/tenant-prisma";
 import { requireManagement } from "@/lib/management-session";
 import { TenantPlan, TenantStatus } from "@/generated/master/client";
+import { nextBillingInvoiceNumber, planProduct } from "@/lib/billing";
+import { ensureCustomerForTenant } from "@/lib/billing-codes";
 
 export type ActionState = { error?: string; success?: string } | undefined;
 
 const approveSchema = z.object({
   plan: z.enum(["YEARLY", "LIFETIME"]),
+  // Optional explicit product override. When empty, falls back to whichever
+  // product admin pinned for this plan in BillingConfig.
+  productId: z.string().optional(),
 });
 
 export async function approveTenant(
@@ -18,9 +25,13 @@ export async function approveTenant(
   formData: FormData,
 ): Promise<ActionState> {
   const mgmt = await requireManagement();
-  const parsed = approveSchema.safeParse({ plan: formData.get("plan") });
+  const parsed = approveSchema.safeParse({
+    plan: formData.get("plan"),
+    productId: String(formData.get("productId") ?? "").trim() || undefined,
+  });
   if (!parsed.success) return { error: "ກະລຸນາເລືອກ plan" };
   const plan = parsed.data.plan;
+  const overrideProductId = parsed.data.productId;
 
   const now = new Date();
   const paidUntil =
@@ -41,6 +52,69 @@ export async function approveTenant(
     });
   } catch (e) {
     return { error: e instanceof Error ? e.message : "ບໍ່ສຳເລັດ" };
+  }
+
+  // Auto-issue a BillingInvoice. Use the explicitly chosen product when the
+  // admin overrode it on the form; otherwise fall back to the BillingConfig
+  // default for this plan. No product → skip (admin can issue manually).
+  const product = overrideProductId
+    ? await (async () => {
+        const p = await masterPrisma.billingProduct.findUnique({
+          where: { id: overrideProductId },
+        });
+        return p
+          ? {
+              id: p.id,
+              code: p.code,
+              name: p.name,
+              unit: p.unit,
+              priceLak: p.priceLak,
+            }
+          : null;
+      })()
+    : await planProduct(plan);
+  if (product && product.priceLak > 0) {
+    try {
+      const customer = await ensureCustomerForTenant(id);
+      const number = await nextBillingInvoiceNumber();
+      const vatMode = "EXCLUSIVE";
+      const vatRate = 0.1;
+      const subtotal = product.priceLak;
+      const vatAmount = Math.round(subtotal * vatRate * 100) / 100;
+      const grandTotal = subtotal + vatAmount;
+      await masterPrisma.billingInvoice.create({
+        data: {
+          number,
+          customerId: customer.id,
+          description: product.name,
+          subtotal,
+          discount: 0,
+          vatMode,
+          vatRate,
+          vatAmount,
+          amount: grandTotal,
+          currency: "LAK",
+          createdBy: mgmt.managementUserId,
+          items: {
+            create: [
+              {
+                sn: 1,
+                productId: product.id,
+                description: product.name,
+                unit: product.unit,
+                quantity: 1,
+                unitPrice: product.priceLak,
+                discount: 0,
+                total: product.priceLak,
+              },
+            ],
+          },
+        },
+      });
+      revalidatePath("/manage/billing");
+    } catch {
+      // Non-blocking — approval already succeeded. Operator can issue invoice manually.
+    }
   }
 
   revalidatePath("/manage/tenants");
@@ -110,6 +184,50 @@ export async function deleteTenantHard(
 
 function errMsg(e: unknown) {
   return e instanceof Error ? e.message : String(e);
+}
+
+const resetPasswordSchema = z.object({
+  email: z.string().email("ອີເມວບໍ່ຖືກຕ້ອງ"),
+  password: z.string().min(8, "ລະຫັດຜ່ານ ≥ 8 ຕົວ"),
+});
+
+export async function resetTenantUserPassword(
+  tenantId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireManagement();
+  const parsed = resetPasswordSchema.safeParse({
+    email: String(formData.get("email") ?? "").toLowerCase(),
+    password: String(formData.get("password") ?? ""),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ" };
+  }
+
+  const tenant = await masterPrisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { dbName: true },
+  });
+  if (!tenant) return { error: "ບໍ່ພົບ tenant" };
+
+  const hashed = await bcrypt.hash(parsed.data.password, 10);
+  const tenantDb = getTenantPrisma(tenant.dbName);
+  const updated = await tenantDb.user.updateMany({
+    where: { email: parsed.data.email },
+    data: { password: hashed },
+  });
+  if (updated.count === 0) {
+    return { error: "ບໍ່ພົບບັນຊີ user ນີ້ໃນ tenant" };
+  }
+
+  // Invalidate any pending self-service reset tokens for this email — admin
+  // override should close prior outstanding links.
+  await masterPrisma.passwordResetToken.deleteMany({
+    where: { email: parsed.data.email, usedAt: null },
+  });
+
+  return { success: `✓ ປ່ຽນລະຫັດໃຫ້ ${parsed.data.email} ສຳເລັດ` };
 }
 
 const notesSchema = z.object({ notes: z.string().max(2000) });

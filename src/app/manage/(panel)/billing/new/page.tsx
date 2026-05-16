@@ -1,0 +1,61 @@
+import Link from "next/link";
+import { masterPrisma } from "@/lib/master-prisma";
+import { BillingInvoiceForm } from "../invoice-form";
+
+export default async function NewBillingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ customerId?: string }>;
+}) {
+  const sp = await searchParams;
+
+  const [customers, products] = await Promise.all([
+    masterPrisma.billingCustomer.findMany({
+      orderBy: [{ type: "asc" }, { name: "asc" }],
+      select: { id: true, code: true, name: true, type: true },
+    }),
+    masterPrisma.billingProduct.findMany({
+      where: { active: true },
+      orderBy: { code: "asc" },
+      select: { id: true, code: true, name: true, unit: true, priceLak: true },
+    }),
+  ]);
+
+  return (
+    <div>
+      <div className="mb-4">
+        <Link
+          href="/manage/billing"
+          className="text-[12px] text-gray-500 hover:text-gray-800"
+        >
+          ← Billing
+        </Link>
+      </div>
+      <h1 className="text-[22px] font-medium text-gray-900 mb-1">
+        ສ້າງໃບເກັບເງິນໃໝ່
+      </h1>
+      <p className="text-[12px] text-gray-500 mb-5">
+        ໃບເກັບເງິນຄ່າບໍລິການ — ມີ line items + VAT
+      </p>
+
+      <div className="bg-white border border-gray-200 rounded p-5">
+        <BillingInvoiceForm
+          mode="create"
+          customers={customers}
+          products={products}
+          initial={{
+            customerId: sp.customerId ?? "",
+            description: `ໃບເກັບເງິນ ປະຈຳວັນທີ ${new Date().toISOString().slice(0, 10)}`,
+            currency: "LAK",
+            vatMode: "EXCLUSIVE",
+            vatRate: 0.1,
+            invoiceDiscount: 0,
+            dueDate: "",
+            notes: "",
+            items: [],
+          }}
+        />
+      </div>
+    </div>
+  );
+}

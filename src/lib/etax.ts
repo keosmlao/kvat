@@ -1,6 +1,7 @@
 import "server-only";
 import crypto from "node:crypto";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { masterPrisma } from "./master-prisma";
 
 // ─────────────────────────── Config ───────────────────────────
 
@@ -13,8 +14,8 @@ export type EtaxCreds = {
 };
 
 // Per-request override. Server Actions wrap their bodies in `withEtaxCreds`
-// after loading the tenant's Setting; everything inside reads those creds.
-// Outside the store we fall back to env vars (legacy single-tenant path).
+// after loading the global EtaxConfig; everything inside reads those creds.
+// Outside the store we fall back to env vars (e.g. for utility scripts).
 const credsStore = new AsyncLocalStorage<EtaxCreds>();
 
 function envCreds(): EtaxCreds {
@@ -27,6 +28,36 @@ function envCreds(): EtaxCreds {
   };
 }
 
+// In-process cache of the master EtaxConfig row. Refreshed every CACHE_TTL_MS
+// so admin edits via /manage/etax-config take effect within ~a minute on
+// every server process without needing a deploy.
+const CACHE_TTL_MS = 60_000;
+let credsCache: { value: Omit<EtaxCreds, "issueCode">; expiresAt: number } | null = null;
+
+// Shared parts of EtaxCreds — everything except issueCode, which is per-tenant.
+type GlobalEtaxCreds = Omit<EtaxCreds, "issueCode">;
+
+export async function loadGlobalEtaxCreds(): Promise<GlobalEtaxCreds> {
+  const now = Date.now();
+  if (credsCache && credsCache.expiresAt > now) return credsCache.value;
+  const row = await masterPrisma.etaxConfig.findUnique({ where: { id: 1 } });
+  // Gateway URL still falls back to env — it's infra config, not a credential.
+  const fallback = envCreds();
+  const creds: GlobalEtaxCreds = {
+    gateway: row?.gateway || fallback.gateway,
+    env: (row?.env || fallback.env) as "dev" | "prod",
+    username: row?.username || fallback.username,
+    secret: row?.secret || fallback.secret,
+  };
+  credsCache = { value: creds, expiresAt: now + CACHE_TTL_MS };
+  return creds;
+}
+
+// Force the next loadGlobalEtaxCreds() to bypass cache. Call after admin save.
+export function invalidateEtaxCredsCache(): void {
+  credsCache = null;
+}
+
 function currentCreds(): EtaxCreds {
   return credsStore.getStore() ?? envCreds();
 }
@@ -35,21 +66,28 @@ export function withEtaxCreds<T>(creds: EtaxCreds, fn: () => Promise<T>): Promis
   return credsStore.run(creds, fn);
 }
 
+// Convenience: combine global creds with the tenant's TIN and run inside the
+// store. Callers pass the tenant's taxId (Setting.taxId).
+export async function withTenantEtaxCreds<T>(
+  tenantTaxId: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const global = await loadGlobalEtaxCreds();
+  return credsStore.run({ ...global, issueCode: tenantTaxId }, fn);
+}
+
 export function isEtaxConfigured(): boolean {
   const c = currentCreds();
   return Boolean(c.gateway && c.username && c.secret && c.issueCode);
 }
 
-// Legacy export — many call sites still read this constant directly.
-// Defined as a getter so it reflects the current store.
-export const ETAX_ISSUE_CODE = new Proxy(
-  { _: "" },
-  {
-    get() {
-      return currentCreds().issueCode;
-    },
-  },
-) as unknown as string;
+// Read the issueCode currently in the AsyncLocalStorage. Must be called
+// inside a withTenantEtaxCreds block — otherwise falls back to env vars.
+// (We used to expose a Proxy as `ETAX_ISSUE_CODE`, but Proxies don't
+// JSON.stringify cleanly, which made HTTP bodies drop the field.)
+export function getIssueCode(): string {
+  return currentCreds().issueCode;
+}
 
 // ─────────────────────────── HMAC signing ───────────────────────────
 
@@ -240,7 +278,7 @@ export type TaxRate = {
 /** GET available tax rates for the configured issueCode. */
 export async function queryTaxList(): Promise<EtaxResult<TaxRate[]>> {
   return etaxRequest<TaxRate[]>("/api/queryTaxList", {
-    issueCode: ETAX_ISSUE_CODE,
+    issueCode: getIssueCode(),
   });
 }
 
@@ -317,7 +355,7 @@ export async function issueInvoice(
   data: EtaxIssueData,
 ): Promise<EtaxResult<EtaxIssueResult[]>> {
   return etaxRequest<EtaxIssueResult[]>("/api/issueInvoice", {
-    issueCode: ETAX_ISSUE_CODE,
+    issueCode: getIssueCode(),
     data,
   });
 }
@@ -334,7 +372,7 @@ export async function queryInvoiceResult(
   serialNum: string,
 ): Promise<EtaxResult<EtaxQueryResult[]>> {
   return etaxRequest<EtaxQueryResult[]>("/api/queryInvoiceResult", {
-    issueCode: ETAX_ISSUE_CODE,
+    issueCode: getIssueCode(),
     data: { serialNum },
   });
 }
@@ -344,7 +382,7 @@ export async function cancelInvoice(args: {
   issueTime: string;
 }): Promise<EtaxResult<unknown>> {
   return etaxRequest("/api/cancelInvoice", {
-    issueCode: ETAX_ISSUE_CODE,
+    issueCode: getIssueCode(),
     data: args,
   });
 }
@@ -369,7 +407,7 @@ export async function queryRedInvoiceInfo(args: {
   issueTime: string;
 }): Promise<EtaxResult<EtaxRedInfo[]>> {
   return etaxRequest<EtaxRedInfo[]>("/api/queryRedInvoiceInfo", {
-    issueCode: ETAX_ISSUE_CODE,
+    issueCode: getIssueCode(),
     data: args,
   });
 }

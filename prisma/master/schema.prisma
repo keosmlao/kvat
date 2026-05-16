@@ -45,9 +45,226 @@ model Tenant {
   logins      LoginLog[]
   requests    ApprovalRequest[]
   users       TenantUserEmail[]
+  customers   BillingCustomer[]
 
   @@index([status])
   @@index([trialEndsAt])
+}
+
+enum BillingStatus {
+  UNPAID
+  PAID
+  CANCELLED
+}
+
+enum BillingCustomerType {
+  TENANT     // signed up to the SaaS — linked back to a Tenant row
+  EXTERNAL   // bought a system/service from SMLAO but not a tenant
+}
+
+enum BillingProductKind {
+  PRODUCT    // ສິນຄ້າ — tangible goods
+  SERVICE    // ບໍລິການ — service / subscription
+}
+
+// Master-side customer directory. Two kinds: TENANT (auto-created from a
+// signed-up tenant) and EXTERNAL (anyone else SMLAO bills — e.g. one-off
+// system buyers, consulting clients).
+model BillingCustomer {
+  id          String              @id @default(cuid())
+  code        String              @unique          // C0001 — auto-generated
+  name        String
+  type        BillingCustomerType @default(EXTERNAL)
+  tenantId    String?
+  tenant      Tenant?             @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  taxId       String?
+  phone       String?
+  email       String?
+  address     String?
+  contactName String?
+  notes       String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  invoices    BillingInvoice[]
+
+  @@unique([tenantId])
+  @@index([type])
+}
+
+// Product/service catalogue. Used to auto-fill line items on invoices.
+// `kind` distinguishes tangible goods (PRODUCT) from services/subscriptions
+// (SERVICE) — drives icon, default unit, and lets admin filter the list.
+model BillingProduct {
+  id              String               @id @default(cuid())
+  code            String               @unique  // P0001
+  name            String
+  kind            BillingProductKind   @default(SERVICE)
+  description     String?
+  unit            String               @default("ໜ່ວຍ")
+  priceLak        Float                @default(0)
+  active          Boolean              @default(true)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  items           BillingInvoiceItem[]
+  yearlyForConfig BillingConfig?       @relation("YearlyProduct")
+  lifetimeForConfig BillingConfig?     @relation("LifetimeProduct")
+
+  @@index([active])
+  @@index([kind])
+}
+
+// Service-fee invoices SMLAO issues to its tenants. One row per invoice;
+// the tenant pays SMLAO directly (cash or transfer) — this is *not* part of
+// the eTax pipeline.
+// Service-fee invoices SMLAO issues to its tenants. Full tax invoice shape
+// — multiple line items + VAT — so the PDF can reuse the same layout as
+// tenant tax invoices. `description` is kept as a header/summary label and
+// `amount` holds the grand total (kept as the column name for backward
+// compatibility with the original simpler model).
+model BillingInvoice {
+  id            String               @id @default(cuid())
+  number        String               @unique          // e.g. "BIL-2026-0001"
+  customerId    String
+  customer      BillingCustomer      @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  description   String                                 // header label / legacy summary
+  subtotal      Float                @default(0)      // sum of item totals before VAT
+  discount      Float                @default(0)
+  vatMode       String               @default("EXCLUSIVE") // EXCLUSIVE | INCLUSIVE | EXEMPT
+  vatRate       Float                @default(0.1)
+  vatAmount     Float                @default(0)
+  amount        Float                                  // grand total
+  currency      String               @default("LAK")
+  issueDate     DateTime             @default(now())
+  dueDate       DateTime?
+  paidAt        DateTime?
+  paymentMethod String?                                // CASH | TRANSFER
+  paymentRef    String?                                // slip/transfer reference
+  status        BillingStatus        @default(UNPAID)
+  notes         String?
+  createdBy     String?                                // ManagementUser.id
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  items         BillingInvoiceItem[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([issueDate])
+}
+
+model BillingInvoiceItem {
+  id          String          @id @default(cuid())
+  invoiceId   String
+  invoice     BillingInvoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     BillingProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  sn          Int             @default(1)
+  description String
+  unit        String          @default("ໜ່ວຍ")
+  quantity    Float           @default(1)
+  unitPrice   Float
+  discount    Float           @default(0)
+  total       Float
+
+  @@index([invoiceId])
+}
+
+enum LedgerType {
+  INCOME
+  EXPENSE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+}
+
+// Admin-managed list of income/expense buckets. Type is tied to the
+// category so the UI can show only relevant ones when picking on a new
+// entry form (income form → INCOME categories, expense form → EXPENSE).
+model LedgerCategory {
+  id            String          @id @default(cuid())
+  name          String
+  type          LedgerType
+  archived      Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  entries       LedgerEntry[]
+  subscriptions Subscription[]
+
+  @@unique([name, type])
+  @@index([type, archived])
+}
+
+// Single income/expense record. `subscriptionId` is set when the entry was
+// auto-generated by recording a subscription payment — links back so the
+// subscription's history can be reconstructed.
+model LedgerEntry {
+  id             String          @id @default(cuid())
+  type           LedgerType
+  categoryId     String?
+  category       LedgerCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  description    String
+  vendor         String?         // who got paid (expense) / paid us (income)
+  amount         Float
+  currency       String          @default("LAK")
+  date           DateTime
+  paymentMethod  String?         // CASH | TRANSFER
+  paymentRef     String?
+  notes          String?
+  subscriptionId String?
+  subscription   Subscription?   @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  createdBy      String?
+  createdAt      DateTime        @default(now())
+
+  @@index([type, date])
+  @@index([categoryId])
+  @@index([subscriptionId])
+}
+
+// Recurring expense contracts: hosting, domain, SaaS, rent — anything with
+// a renewal cadence. `nextRenewalDate` drives upcoming-renewal alerts and is
+// rolled forward by one billing cycle each time admin records a payment.
+model Subscription {
+  id              String              @id @default(cuid())
+  name            String
+  vendor          String
+  categoryId      String?
+  category        LedgerCategory?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  amount          Float
+  currency        String              @default("LAK")
+  billingCycle    String              @default("MONTHLY") // MONTHLY | QUARTERLY | YEARLY
+  startDate       DateTime
+  nextRenewalDate DateTime
+  endDate         DateTime?
+  status          SubscriptionStatus  @default(ACTIVE)
+  autoRenew       Boolean             @default(true)
+  notes           String?
+  entries         LedgerEntry[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([status, nextRenewalDate])
+}
+
+// Global billing settings — points at a BillingProduct per plan (Yearly /
+// Lifetime) so admin can manage prices/names in one place (Products catalog)
+// and the auto-billing logic picks them up. Plus SMLAO's seller info that
+// goes on every issued BillingInvoice PDF. Single row (id=1).
+model BillingConfig {
+  id                Int             @id @default(1)
+  invoicePrefix     String          @default("BIL-")
+  yearlyProductId   String?         @unique
+  yearlyProduct     BillingProduct? @relation("YearlyProduct", fields: [yearlyProductId], references: [id], onDelete: SetNull)
+  lifetimeProductId String?         @unique
+  lifetimeProduct   BillingProduct? @relation("LifetimeProduct", fields: [lifetimeProductId], references: [id], onDelete: SetNull)
+  sellerName        String          @default("SMLAO")
+  sellerNameEn      String?
+  sellerTaxId       String?
+  sellerAddress     String?
+  sellerPhone       String?
+  sellerBankAccount String?
+  sellerBankName    String?
+  sellerBankAccountName String?
+  updatedAt         DateTime        @updatedAt
 }
 
 // Global email → tenant lookup. Lets staff users log in without the owner
@@ -97,6 +314,19 @@ model LoginLog {
   createdAt DateTime @default(now())
 
   @@index([tenantId, createdAt])
+}
+
+// Global eTax Invoice Gateway config — single row (id=1). All tenants share
+// the same MoF agent account (gateway/env/username/secret). The issueCode
+// (TIN) is per-tenant and read from Setting.taxId at request time.
+model EtaxConfig {
+  id        Int      @id @default(1)
+  gateway   String   @default("")  // base URL e.g. https://etax-dev.la
+  env       String   @default("dev") // "dev" | "prod"
+  username  String   @default("")
+  secret    String   @default("")  // stored at rest; encrypt at app layer in prod
+  updatedAt DateTime @updatedAt
+  updatedBy String?                // ManagementUser.id of last editor
 }
 
 model ApprovalRequest {

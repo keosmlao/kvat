@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { masterPrisma } from "@/lib/master-prisma";
+import { getTenantPrisma } from "@/lib/tenant-prisma";
 import { TenantStatus, TenantPlan } from "@/generated/master/client";
-import { ApproveForm, StatusActions, NotesForm } from "./tenant-actions";
+import {
+  ApproveForm,
+  StatusActions,
+  NotesForm,
+  ResetPasswordForm,
+} from "./tenant-actions";
 
 const STATUS_LABEL: Record<TenantStatus, { label: string; cls: string }> = {
   TRIAL: { label: "ທົດລອງ", cls: "bg-blue-50 text-blue-700 border-blue-200" },
@@ -69,7 +75,41 @@ export default async function TenantDetailPage({
     },
   });
   if (!tenant) notFound();
+  const tenantDb = getTenantPrisma(tenant.dbName);
+  const [tenantUsers, billingCfg, billingProducts] = await Promise.all([
+    tenantDb.user.findMany({
+      select: {
+        email: true,
+        name: true,
+        role: true,
+        lastSeenAt: true,
+        createdAt: true,
+      },
+      orderBy: [{ role: "asc" }, { email: "asc" }],
+    }),
+    masterPrisma.billingConfig.findUnique({
+      where: { id: 1 },
+      include: {
+        yearlyProduct: {
+          select: { id: true, code: true, name: true, priceLak: true },
+        },
+        lifetimeProduct: {
+          select: { id: true, code: true, name: true, priceLak: true },
+        },
+      },
+    }),
+    masterPrisma.billingProduct.findMany({
+      where: { active: true },
+      orderBy: { code: "asc" },
+      select: { id: true, code: true, name: true, unit: true, priceLak: true },
+    }),
+  ]);
   const totalLogins = tenant._count.logins;
+  // "Online" = activity in the last 5 minutes. The session.ts throttle writes
+  // lastSeenAt at most every 60s, so a 5-min window covers active users
+  // without false negatives during quiet stretches.
+  const ONLINE_WINDOW_MS = 5 * 60_000;
+  const nowMs = Date.now();
   const totalPages = Math.max(1, Math.ceil(totalLogins / PAGE_SIZE));
 
   const statusInfo = STATUS_LABEL[tenant.status];
@@ -159,12 +199,77 @@ export default async function TenantDetailPage({
             <p className="text-[12px] text-gray-600 mb-3">
               ຍ້າຍ tenant ນີ້ຈາກ TRIAL ໄປ ACTIVE ດ້ວຍ plan ທີ່ເລືອກ.
             </p>
-            <ApproveForm id={tenant.id} />
+            <ApproveForm
+              id={tenant.id}
+              defaults={{
+                yearly: billingCfg?.yearlyProduct ?? null,
+                lifetime: billingCfg?.lifetimeProduct ?? null,
+              }}
+              products={billingProducts}
+            />
           </Card>
         )}
 
         <Card title="ບັນທຶກພາຍໃນ">
           <NotesForm id={tenant.id} initialNotes={tenant.notes ?? ""} />
+        </Card>
+
+        <Card title={`Users (${tenantUsers.length})`} className="md:col-span-2">
+          {tenantUsers.length === 0 ? (
+            <p className="text-[12px] text-gray-400 italic">ບໍ່ມີ user</p>
+          ) : (
+            <table className="w-full text-[13px]">
+              <thead className="text-[11px] uppercase text-gray-500">
+                <tr>
+                  <th className="text-left py-1">ສະຖານະ</th>
+                  <th className="text-left py-1">ຊື່</th>
+                  <th className="text-left py-1">Email</th>
+                  <th className="text-left py-1">Role</th>
+                  <th className="text-left py-1">ເຫັນລ່າສຸດ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {tenantUsers.map((u) => {
+                  const seenMs = u.lastSeenAt?.getTime() ?? 0;
+                  const online =
+                    seenMs > 0 && nowMs - seenMs < ONLINE_WINDOW_MS;
+                  return (
+                    <tr key={u.email}>
+                      <td className="py-1">
+                        {online ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-medium">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            online
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-gray-400">
+                            <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                            offline
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-1">{u.name}</td>
+                      <td className="py-1 text-gray-700">{u.email}</td>
+                      <td className="py-1 text-[11px] uppercase tracking-wider text-gray-500">
+                        {u.role}
+                      </td>
+                      <td className="py-1 text-gray-600">
+                        {u.lastSeenAt ? fmt(u.lastSeenAt) : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </Card>
+
+        <Card title="🔐 Reset ລະຫັດຜ່ານ user">
+          <p className="text-[12px] text-gray-600 mb-3">
+            ຕັ້ງລະຫັດຜ່ານໃໝ່ໃຫ້ user ໃນ tenant ນີ້. ໃຊ້ສຳລັບກໍລະນີ user ລືມລະຫັດ
+            ແລະ ບໍ່ສາມາດ reset ດ້ວຍຕົນເອງໄດ້.
+          </p>
+          <ResetPasswordForm id={tenant.id} users={tenantUsers} />
         </Card>
 
         <Card title="Approval requests" className="md:col-span-2">

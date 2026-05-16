@@ -52,10 +52,19 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   Tenant: 'Tenant',
+  BillingCustomer: 'BillingCustomer',
+  BillingProduct: 'BillingProduct',
+  BillingInvoice: 'BillingInvoice',
+  BillingInvoiceItem: 'BillingInvoiceItem',
+  LedgerCategory: 'LedgerCategory',
+  LedgerEntry: 'LedgerEntry',
+  Subscription: 'Subscription',
+  BillingConfig: 'BillingConfig',
   TenantUserEmail: 'TenantUserEmail',
   PasswordResetToken: 'PasswordResetToken',
   ManagementUser: 'ManagementUser',
   LoginLog: 'LoginLog',
+  EtaxConfig: 'EtaxConfig',
   ApprovalRequest: 'ApprovalRequest'
 } as const
 
@@ -97,6 +106,155 @@ export const TenantScalarFieldEnum = {
 } as const
 
 export type TenantScalarFieldEnum = (typeof TenantScalarFieldEnum)[keyof typeof TenantScalarFieldEnum]
+
+
+export const BillingCustomerScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  name: 'name',
+  type: 'type',
+  tenantId: 'tenantId',
+  taxId: 'taxId',
+  phone: 'phone',
+  email: 'email',
+  address: 'address',
+  contactName: 'contactName',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BillingCustomerScalarFieldEnum = (typeof BillingCustomerScalarFieldEnum)[keyof typeof BillingCustomerScalarFieldEnum]
+
+
+export const BillingProductScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  name: 'name',
+  kind: 'kind',
+  description: 'description',
+  unit: 'unit',
+  priceLak: 'priceLak',
+  active: 'active',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BillingProductScalarFieldEnum = (typeof BillingProductScalarFieldEnum)[keyof typeof BillingProductScalarFieldEnum]
+
+
+export const BillingInvoiceScalarFieldEnum = {
+  id: 'id',
+  number: 'number',
+  customerId: 'customerId',
+  description: 'description',
+  subtotal: 'subtotal',
+  discount: 'discount',
+  vatMode: 'vatMode',
+  vatRate: 'vatRate',
+  vatAmount: 'vatAmount',
+  amount: 'amount',
+  currency: 'currency',
+  issueDate: 'issueDate',
+  dueDate: 'dueDate',
+  paidAt: 'paidAt',
+  paymentMethod: 'paymentMethod',
+  paymentRef: 'paymentRef',
+  status: 'status',
+  notes: 'notes',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BillingInvoiceScalarFieldEnum = (typeof BillingInvoiceScalarFieldEnum)[keyof typeof BillingInvoiceScalarFieldEnum]
+
+
+export const BillingInvoiceItemScalarFieldEnum = {
+  id: 'id',
+  invoiceId: 'invoiceId',
+  productId: 'productId',
+  sn: 'sn',
+  description: 'description',
+  unit: 'unit',
+  quantity: 'quantity',
+  unitPrice: 'unitPrice',
+  discount: 'discount',
+  total: 'total'
+} as const
+
+export type BillingInvoiceItemScalarFieldEnum = (typeof BillingInvoiceItemScalarFieldEnum)[keyof typeof BillingInvoiceItemScalarFieldEnum]
+
+
+export const LedgerCategoryScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  type: 'type',
+  archived: 'archived',
+  createdAt: 'createdAt'
+} as const
+
+export type LedgerCategoryScalarFieldEnum = (typeof LedgerCategoryScalarFieldEnum)[keyof typeof LedgerCategoryScalarFieldEnum]
+
+
+export const LedgerEntryScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  categoryId: 'categoryId',
+  description: 'description',
+  vendor: 'vendor',
+  amount: 'amount',
+  currency: 'currency',
+  date: 'date',
+  paymentMethod: 'paymentMethod',
+  paymentRef: 'paymentRef',
+  notes: 'notes',
+  subscriptionId: 'subscriptionId',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt'
+} as const
+
+export type LedgerEntryScalarFieldEnum = (typeof LedgerEntryScalarFieldEnum)[keyof typeof LedgerEntryScalarFieldEnum]
+
+
+export const SubscriptionScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  vendor: 'vendor',
+  categoryId: 'categoryId',
+  amount: 'amount',
+  currency: 'currency',
+  billingCycle: 'billingCycle',
+  startDate: 'startDate',
+  nextRenewalDate: 'nextRenewalDate',
+  endDate: 'endDate',
+  status: 'status',
+  autoRenew: 'autoRenew',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SubscriptionScalarFieldEnum = (typeof SubscriptionScalarFieldEnum)[keyof typeof SubscriptionScalarFieldEnum]
+
+
+export const BillingConfigScalarFieldEnum = {
+  id: 'id',
+  invoicePrefix: 'invoicePrefix',
+  yearlyProductId: 'yearlyProductId',
+  lifetimeProductId: 'lifetimeProductId',
+  sellerName: 'sellerName',
+  sellerNameEn: 'sellerNameEn',
+  sellerTaxId: 'sellerTaxId',
+  sellerAddress: 'sellerAddress',
+  sellerPhone: 'sellerPhone',
+  sellerBankAccount: 'sellerBankAccount',
+  sellerBankName: 'sellerBankName',
+  sellerBankAccountName: 'sellerBankAccountName',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BillingConfigScalarFieldEnum = (typeof BillingConfigScalarFieldEnum)[keyof typeof BillingConfigScalarFieldEnum]
 
 
 export const TenantUserEmailScalarFieldEnum = {
@@ -143,6 +301,19 @@ export const LoginLogScalarFieldEnum = {
 } as const
 
 export type LoginLogScalarFieldEnum = (typeof LoginLogScalarFieldEnum)[keyof typeof LoginLogScalarFieldEnum]
+
+
+export const EtaxConfigScalarFieldEnum = {
+  id: 'id',
+  gateway: 'gateway',
+  env: 'env',
+  username: 'username',
+  secret: 'secret',
+  updatedAt: 'updatedAt',
+  updatedBy: 'updatedBy'
+} as const
+
+export type EtaxConfigScalarFieldEnum = (typeof EtaxConfigScalarFieldEnum)[keyof typeof EtaxConfigScalarFieldEnum]
 
 
 export const ApprovalRequestScalarFieldEnum = {

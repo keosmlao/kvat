@@ -26,3 +26,44 @@ export const TenantStatus = {
 } as const
 
 export type TenantStatus = (typeof TenantStatus)[keyof typeof TenantStatus]
+
+
+export const BillingStatus = {
+  UNPAID: 'UNPAID',
+  PAID: 'PAID',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type BillingStatus = (typeof BillingStatus)[keyof typeof BillingStatus]
+
+
+export const BillingCustomerType = {
+  TENANT: 'TENANT',
+  EXTERNAL: 'EXTERNAL'
+} as const
+
+export type BillingCustomerType = (typeof BillingCustomerType)[keyof typeof BillingCustomerType]
+
+
+export const BillingProductKind = {
+  PRODUCT: 'PRODUCT',
+  SERVICE: 'SERVICE'
+} as const
+
+export type BillingProductKind = (typeof BillingProductKind)[keyof typeof BillingProductKind]
+
+
+export const LedgerType = {
+  INCOME: 'INCOME',
+  EXPENSE: 'EXPENSE'
+} as const
+
+export type LedgerType = (typeof LedgerType)[keyof typeof LedgerType]
+
+
+export const SubscriptionStatus = {
+  ACTIVE: 'ACTIVE',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type SubscriptionStatus = (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus]

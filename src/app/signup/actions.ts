@@ -168,6 +168,16 @@ export async function signupAction(
     };
   }
 
+  // Auto-create a BillingCustomer (type=TENANT) so this tenant immediately
+  // shows up in /manage/billing/customers and can be billed without manual
+  // setup. Non-blocking — admin can create one later if this races/fails.
+  try {
+    const { ensureCustomerForTenant } = await import("@/lib/billing-codes");
+    await ensureCustomerForTenant(tenant.id);
+  } catch {
+    // Non-blocking — signup still succeeds.
+  }
+
   // The seed already created a User row inside the tenant DB. Authenticate
   // against it now to mint a session.
   const { authenticate } = await import("@/lib/session");

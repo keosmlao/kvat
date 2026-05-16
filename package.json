@@ -16,7 +16,13 @@
     "master:seed:template": "tsx prisma/master/seed-template.ts",
     "dump:tenant-schema": "bash scripts/dump-tenant-schema.sh",
     "trial:expire": "tsx scripts/trial-expire.ts",
-    "loginlog:prune": "tsx scripts/loginlog-prune.ts"
+    "loginlog:prune": "tsx scripts/loginlog-prune.ts",
+    "migrate:lastseenat": "tsx scripts/add-lastseenat.ts",
+    "seed:etax-config": "tsx scripts/seed-etax-config.ts",
+    "migrate:drop-tenant-etax": "tsx scripts/drop-tenant-etax-cols.ts",
+    "migrate:invoice-pdf-fields": "tsx scripts/add-invoice-pdf-fields.ts",
+    "seed:ledger-categories": "tsx scripts/seed-ledger-categories.ts",
+    "backfill:billing-items": "tsx scripts/backfill-billing-items.ts"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.8.0",

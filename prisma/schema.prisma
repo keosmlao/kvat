@@ -15,13 +15,14 @@ enum UserRole {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      UserRole @default(STAFF)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String    @id @default(cuid())
+  email       String    @unique
+  password    String
+  name        String
+  role        UserRole  @default(STAFF)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastSeenAt  DateTime?
   invoices  Invoice[]
   payments  Payment[]
   messages  Message[]
@@ -358,6 +359,13 @@ model Setting {
   phone           String?
   email           String?
   logoUrl         String?
+  // Bank account printed on invoice PDF (optional)
+  bankName        String?  // e.g. "BCEL LAK"
+  bankAccount     String?  // e.g. "220-11-00036139"
+  bankAccountName String?  // account holder, typically same as shopName
+  // Business license printed at invoice footer (optional)
+  licenseNumber   String?  // e.g. "201/ສອ.ມຊຖ"
+  licenseDate     String?  // free-text date e.g. "19-02-2025"
   vatRate         Float    @default(0.1)
   defaultCurrency String   @default("LAK")
   invoicePrefix   String   @default("INV")
@@ -367,13 +375,8 @@ model Setting {
   enableChatter      Boolean @default(true)
   enableReports      Boolean @default(true)
   enableDashboard    Boolean @default(true)
-  // eTax behaviour
-  etaxAutoSubmit     Boolean @default(false) // submit invoice to eTax immediately after creation
-  // Per-tenant eTax credentials (override env-level defaults). When all four
-  // are null the gateway is unconfigured for this tenant.
-  etaxEnv            String? // "dev" | "prod"
-  etaxUsername       String?
-  etaxSecret         String? // stored at rest; encrypt at app layer in production
-  etaxIssueCode      String? // tax-payer issue code (TIN)
+  // eTax behaviour — credentials are now global (master DB EtaxConfig).
+  // Per-tenant only controls whether to auto-submit invoices to the gateway.
+  etaxAutoSubmit     Boolean @default(false)
   updatedAt       DateTime @updatedAt
 }

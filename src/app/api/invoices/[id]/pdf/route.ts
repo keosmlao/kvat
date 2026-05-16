@@ -12,18 +12,25 @@ export async function GET(
   const [invoice, settings] = await Promise.all([
     prisma.invoice.findUnique({
       where: { id },
-      include: { customer: true, user: true, items: true },
+      include: {
+        customer: {
+          include: { province: true, district: true, village: true },
+        },
+        user: true,
+        items: true,
+      },
     }),
     prisma.setting.findUnique({ where: { id: "default" } }),
   ]);
   if (!invoice) notFound();
 
   const buffer = await renderInvoicePdf(invoice, settings);
+  const filename = `${invoice.etaxInvoiceNumber ?? invoice.number}.pdf`;
 
   return new Response(buffer as unknown as BodyInit, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${invoice.number}.pdf"`,
+      "Content-Disposition": `inline; filename="${filename}"`,
     },
   });
 }

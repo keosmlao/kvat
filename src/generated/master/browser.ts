@@ -23,6 +23,46 @@ export * from './enums';
  */
 export type Tenant = Prisma.TenantModel
 /**
+ * Model BillingCustomer
+ * 
+ */
+export type BillingCustomer = Prisma.BillingCustomerModel
+/**
+ * Model BillingProduct
+ * 
+ */
+export type BillingProduct = Prisma.BillingProductModel
+/**
+ * Model BillingInvoice
+ * 
+ */
+export type BillingInvoice = Prisma.BillingInvoiceModel
+/**
+ * Model BillingInvoiceItem
+ * 
+ */
+export type BillingInvoiceItem = Prisma.BillingInvoiceItemModel
+/**
+ * Model LedgerCategory
+ * 
+ */
+export type LedgerCategory = Prisma.LedgerCategoryModel
+/**
+ * Model LedgerEntry
+ * 
+ */
+export type LedgerEntry = Prisma.LedgerEntryModel
+/**
+ * Model Subscription
+ * 
+ */
+export type Subscription = Prisma.SubscriptionModel
+/**
+ * Model BillingConfig
+ * 
+ */
+export type BillingConfig = Prisma.BillingConfigModel
+/**
  * Model TenantUserEmail
  * 
  */
@@ -42,6 +82,11 @@ export type ManagementUser = Prisma.ManagementUserModel
  * 
  */
 export type LoginLog = Prisma.LoginLogModel
+/**
+ * Model EtaxConfig
+ * 
+ */
+export type EtaxConfig = Prisma.EtaxConfigModel
 /**
  * Model ApprovalRequest
  * 

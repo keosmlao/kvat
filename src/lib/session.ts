@@ -6,6 +6,29 @@ import { masterPrisma } from "./master-prisma";
 import { getTenantPrisma } from "./tenant-prisma";
 import { TenantStatus } from "@/generated/master/client";
 
+// In-process throttle for lastSeenAt writes. Without this every protected
+// page request would hit the tenant DB just to bump a timestamp.
+const LAST_SEEN_THROTTLE_MS = 60_000;
+const lastSeenCache = new Map<string, number>();
+
+async function touchLastSeen(dbName: string, userId: string): Promise<void> {
+  const key = `${dbName}:${userId}`;
+  const now = Date.now();
+  const prev = lastSeenCache.get(key);
+  if (prev && now - prev < LAST_SEEN_THROTTLE_MS) return;
+  lastSeenCache.set(key, now);
+  try {
+    const tenantDb = getTenantPrisma(dbName);
+    await tenantDb.user.update({
+      where: { id: userId },
+      data: { lastSeenAt: new Date(now) },
+    });
+  } catch {
+    // Non-critical — drop the cache entry so the next request retries.
+    lastSeenCache.delete(key);
+  }
+}
+
 const SESSION_COOKIE = "smlao_session";
 const SESSION_DAYS = 7;
 
@@ -66,12 +89,18 @@ export async function destroySession() {
 export async function getSession(): Promise<SessionPayload | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
-  return decrypt(token);
+  const session = await decrypt(token);
+  // Treat pre-multi-tenant sessions (missing tenantId) as logged out so old
+  // cookies don't trigger redirect loops between /login and /dashboard.
+  if (session && !session.tenantId) return null;
+  return session;
 }
 
 export async function requireUser() {
   const session = await getSession();
   if (!session) redirect("/login");
+  // Fire-and-forget — don't block the page render on this write.
+  void touchLastSeen(session.dbName, session.userId);
   return session;
 }
 

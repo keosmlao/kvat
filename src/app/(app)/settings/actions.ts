@@ -27,6 +27,11 @@ const settingSchema = z.object({
     .optional()
     .or(z.literal("")),
   logoUrl: z.string().optional(), // legacy hidden input — actual upload handled separately
+  bankName: z.string().optional(),
+  bankAccount: z.string().optional(),
+  bankAccountName: z.string().optional(),
+  licenseNumber: z.string().optional(),
+  licenseDate: z.string().optional(),
   vatRate: z.coerce.number().min(0).max(1),
   defaultCurrency: z.enum(["LAK", "USD", "THB"]),
   invoicePrefix: z.string().min(1, "ຕ້ອງມີ prefix ເລກບິນ"),
@@ -36,10 +41,6 @@ const settingSchema = z.object({
   enableReports: boolish,
   enableDashboard: boolish,
   etaxAutoSubmit: boolish,
-  etaxEnv: z.enum(["dev", "prod"]).optional().or(z.literal("")),
-  etaxUsername: z.string().optional(),
-  etaxSecret: z.string().optional(),
-  etaxIssueCode: z.string().optional(),
 });
 
 export type SettingFormState =
@@ -90,6 +91,11 @@ export async function saveSettings(
         phone: v.phone || null,
         email: v.email || null,
         logoUrl,
+        bankName: v.bankName || null,
+        bankAccount: v.bankAccount || null,
+        bankAccountName: v.bankAccountName || null,
+        licenseNumber: v.licenseNumber || null,
+        licenseDate: v.licenseDate || null,
         vatRate: v.vatRate,
         defaultCurrency: v.defaultCurrency,
         invoicePrefix: v.invoicePrefix,
@@ -99,10 +105,6 @@ export async function saveSettings(
         enableReports: v.enableReports,
         enableDashboard: v.enableDashboard,
         etaxAutoSubmit: v.etaxAutoSubmit,
-        etaxEnv: v.etaxEnv || null,
-        etaxUsername: v.etaxUsername || null,
-        etaxSecret: v.etaxSecret || null,
-        etaxIssueCode: v.etaxIssueCode || null,
       },
       create: {
         id: "default",
@@ -113,6 +115,11 @@ export async function saveSettings(
         phone: v.phone || null,
         email: v.email || null,
         logoUrl,
+        bankName: v.bankName || null,
+        bankAccount: v.bankAccount || null,
+        bankAccountName: v.bankAccountName || null,
+        licenseNumber: v.licenseNumber || null,
+        licenseDate: v.licenseDate || null,
         vatRate: v.vatRate,
         defaultCurrency: v.defaultCurrency,
         invoicePrefix: v.invoicePrefix,
@@ -122,10 +129,6 @@ export async function saveSettings(
         enableReports: v.enableReports,
         enableDashboard: v.enableDashboard,
         etaxAutoSubmit: v.etaxAutoSubmit,
-        etaxEnv: v.etaxEnv || null,
-        etaxUsername: v.etaxUsername || null,
-        etaxSecret: v.etaxSecret || null,
-        etaxIssueCode: v.etaxIssueCode || null,
       },
     });
   } catch (e) {

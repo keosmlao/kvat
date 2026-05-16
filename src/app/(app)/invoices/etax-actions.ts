@@ -9,35 +9,21 @@ import {
   queryInvoiceResult,
   cancelInvoice as etaxCancelInvoice,
   isEtaxConfigured,
-  withEtaxCreds,
-  type EtaxCreds,
+  withTenantEtaxCreds,
+  getIssueCode,
   type EtaxIssueData,
   type EtaxLine,
   type EtaxParty,
 } from "@/lib/etax";
 
-// Resolve per-tenant credentials with env fallback. Gateway URL is global —
-// the same MoF endpoint serves every TIN — but env/username/secret/issueCode
-// can vary per tenant.
-async function loadTenantEtaxCreds(): Promise<EtaxCreds> {
-  const setting = await prisma.setting.findUnique({
+// Read the tenant's TIN from Setting.taxId — the issuing party in every
+// invoice payload. Returns "" when unset so isEtaxConfigured() flags it.
+async function tenantTaxId(): Promise<string> {
+  const s = await prisma.setting.findUnique({
     where: { id: "default" },
-    select: {
-      etaxEnv: true,
-      etaxUsername: true,
-      etaxSecret: true,
-      etaxIssueCode: true,
-    },
+    select: { taxId: true },
   });
-  return {
-    gateway: process.env.ETAX_GATEWAY_URL ?? "",
-    env: ((setting?.etaxEnv || process.env.ETAX_ENV) ?? "dev") as
-      | "dev"
-      | "prod",
-    username: setting?.etaxUsername || process.env.ETAX_USERNAME || "",
-    secret: setting?.etaxSecret || process.env.ETAX_SECRET || "",
-    issueCode: setting?.etaxIssueCode || process.env.ETAX_ISSUE_CODE || "",
-  };
+  return s?.taxId ?? "";
 }
 
 function generateSerialNum(): string {
@@ -92,10 +78,10 @@ async function buildPayload(
     return { ok: false, error: "ສົ່ງໄດ້ສະເພາະບິນທີ່ສະຖານະ ISSUED" };
   }
 
-  // Tax authority TIN — from .env (allowlist) or settings
-  const issueCode = process.env.ETAX_ISSUE_CODE ?? setting?.taxId ?? "";
+  // Tax authority TIN — from tenant Setting.taxId
+  const issueCode = setting?.taxId ?? "";
   if (!issueCode) {
-    return { ok: false, error: "ບໍ່ມີ issueCode (ETAX_ISSUE_CODE ໃນ .env)" };
+    return { ok: false, error: "ບໍ່ມີ Tax ID ໃນ Settings → ບໍລິສັດ" };
   }
 
   const sellerName = setting?.shopName ?? "Shop";
@@ -248,8 +234,8 @@ export async function submitInvoiceToEtax(
   invoiceId: string,
 ): Promise<SubmitResult> {
   await requireUser();
-  const creds = await loadTenantEtaxCreds();
-  return withEtaxCreds(creds, () => submitInvoiceToEtaxInner(invoiceId));
+  const tin = await tenantTaxId();
+  return withTenantEtaxCreds(tin, () => submitInvoiceToEtaxInner(invoiceId));
 }
 
 async function submitInvoiceToEtaxInner(
@@ -358,8 +344,8 @@ export type PollResult =
 /** Refresh verification status from the gateway. */
 export async function pollEtaxStatus(invoiceId: string): Promise<PollResult> {
   await requireUser();
-  const creds = await loadTenantEtaxCreds();
-  return withEtaxCreds(creds, () => pollEtaxStatusInner(invoiceId));
+  const tin = await tenantTaxId();
+  return withTenantEtaxCreds(tin, () => pollEtaxStatusInner(invoiceId));
 }
 
 async function pollEtaxStatusInner(invoiceId: string): Promise<PollResult> {
@@ -406,8 +392,8 @@ export async function previewEtaxPayload(
   invoiceId: string,
 ): Promise<{ ok: boolean; payload?: unknown; error?: string }> {
   await requireUser();
-  const creds = await loadTenantEtaxCreds();
-  return withEtaxCreds(creds, async () => {
+  const tin = await tenantTaxId();
+  return withTenantEtaxCreds(tin, async () => {
     const inv = await prisma.invoice.findUnique({
       where: { id: invoiceId },
       select: { etaxSerialNum: true },
@@ -418,7 +404,7 @@ export async function previewEtaxPayload(
     return {
       ok: true,
       payload: {
-        issueCode: creds.issueCode,
+        issueCode: getIssueCode(),
         data: built.data,
       },
     };
@@ -430,8 +416,8 @@ export async function cancelEtaxInvoice(
   invoiceId: string,
 ): Promise<{ ok: boolean; error?: string; requestId?: string }> {
   await requireUser();
-  const creds = await loadTenantEtaxCreds();
-  return withEtaxCreds(creds, () => cancelEtaxInvoiceInner(invoiceId));
+  const tin = await tenantTaxId();
+  return withTenantEtaxCreds(tin, () => cancelEtaxInvoiceInner(invoiceId));
 }
 
 async function cancelEtaxInvoiceInner(

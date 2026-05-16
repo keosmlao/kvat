@@ -1,10 +1,11 @@
 "use server";
 
+import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/session";
 import {
   queryTaxList,
-  isEtaxConfigured,
-  ETAX_ISSUE_CODE,
+  loadGlobalEtaxCreds,
+  withTenantEtaxCreds,
   type TaxRate,
 } from "@/lib/etax";
 
@@ -29,22 +30,33 @@ export type EtaxTestResult = {
 export async function testEtaxConnection(): Promise<EtaxTestResult> {
   await requireAdmin();
 
+  const [global, setting] = await Promise.all([
+    loadGlobalEtaxCreds(),
+    prisma.setting.findUnique({
+      where: { id: "default" },
+      select: { taxId: true },
+    }),
+  ]);
+  const tin = setting?.taxId ?? "";
+
   const config = {
-    env: process.env.ETAX_ENV ?? "?",
-    username: process.env.ETAX_USERNAME ?? "?",
-    issueCode: ETAX_ISSUE_CODE,
-    gateway: process.env.ETAX_GATEWAY_URL ?? "?",
+    env: global.env,
+    username: global.username,
+    issueCode: tin,
+    gateway: global.gateway,
   };
 
-  if (!isEtaxConfigured()) {
+  if (!global.gateway || !global.username || !global.secret || !tin) {
     return {
       ok: false,
-      message: "ບໍ່ໄດ້ກຳນົດ eTax (ກະຣຸນາໃສ່ ETAX_* ໃນ .env)",
+      message: !tin
+        ? "ບໍ່ມີ Tax ID ໃນ Settings → ບໍລິສັດ"
+        : "ບໍ່ໄດ້ກຳນົດ eTax (ໄປ /manage/etax-config)",
       config,
     };
   }
 
-  const res = await queryTaxList();
+  const res = await withTenantEtaxCreds(tin, () => queryTaxList());
   if (!res.ok) {
     return {
       ok: false,

@@ -350,10 +350,11 @@ CREATE TABLE public."Setting" (
     "enablePos" boolean DEFAULT false NOT NULL,
     "enableReports" boolean DEFAULT true NOT NULL,
     "etaxAutoSubmit" boolean DEFAULT false NOT NULL,
-    "etaxEnv" text,
-    "etaxIssueCode" text,
-    "etaxSecret" text,
-    "etaxUsername" text
+    "bankName" text,
+    "bankAccount" text,
+    "bankAccountName" text,
+    "licenseNumber" text,
+    "licenseDate" text
 );
 
 
@@ -397,7 +398,8 @@ CREATE TABLE public."User" (
     name text NOT NULL,
     role public."UserRole" DEFAULT 'STAFF'::public."UserRole" NOT NULL,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updatedAt" timestamp(3) without time zone NOT NULL
+    "updatedAt" timestamp(3) without time zone NOT NULL,
+    "lastSeenAt" timestamp(3) without time zone
 );
 
 

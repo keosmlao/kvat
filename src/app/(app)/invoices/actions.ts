@@ -3,12 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { generateInvoiceNumber } from "@/lib/invoice-number";
 import { computeVat } from "@/lib/vat";
 import { isEtaxConfigured } from "@/lib/etax";
-import { submitInvoiceToEtax } from "./etax-actions";
+import { pollEtaxStatus, submitInvoiceToEtax } from "./etax-actions";
 
 const itemSchema = z.object({
   productId: z.string().min(1),
@@ -35,12 +36,48 @@ const invoiceSchema = z.object({
 
 
 export type InvoiceFormState =
-  | { error?: string; fieldErrors?: Record<string, string[]> }
+  | {
+      error?: string;
+      fieldErrors?: Record<string, string[]>;
+      success?: boolean;
+      invoiceId?: string;
+      invoiceNumber?: string;
+      detailUrl?: string;
+      pdfUrl?: string;
+    }
   | undefined;
 
 type ParseResult =
   | { ok: true; data: z.infer<typeof invoiceSchema> }
   | { ok: false; state: InvoiceFormState };
+
+const ETAX_APPROVED = "1";
+const ETAX_TERMINAL_FAILURES = new Set(["3", "6"]);
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForEtaxApproval(invoiceId: string) {
+  const deadline = Date.now() + 30_000;
+
+  while (Date.now() < deadline) {
+    const status = await pollEtaxStatus(invoiceId);
+    if (!status.ok) return;
+    if (status.status === ETAX_APPROVED) return;
+    if (ETAX_TERMINAL_FAILURES.has(status.status)) return;
+    await sleep(2_000);
+  }
+}
+
+function isUniqueInvoiceNumberError(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002" &&
+    Array.isArray(error.meta?.target) &&
+    error.meta.target.includes("number")
+  );
+}
 
 function parseForm(formData: FormData): ParseResult {
   const itemsJson = String(formData.get("items") ?? "[]");
@@ -119,49 +156,70 @@ export async function createInvoice(
     data.vatMode,
   );
 
-  const number = await generateInvoiceNumber(prefix);
+  let invoice:
+    | {
+        id: string;
+        number: string;
+      }
+    | null = null;
 
-  const invoice = await prisma.$transaction(async (tx) => {
-    const created = await tx.invoice.create({
-      data: {
-        number,
-        date: data.date ? new Date(data.date) : new Date(),
-        dueDate: data.dueDate ? new Date(data.dueDate) : null,
-        paymentTermId: data.paymentTermId || null,
-        customerId: data.customerId,
-        userId: session.userId,
-        currency: data.currency,
-        exchangeRate: data.exchangeRate,
-        subtotal,
-        discount: data.discount,
-        vatRate: data.vatRate,
-        vatMode: data.vatMode,
-        vatAmount,
-        total,
-        paymentMethod: data.paymentMethod,
-        paymentRef: data.paymentRef || null,
-        note: data.note,
-        items: { create: itemsToCreate },
-      },
-    });
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      invoice = await prisma.$transaction(async (tx) => {
+        const number = await generateInvoiceNumber(prefix, tx);
 
-    for (const it of data.items) {
-      await tx.product.update({
-        where: { id: it.productId },
-        data: { stock: { decrement: it.quantity } },
+        const created = await tx.invoice.create({
+          data: {
+            number,
+            date: data.date ? new Date(data.date) : new Date(),
+            dueDate: data.dueDate ? new Date(data.dueDate) : null,
+            paymentTermId: data.paymentTermId || null,
+            customerId: data.customerId,
+            userId: session.userId,
+            currency: data.currency,
+            exchangeRate: data.exchangeRate,
+            subtotal,
+            discount: data.discount,
+            vatRate: data.vatRate,
+            vatMode: data.vatMode,
+            vatAmount,
+            total,
+            paymentMethod: data.paymentMethod,
+            paymentRef: data.paymentRef || null,
+            note: data.note,
+            items: { create: itemsToCreate },
+          },
+        });
+
+        for (const it of data.items) {
+          await tx.product.update({
+            where: { id: it.productId },
+            data: { stock: { decrement: it.quantity } },
+          });
+          await tx.stockMovement.create({
+            data: {
+              productId: it.productId,
+              type: "OUT",
+              quantity: it.quantity,
+              reference: created.number,
+              note: "ຂາຍຕາມບິນ",
+            },
+          });
+        }
+
+        return created;
       });
-      await tx.stockMovement.create({
-        data: {
-          productId: it.productId,
-          type: "OUT",
-          quantity: it.quantity,
-          reference: created.number,
-          note: "ຂາຍຕາມບິນ",
-        },
-      });
+      break;
+    } catch (error) {
+      if (!isUniqueInvoiceNumberError(error) || attempt === 4) {
+        throw error;
+      }
     }
-    return created;
-  });
+  }
+
+  if (!invoice) {
+    return { error: "ບໍ່ສາມາດສ້າງເລກບິນໃໝ່ໄດ້ ກະລຸນາລອງອີກຄັ້ງ" };
+  }
 
   // Auto-submit to eTax if enabled (best-effort; failures are stored on the
   // invoice and surfaced in the detail page so the user can retry).
@@ -172,7 +230,10 @@ export async function createInvoice(
     });
     if (setting?.etaxAutoSubmit) {
       try {
-        await submitInvoiceToEtax(invoice.id);
+        const submitted = await submitInvoiceToEtax(invoice.id);
+        if (submitted.ok) {
+          await waitForEtaxApproval(invoice.id);
+        }
       } catch {
         // Swallow — error is already persisted on the invoice row.
       }
@@ -181,7 +242,13 @@ export async function createInvoice(
 
   revalidatePath("/invoices");
   revalidatePath("/products");
-  redirect(`/invoices/${invoice.id}`);
+  return {
+    success: true,
+    invoiceId: invoice.id,
+    invoiceNumber: invoice.number,
+    detailUrl: `/invoices/${invoice.id}`,
+    pdfUrl: `/api/invoices/${invoice.id}/pdf`,
+  };
 }
 
 export async function updateInvoice(

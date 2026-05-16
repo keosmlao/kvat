@@ -11,110 +11,226 @@ import {
 import path from "path";
 import fs from "fs";
 import QRCode from "qrcode";
-import { formatDateTime, formatMoney, type Currency } from "./format";
+import { formatNumber, type Currency } from "./format";
+import { moneyInLaoWords } from "./lao-words";
 
-// Optional decorative background (Lao tax watermark). Drop a file at
-// `public/invoice-bg.png` and it will appear behind every invoice page.
-const BG_PATH = path.join(process.cwd(), "public/invoice-bg.png");
+// Decorative ornate frame (Lao tax authority style). Lives at
+// `public/smlao_backgroud.jpeg` and renders behind every invoice page.
+const BG_PATH = path.join(process.cwd(), "public/smlao_backgroud.jpeg");
 const HAS_BG = fs.existsSync(BG_PATH);
+const FONT_PATH = path.join(process.cwd(), "src/lib/fonts/Phetsarath-Regular.ttf");
+const FONT_BOLD_PATH = path.join(process.cwd(), "src/lib/fonts/Phetsarath-Bold.ttf");
 
 Font.register({
-  family: "NotoLao",
-  src: path.join(process.cwd(), "src/lib/fonts/NotoSansLao-Regular.ttf"),
+  family: "Phetsarath",
+  fonts: [
+    { src: FONT_PATH, fontWeight: 400 },
+    { src: FONT_BOLD_PATH, fontWeight: 700 },
+  ],
 });
 
+const TEXT = "#111827";
+const MUTED = "#374151";
+const LINE = "#9ca3af";
+
 const s = StyleSheet.create({
-  page: { padding: 32, fontFamily: "NotoLao", fontSize: 10, color: "#111827" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingBottom: 12,
-    borderBottom: 1,
-    borderBottomColor: "#e5e7eb",
-    marginBottom: 16,
+  // Padding sized for the ornate frame: leaves a safe gutter inside the
+  // decorative red border so content never overlaps it.
+  page: {
+    paddingTop: 70,
+    paddingBottom: 80,
+    paddingHorizontal: 45,
+    fontFamily: "Phetsarath",
+    fontSize: 9,
+    color: TEXT,
+    lineHeight: 1.3,
   },
-  shopName: { fontSize: 16, fontWeight: 700 },
-  subText: { fontSize: 9, color: "#6b7280", marginTop: 2 },
-  title: { fontSize: 22, fontWeight: 700, color: "#2563eb", textAlign: "right" },
-  subTitle: { fontSize: 9, color: "#6b7280", textAlign: "right" },
+
+  // Title
+  titleBlock: { alignItems: "center", marginBottom: 38 },
+  titleMain: { fontSize: 16, fontWeight: 700, textAlign: "center" },
+  titleSub: { fontSize: 9, textAlign: "center", marginTop: 10 },
+  companyLogo: {
+    position: "absolute",
+    top: 72,
+    left: 58,
+    width: 72,
+    height: 46,
+    objectFit: "contain",
+  },
+  titleEtaxNo: {
+    position: "absolute",
+    top: 118,
+    right: 45,
+    fontSize: 8,
+    fontFamily: "Courier",
+    fontWeight: 700,
+  },
+  qrBottomRight: {
+    position: "absolute",
+    bottom: 42,
+    right: 86,
+    width: 72,
+    height: 72,
+  },
   cancelTag: {
     color: "white",
     backgroundColor: "#dc2626",
-    padding: 4,
+    padding: 3,
     fontSize: 8,
     textAlign: "center",
     marginTop: 4,
+    width: 80,
+    alignSelf: "center",
   },
-  sectionRow: { flexDirection: "row", marginBottom: 16 },
-  col: { flex: 1 },
-  label: { fontSize: 8, color: "#6b7280", textTransform: "uppercase", marginBottom: 2 },
-  bold: { fontWeight: 700 },
-  table: { borderTop: 1, borderBottom: 1, borderColor: "#e5e7eb", marginTop: 8 },
-  tableHeader: {
+
+  // Party blocks
+  sectionLine: {
+    borderTopWidth: 0.5,
+    borderTopColor: LINE,
+    borderTopStyle: "solid",
+  },
+  partyBlock: {
+    paddingTop: 6,
+    paddingBottom: 6,
+    borderBottomWidth: 0.5,
+    borderBottomColor: LINE,
+    borderBottomStyle: "solid",
+  },
+  shopName: { fontSize: 11, fontWeight: 700 },
+  shopNameEn: { fontSize: 10, fontWeight: 700 },
+
+  // text rows - slightly tight to match the dense look of the reference
+  line: { fontSize: 9, marginTop: 1 },
+  label: { color: MUTED },
+
+  // Inline rows split into 2 or 3 columns by flex weight, keeping each
+  // item from wrapping into the next.
+  rowSplit: { flexDirection: "row", marginTop: 1 },
+  rowItem: { flex: 1, fontSize: 9 },
+  rowItem2: { flex: 2, fontSize: 9 },
+  rowItem3: { flex: 3, fontSize: 9 },
+
+  // Items table
+  table: { marginTop: 0, minHeight: 275 },
+  tableHead: {
     flexDirection: "row",
-    backgroundColor: "#f9fafb",
-    padding: 6,
-    fontSize: 8,
+    borderTopWidth: 0.5,
+    borderBottomWidth: 0.5,
+    borderColor: TEXT,
+    paddingVertical: 4,
+    fontSize: 9,
     fontWeight: 700,
-    color: "#6b7280",
-    textTransform: "uppercase",
   },
   tableRow: {
     flexDirection: "row",
-    padding: 6,
-    borderBottom: 0.5,
-    borderBottomColor: "#f3f4f6",
+    paddingVertical: 3,
+    borderBottomWidth: 0.3,
+    borderBottomColor: "#e5e7eb",
+    fontSize: 9,
   },
-  cellNo: { width: 22 },
-  cellName: { flex: 2 },
-  cellQty: { width: 60, textAlign: "right" },
-  cellPrice: { width: 80, textAlign: "right" },
-  cellTotal: { width: 80, textAlign: "right" },
-  totals: { marginTop: 12, alignItems: "flex-end" },
-  totalRow: {
+  cNo: { width: 32, paddingHorizontal: 2 },
+  cName: { flex: 1, paddingHorizontal: 2 },
+  cQty: { width: 42, textAlign: "right", paddingHorizontal: 2 },
+  cUnit: { width: 42, textAlign: "center", paddingHorizontal: 2 },
+  cPrice: { width: 60, textAlign: "right", paddingHorizontal: 2 },
+  cTotal: { width: 65, textAlign: "right", paddingHorizontal: 2 },
+
+  tableBody: {
+    minHeight: 243,
+  },
+
+  // Totals - right aligned like the reference invoice
+  totalsBlock: {
+    marginTop: 0,
+    alignItems: "flex-end",
+    borderTopWidth: 1,
+    borderTopColor: TEXT,
+    paddingTop: 6,
+  },
+  totRow: {
     flexDirection: "row",
-    width: 220,
     justifyContent: "space-between",
+    width: 305,
     paddingVertical: 2,
   },
-  grandRow: {
+  totRowGrand: {
     flexDirection: "row",
-    width: 220,
     justifyContent: "space-between",
-    paddingTop: 6,
-    borderTop: 1,
-    borderTopColor: "#e5e7eb",
-    marginTop: 4,
+    width: 305,
+    paddingTop: 4,
     fontWeight: 700,
   },
-  grandValue: { color: "#2563eb", fontSize: 14 },
-  signRow: { flexDirection: "row", marginTop: 50, gap: 60 },
-  signCol: { flex: 1, borderTop: 1, borderTopColor: "#9ca3af", paddingTop: 4, textAlign: "center" },
-  note: { marginTop: 16, padding: 8, backgroundColor: "#f9fafb", fontSize: 9 },
-  etaxBlock: {
+  totLabel: { fontSize: 9 },
+  totVal: { fontSize: 9, fontWeight: 700 },
+  totValLine: {
+    width: 90,
+    textAlign: "right",
+    borderBottomWidth: 0.5,
+    borderBottomColor: TEXT,
+    paddingBottom: 1,
+  },
+
+  // Push values flush right with a fixed-width value column so the
+  // numbers line up vertically across all rows.
+  totValueCell: { width: 90, textAlign: "right" },
+
+  amountWords: { marginTop: 34, fontSize: 9 },
+
+  // Signatures (pinned to bottom of the frame, above footer)
+  signRow: {
+    position: "absolute",
+    bottom: 150,
+    left: 45,
+    right: 45,
+    flexDirection: "row",
+  },
+  signCol: { flex: 1, alignItems: "center" },
+  signDate: { fontSize: 9 },
+  signRole: { fontSize: 9, marginTop: 2 },
+
+  // eTax block
+  etax: {
     flexDirection: "row",
     marginTop: 18,
-    padding: 8,
-    borderTop: 1,
-    borderTopColor: "#e5e7eb",
+    paddingTop: 8,
+    borderTopWidth: 0.5,
+    borderTopColor: LINE,
     gap: 12,
   },
   etaxInfo: { flex: 1, justifyContent: "center" },
   etaxLabel: {
     fontSize: 8,
-    color: "#6b7280",
+    color: MUTED,
     textTransform: "uppercase",
     marginBottom: 2,
   },
   etaxNumber: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 700,
     fontFamily: "Courier",
-    color: "#111827",
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  etaxMeta: { fontSize: 8, color: "#6b7280" },
-  etaxQr: { width: 90, height: 90 },
+  etaxMeta: { fontSize: 8, color: MUTED },
+  etaxQr: { width: 80, height: 80 },
+
+  note: {
+    marginTop: 10,
+    padding: 6,
+    backgroundColor: "#f9fafb",
+    fontSize: 9,
+  },
+
+  footer: {
+    position: "absolute",
+    bottom: 30,
+    left: 78,
+    right: 45,
+    fontSize: 7,
+    color: TEXT,
+    textAlign: "left",
+  },
+  footerLine: { fontSize: 7, color: TEXT, marginTop: 1 },
 });
 
 type InvoiceWithRelations = {
@@ -131,13 +247,21 @@ type InvoiceWithRelations = {
   total: number;
   status: string;
   note: string | null;
-  // eTax fields (optional — empty until submitted)
+  paymentMethod: string;
   etaxInvoiceNumber?: string | null;
   etaxIssueTime?: string | null;
   etaxCheckCode?: string | null;
   etaxQrUrl?: string | null;
   etaxStatus?: string | null;
-  customer: { name: string; taxId: string | null; address: string | null; phone: string | null };
+  customer: {
+    name: string;
+    taxId: string | null;
+    address: string | null;
+    phone: string | null;
+    province?: { name: string } | null;
+    district?: { name: string } | null;
+    village?: { name: string } | null;
+  };
   user: { name: string };
   items: {
     id: string;
@@ -156,7 +280,46 @@ type Settings = {
   taxId: string | null;
   address: string | null;
   phone: string | null;
+  logoUrl: string | null;
+  bankName: string | null;
+  bankAccount: string | null;
+  bankAccountName: string | null;
+  licenseNumber: string | null;
+  licenseDate: string | null;
 } | null;
+
+function formatDDMMYYYY(d: Date): string {
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+}
+
+function laoText(value: string | null | undefined): string {
+  return (value ?? "").normalize("NFC");
+}
+
+function publicImagePath(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (url.startsWith("/uploads/")) {
+    return path.join(process.cwd(), "public", url);
+  }
+  if (url.startsWith("/")) {
+    return path.join(process.cwd(), "public", url.slice(1));
+  }
+  return url;
+}
+
+function paymentMethodLabel(method: string): string {
+  switch (method) {
+    case "CASH":
+      return "ເງິນສົດ";
+    case "TRANSFER":
+      return "ໂອນ";
+    default:
+      return method;
+  }
+}
 
 function InvoicePdf({
   invoice,
@@ -168,129 +331,232 @@ function InvoicePdf({
   qrDataUrl: string | null;
 }) {
   const currency = invoice.currency as Currency;
-  const inCur = (lak: number) => (currency === "LAK" ? lak : lak / invoice.exchangeRate);
+  const inCur = (lak: number) =>
+    currency === "LAK" ? lak : lak / invoice.exchangeRate;
+
+  const taxExcluding = invoice.subtotal - invoice.discount;
+  const dateStr = formatDDMMYYYY(invoice.date);
+
+  const village = invoice.customer.village?.name;
+  const district = invoice.customer.district?.name;
+  const province = invoice.customer.province?.name;
+  const hasStructuredAddress = Boolean(village || district || province);
+  const logoPath = publicImagePath(settings?.logoUrl);
 
   return (
     <Document>
       <Page size="A4" style={s.page}>
         {HAS_BG && (
+          // eslint-disable-next-line jsx-a11y/alt-text
           <Image
             src={BG_PATH}
             style={{
               position: "absolute",
               top: 0,
               left: 0,
-              width: "100%",
-              height: "100%",
+              // Explicit A4 dimensions so the frame fills the page edge to
+              // edge - `width: "100%"` alone keeps the image's aspect ratio
+              // and leaves a gap at the bottom on portrait sheets.
+              width: 595,
+              height: 842,
               zIndex: -1,
+              objectFit: "fill",
             }}
             fixed
           />
         )}
-        <View style={s.header}>
-          <View>
-            <Text style={s.shopName}>{settings?.shopName ?? "ຮ້ານຄ້າ"}</Text>
-            {settings?.shopNameEn && <Text style={s.subText}>{settings.shopNameEn}</Text>}
-            {settings?.address && <Text style={s.subText}>{settings.address}</Text>}
-            {settings?.phone && <Text style={s.subText}>ໂທ: {settings.phone}</Text>}
-            {settings?.taxId && <Text style={s.subText}>ເລກອາກອນ: {settings.taxId}</Text>}
-          </View>
-          <View>
-            <Text style={s.title}>ໃບບິນອາກອນ</Text>
-            <Text style={s.subTitle}>TAX INVOICE</Text>
-            {invoice.status === "CANCELLED" && <Text style={s.cancelTag}>ຍົກເລີກ</Text>}
-          </View>
+
+        {logoPath && (
+          // eslint-disable-next-line jsx-a11y/alt-text
+          <Image src={logoPath} style={s.companyLogo} fixed />
+        )}
+
+        {/* eTax QR - bottom-right corner, above the decorative border. */}
+        {qrDataUrl && (
+          // eslint-disable-next-line jsx-a11y/alt-text
+          <Image src={qrDataUrl} style={s.qrBottomRight} fixed />
+        )}
+
+        {/* Title */}
+        {invoice.etaxInvoiceNumber && (
+          <Text style={s.titleEtaxNo}>{invoice.etaxInvoiceNumber}</Text>
+        )}
+        <View style={s.titleBlock}>
+          <Text style={s.titleMain}>ໃບເກັບເງິນ/Tax Invoice</Text>
+          <Text style={s.titleSub}>(ອາກອນມູນຄ່າເພີ່ມ)</Text>
+          {invoice.status === "CANCELLED" && (
+            <Text style={s.cancelTag}>ຍົກເລີກ</Text>
+          )}
         </View>
 
-        <View style={s.sectionRow}>
-          <View style={s.col}>
-            <Text style={s.label}>ລູກຄ້າ</Text>
-            <Text style={s.bold}>{invoice.customer.name}</Text>
-            {invoice.customer.taxId && <Text style={s.subText}>ເລກອາກອນ: {invoice.customer.taxId}</Text>}
-            {invoice.customer.address && <Text style={s.subText}>{invoice.customer.address}</Text>}
-            {invoice.customer.phone && <Text style={s.subText}>ໂທ: {invoice.customer.phone}</Text>}
-          </View>
-          <View style={s.col}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              <Text style={s.subText}>ເລກບິນ:</Text>
-              <Text style={s.bold}>{invoice.number}</Text>
-            </View>
-            {invoice.etaxInvoiceNumber && (
-              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={s.subText}>ເລກບິນ eTax:</Text>
-                <Text style={[s.bold, { fontFamily: "Courier", fontSize: 9 }]}>
-                  {invoice.etaxInvoiceNumber}
-                </Text>
-              </View>
-            )}
-            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              <Text style={s.subText}>ວັນທີ:</Text>
-              <Text>{formatDateTime(invoice.date)}</Text>
-            </View>
-            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              <Text style={s.subText}>ສະກຸນເງິນ:</Text>
-              <Text>{invoice.currency}</Text>
-            </View>
-            {invoice.currency !== "LAK" && (
-              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={s.subText}>ອັດຕາແລກ:</Text>
-                <Text>{invoice.exchangeRate.toLocaleString()} ກີບ/{invoice.currency}</Text>
-              </View>
-            )}
-            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              <Text style={s.subText}>ຜູ້ອອກ:</Text>
-              <Text>{invoice.user.name}</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={s.table}>
-          <View style={s.tableHeader}>
-            <Text style={s.cellNo}>#</Text>
-            <Text style={s.cellName}>ສິນຄ້າ</Text>
-            <Text style={s.cellQty}>ຈຳນວນ</Text>
-            <Text style={s.cellPrice}>ລາຄາ</Text>
-            <Text style={s.cellTotal}>ລວມ</Text>
-          </View>
-          {invoice.items.map((it, i) => (
-            <View key={it.id} style={s.tableRow}>
-              <Text style={s.cellNo}>{i + 1}</Text>
-              <Text style={s.cellName}>{it.productName}</Text>
-              <Text style={s.cellQty}>{it.quantity} {it.unit}</Text>
-              <Text style={s.cellPrice}>{formatMoney(inCur(it.priceLak), currency)}</Text>
-              <Text style={s.cellTotal}>{formatMoney(inCur(it.total), currency)}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={s.totals}>
-          <View style={s.totalRow}>
-            <Text>ລວມຍ່ອຍ</Text>
-            <Text>{formatMoney(inCur(invoice.subtotal), currency)}</Text>
-          </View>
-          {invoice.discount > 0 && (
-            <View style={s.totalRow}>
-              <Text>ສ່ວນຫຼຸດ</Text>
-              <Text>- {formatMoney(inCur(invoice.discount), currency)}</Text>
+        {/* Seller */}
+        <View style={s.sectionLine} />
+        <View style={s.partyBlock}>
+          <Text style={s.shopName}>{laoText(settings?.shopName ?? "ຮ້ານຄ້າ")}</Text>
+          {settings?.shopNameEn && (
+            <Text style={s.shopNameEn}>{laoText(settings.shopNameEn)}</Text>
+          )}
+          {settings?.address && (
+            <Text style={s.line}>
+              <Text style={s.label}>ທີ່ຢູ່: </Text>
+              {laoText(settings.address)}
+            </Text>
+          )}
+          {settings?.phone && (
+            <Text style={s.line}>
+              <Text style={s.label}>ໂທ: </Text>
+              {settings.phone}
+            </Text>
+          )}
+          {settings?.taxId && (
+            <Text style={s.line}>
+              <Text style={s.label}>ເລກປະຈໍາຕົວຜູ້ເສຍອາກອນ: </Text>
+              {settings.taxId}
+            </Text>
+          )}
+          {(settings?.bankAccountName || settings?.bankAccount) && (
+            <View style={s.rowSplit}>
+              <Text style={s.rowItem2}>
+                <Text style={s.label}>ຊື່ບັນຊີທະນາຄານ: </Text>
+                {laoText(settings?.bankAccountName)}
+              </Text>
+              <Text style={s.rowItem}>
+                <Text style={s.label}>ເລກບັນຊີ: </Text>
+                {settings?.bankAccount ?? ""}
+                {settings?.bankName ? ` (${laoText(settings.bankName)})` : ""}
+              </Text>
             </View>
           )}
-          {invoice.vatMode === "EXEMPT" ? (
-            <View style={s.totalRow}>
-              <Text>VAT</Text>
-              <Text>ຍົກເວັ້ນ</Text>
+        </View>
+
+        {/* Buyer */}
+        <View style={s.partyBlock}>
+          <Text style={s.line}>
+            <Text style={s.label}>ລູກຄ້າ </Text>
+            <Text style={{ fontWeight: 700 }}>{laoText(invoice.customer.name)}</Text>
+          </Text>
+
+          {hasStructuredAddress ? (
+            <View style={s.rowSplit}>
+              <Text style={s.rowItem}>
+                <Text style={s.label}>ທີ່ຢູ່ບ້ານ: </Text>
+                {laoText(village)}
+              </Text>
+              <Text style={s.rowItem}>
+                <Text style={s.label}>ເມືອງ: </Text>
+                {laoText(district)}
+              </Text>
+              <Text style={s.rowItem}>
+                <Text style={s.label}>ແຂວງ: </Text>
+                {laoText(province)}
+              </Text>
             </View>
           ) : (
-            <View style={s.totalRow}>
-              <Text>
-                VAT {(invoice.vatRate * 100).toFixed(0)}%
-                {invoice.vatMode === "INCLUSIVE" ? " (ລວມໃນ)" : ""}
+            invoice.customer.address && (
+              <Text style={s.line}>
+                <Text style={s.label}>ທີ່ຢູ່: </Text>
+                {laoText(invoice.customer.address)}
               </Text>
-              <Text>{formatMoney(inCur(invoice.vatAmount), currency)}</Text>
+            )
+          )}
+
+          <View style={s.rowSplit}>
+            <Text style={s.rowItem}>
+              <Text style={s.label}>ເບີໂທ: </Text>
+              {invoice.customer.phone ?? ""}
+            </Text>
+            <Text style={s.rowItem}>
+              <Text style={s.label}>ເລກປະຈໍາຕົວຜູ້ເສຍອາກອນ: </Text>
+              {invoice.customer.taxId ?? ""}
+            </Text>
+            <Text style={s.rowItem}>
+              <Text style={s.label}>ປະເພດການຈ່າຍ: </Text>
+              {paymentMethodLabel(invoice.paymentMethod)}
+            </Text>
+          </View>
+
+          <View style={s.rowSplit}>
+            <Text style={s.rowItem}>
+              <Text style={s.label}>ຊື່ບັນຊີທະນາຄານ:</Text>
+            </Text>
+            <Text style={s.rowItem}>
+              <Text style={s.label}>ເລກບັນຊີ:</Text>
+            </Text>
+          </View>
+        </View>
+
+        {/* Items table */}
+        <View style={s.table}>
+          <View style={s.tableHead}>
+            <Text style={s.cNo}>ລໍາດັບ</Text>
+            <Text style={s.cName}>ເນື້ອໃນລາຍການ</Text>
+            <Text style={s.cQty}>ຈໍານວນ</Text>
+            <Text style={s.cUnit}>ຫົວໜ່ວຍ</Text>
+            <Text style={s.cPrice}>ລາຄາ</Text>
+            <Text style={s.cTotal}>ລວມ</Text>
+          </View>
+          <View style={s.tableBody}>
+            {invoice.items.map((it, i) => (
+              <View key={it.id} style={s.tableRow}>
+                <Text style={s.cNo}>{i + 1}</Text>
+                <Text style={s.cName}>{laoText(it.productName)}</Text>
+                <Text style={s.cQty}>{formatNumber(it.quantity, 1)}</Text>
+                <Text style={s.cUnit}>{laoText(it.unit)}</Text>
+                <Text style={s.cPrice}>{formatNumber(inCur(it.priceLak))}</Text>
+                <Text style={s.cTotal}>{formatNumber(inCur(it.total))}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Totals (full width, value column right-aligned) */}
+        <View style={s.totalsBlock}>
+          <View style={s.totRow}>
+            <Text style={s.totLabel}>ລວມມູນຄ່າຂາຍບໍ່ມີອາກອນ:</Text>
+            <Text style={[s.totVal, s.totValLine]}>
+              {formatNumber(inCur(taxExcluding))}
+            </Text>
+          </View>
+          {invoice.vatMode === "EXEMPT" ? (
+            <View style={s.totRow}>
+              <Text style={s.totLabel}>ອັດຕາອາກອນມູນຄ່າເພີ່ມ:</Text>
+              <Text style={[s.totVal, s.totValLine]}>ຍົກເວັ້ນ</Text>
+            </View>
+          ) : (
+            <View style={s.totRow}>
+              <Text style={s.totLabel}>
+                ອັດຕາອາກອນມູນຄ່າເພີ່ມ: ອມພ{" "}
+                {(invoice.vatRate * 100).toFixed(0)} %, ເປັນຈໍານວນເງິນ:
+              </Text>
+              <Text style={[s.totVal, s.totValLine]}>
+                {formatNumber(inCur(invoice.vatAmount))}
+              </Text>
             </View>
           )}
-          <View style={s.grandRow}>
-            <Text>ຈຳນວນລວມ</Text>
-            <Text style={s.grandValue}>{formatMoney(inCur(invoice.total), currency)}</Text>
+          <View style={s.totRowGrand}>
+            <Text style={s.totLabel}>ລວມມູນຄ່າທັງໝົດ:</Text>
+            <Text style={[s.totVal, s.totValLine]}>
+              {formatNumber(inCur(invoice.total))}
+            </Text>
+          </View>
+        </View>
+
+        {currency === "LAK" && (
+          <Text style={s.amountWords}>
+            <Text style={s.label}>ຈໍານວນເງິນຂຽນເປັນຕົວໜັງສື: </Text>
+            .......... {laoText(moneyInLaoWords(invoice.total))} ..........
+          </Text>
+        )}
+
+        {/* Signatures */}
+        <View style={s.signRow}>
+          <View style={s.signCol}>
+            <Text style={s.signDate}>ວັນທີ {dateStr}</Text>
+            <Text style={s.signRole}>ຜູ້ຊື້</Text>
+          </View>
+          <View style={s.signCol}>
+            <Text style={s.signDate}>ວັນທີ {dateStr}</Text>
+            <Text style={s.signRole}>ຜູ້ຂາຍ</Text>
           </View>
         </View>
 
@@ -301,52 +567,19 @@ function InvoicePdf({
           </View>
         )}
 
-        {/* eTax block — only when invoice has been submitted */}
-        {invoice.etaxInvoiceNumber && (
-          <View style={s.etaxBlock}>
-            <View style={s.etaxInfo}>
-              <Text style={s.etaxLabel}>ໃບອາກອນເອເລັກໂຕຣນິກ (eTax)</Text>
-              <Text style={s.etaxNumber}>{invoice.etaxInvoiceNumber}</Text>
-              {invoice.etaxIssueTime && (
-                <Text style={s.etaxMeta}>
-                  ວັນທີອອກ: {invoice.etaxIssueTime}
-                </Text>
-              )}
-              {invoice.etaxCheckCode && (
-                <Text style={s.etaxMeta}>
-                  Check Code: {invoice.etaxCheckCode}
-                </Text>
-              )}
-              {invoice.etaxStatus === "1" && (
-                <Text style={[s.etaxMeta, { color: "#059669", marginTop: 2 }]}>
-                  ✓ ຢືນຢັນແລ້ວໂດຍກົມສ່ວຍສາ
-                </Text>
-              )}
-              {invoice.etaxStatus === "0" && (
-                <Text style={[s.etaxMeta, { color: "#2563eb", marginTop: 2 }]}>
-                  ⧗ ລໍຖ້າຢືນຢັນ
-                </Text>
-              )}
-              {invoice.etaxStatus === "3" && (
-                <Text style={[s.etaxMeta, { color: "#dc2626", marginTop: 2 }]}>
-                  ✕ ບໍ່ຜ່ານການກວດສອບ
-                </Text>
-              )}
-            </View>
-            {qrDataUrl && (
-              <View style={{ alignItems: "center", justifyContent: "center" }}>
-                <Image src={qrDataUrl} style={s.etaxQr} />
-                <Text style={[s.etaxMeta, { marginTop: 2 }]}>
-                  Scan to verify
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        <View style={s.signRow}>
-          <View style={s.signCol}><Text>ລາຍເຊັນຜູ້ຮັບ</Text></View>
-          <View style={s.signCol}><Text>ລາຍເຊັນຜູ້ອອກ</Text></View>
+        {/* Footer */}
+        <View style={s.footer} fixed>
+          <Text>ສ້າງໂດຍ: {laoText(settings?.shopName)}</Text>
+          {(settings?.licenseNumber || settings?.licenseDate) && (
+            <Text style={s.footerLine}>
+              {settings?.licenseNumber
+                ? `ໃບອະນຸຍາດເລກທີ: ${laoText(settings.licenseNumber)}`
+                : ""}
+              {settings?.licenseDate
+                ? ` ລົງວັນທີ: ${settings.licenseDate}`
+                : ""}
+            </Text>
+          )}
         </View>
       </Page>
     </Document>

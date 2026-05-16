@@ -1,0 +1,216 @@
+"use client";
+
+import { useActionState, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+  type CustState,
+} from "./actions";
+
+type TenantOption = { id: string; label: string };
+
+export type CustomerInitial = {
+  name: string;
+  type: "TENANT" | "EXTERNAL";
+  tenantId: string;
+  taxId: string;
+  phone: string;
+  email: string;
+  address: string;
+  contactName: string;
+  notes: string;
+};
+
+export function CustomerForm({
+  mode,
+  id,
+  invoiceCount,
+  tenants,
+  initial,
+}: {
+  mode: "create" | "edit";
+  id?: string;
+  invoiceCount?: number;
+  tenants: TenantOption[];
+  initial: CustomerInitial;
+}) {
+  const router = useRouter();
+  const boundAction =
+    mode === "create"
+      ? (createCustomer as (
+          prev: CustState,
+          fd: FormData,
+        ) => Promise<CustState>)
+      : updateCustomer.bind(null, id!);
+  const [state, action, pending] = useActionState<CustState, FormData>(
+    boundAction,
+    undefined,
+  );
+
+  const [type, setType] = useState<"TENANT" | "EXTERNAL">(initial.type);
+
+  return (
+    <form action={action} className="space-y-4">
+      <Field label="ປະເພດລູກຄ້າ">
+        <div className="flex gap-2">
+          {(["EXTERNAL", "TENANT"] as const).map((t) => (
+            <label
+              key={t}
+              className={`flex-1 cursor-pointer border rounded px-3 py-2 text-center text-[13px] ${
+                type === t
+                  ? "border-slate-900 bg-slate-50 text-slate-900 font-medium"
+                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              <input
+                type="radio"
+                name="type"
+                value={t}
+                checked={type === t}
+                onChange={() => setType(t)}
+                className="sr-only"
+              />
+              {t === "TENANT" ? "SaaS Tenant" : "ລູກຄ້າພາຍນອກ"}
+            </label>
+          ))}
+        </div>
+      </Field>
+
+      {type === "TENANT" && (
+        <Field label="Tenant">
+          <select
+            name="tenantId"
+            defaultValue={initial.tenantId}
+            required
+            className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
+          >
+            <option value="">— ເລືອກ tenant —</option>
+            {tenants.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
+
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="ຊື່ບໍລິສັດ / ລູກຄ້າ">
+          <input
+            type="text"
+            name="name"
+            defaultValue={initial.name}
+            required
+            className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
+          />
+        </Field>
+        <Field label="ຜູ້ຮັບຜິດຊອບ">
+          <input
+            type="text"
+            name="contactName"
+            defaultValue={initial.contactName}
+            className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
+          />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <Field label="TIN">
+          <input
+            type="text"
+            name="taxId"
+            defaultValue={initial.taxId}
+            placeholder="123456789012"
+            className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px] font-mono"
+          />
+        </Field>
+        <Field label="ໂທ">
+          <input
+            type="text"
+            name="phone"
+            defaultValue={initial.phone}
+            className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
+          />
+        </Field>
+        <Field label="Email">
+          <input
+            type="email"
+            name="email"
+            defaultValue={initial.email}
+            className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
+          />
+        </Field>
+      </div>
+
+      <Field label="ທີ່ຢູ່">
+        <textarea
+          name="address"
+          defaultValue={initial.address}
+          rows={2}
+          className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px] resize-none"
+        />
+      </Field>
+
+      <Field label="ໝາຍເຫດ">
+        <textarea
+          name="notes"
+          defaultValue={initial.notes}
+          rows={2}
+          className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px] resize-none"
+        />
+      </Field>
+
+      <div className="flex items-center gap-3 pt-2 border-t border-gray-200 flex-wrap">
+        <button
+          type="submit"
+          disabled={pending}
+          className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-1.5 rounded text-[13px] font-medium disabled:opacity-50"
+        >
+          {pending ? "ກຳລັງ..." : mode === "create" ? "ສ້າງ" : "ບັນທຶກ"}
+        </button>
+        {mode === "edit" && id && (invoiceCount ?? 0) === 0 && (
+          <button
+            type="button"
+            onClick={async () => {
+              if (!confirm("ລົບລູກຄ້ານີ້?")) return;
+              try {
+                await deleteCustomer(id);
+                router.push("/manage/billing/customers");
+              } catch (e) {
+                alert(e instanceof Error ? e.message : "ລົບບໍ່ສຳເລັດ");
+              }
+            }}
+            className="border border-red-300 text-red-700 hover:bg-red-50 px-3 py-1.5 rounded text-[13px] font-medium"
+          >
+            ລົບ
+          </button>
+        )}
+        {state?.error && (
+          <span className="text-[12px] text-red-600">{state.error}</span>
+        )}
+        {state?.success && (
+          <span className="text-[12px] text-emerald-700">{state.success}</span>
+        )}
+      </div>
+    </form>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1">
+      <label className="block text-[11px] uppercase tracking-wider text-gray-500 font-medium">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}

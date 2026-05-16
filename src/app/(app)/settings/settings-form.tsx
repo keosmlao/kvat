@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { saveSettings, type SettingFormState } from "./actions";
 import { ImageUpload } from "@/components/image-upload";
@@ -16,6 +16,11 @@ type Initial = {
   phone: string;
   email: string;
   logoUrl: string;
+  bankName: string;
+  bankAccount: string;
+  bankAccountName: string;
+  licenseNumber: string;
+  licenseDate: string;
   vatRate: number;
   defaultCurrency: string;
   invoicePrefix: string;
@@ -25,10 +30,6 @@ type Initial = {
   enableReports: boolean;
   enableDashboard: boolean;
   etaxAutoSubmit: boolean;
-  etaxEnv: string;
-  etaxUsername: string;
-  etaxSecret: string;
-  etaxIssueCode: string;
 };
 
 type Section =
@@ -40,6 +41,21 @@ type Section =
   | "modules"
   | "users"
   | "about";
+
+const SECTION_KEYS: readonly Section[] = [
+  "general",
+  "company",
+  "invoicing",
+  "inventory",
+  "etax",
+  "modules",
+  "users",
+  "about",
+];
+
+function isSection(v: string | null): v is Section {
+  return v !== null && (SECTION_KEYS as readonly string[]).includes(v);
+}
 
 type TenantInfo = {
   slug: string;
@@ -61,11 +77,23 @@ export function SettingsForm({
   tenantInfo: TenantInfo;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [state, action, pending] = useActionState<SettingFormState, FormData>(
     saveSettings,
     undefined,
   );
-  const [section, setSection] = useState<Section>("general");
+  // Initialise from ?tab=... so refresh + deep links land on the same tab.
+  const initialSection: Section = (() => {
+    const t = searchParams.get("tab");
+    return isSection(t) ? t : "general";
+  })();
+  const [section, setSectionState] = useState<Section>(initialSection);
+  const setSection = (next: Section) => {
+    setSectionState(next);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", next);
+    router.replace(`/settings?${params.toString()}`, { scroll: false });
+  };
   const [search, setSearch] = useState("");
   const [vatRate, setVatRate] = useState(initial.vatRate);
   const fe = state?.fieldErrors ?? {};
@@ -101,7 +129,8 @@ export function SettingsForm({
               {pending ? "ກຳລັງບັນທຶກ..." : "ບັນທຶກ"}
             </button>
             <button
-              type="reset"
+              type="button"
+              onClick={() => router.push("/dashboard")}
               className="border border-gray-300 text-gray-700 px-3 py-1 rounded text-[13px] font-medium hover:bg-gray-50 transition"
             >
               ຍົກເລີກ
@@ -305,6 +334,64 @@ export function SettingsForm({
                     className="o-field w-full resize-none"
                   />
                 </div>
+
+                {/* Bank account — printed on invoice PDF */}
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <label className="block text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-2">
+                    ບັນຊີທະນາຄານ (ສຳລັບພິມໃນບິນ)
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-0">
+                    <CompactField label="ຊື່ບັນຊີ">
+                      <input
+                        name="bankAccountName"
+                        defaultValue={initial.bankAccountName}
+                        placeholder="SMLAO ACCOUNT PROGRAM..."
+                        className="o-field"
+                      />
+                    </CompactField>
+                    <CompactField label="ເລກບັນຊີ">
+                      <input
+                        name="bankAccount"
+                        defaultValue={initial.bankAccount}
+                        placeholder="220-11-00036139"
+                        className="o-field"
+                      />
+                    </CompactField>
+                    <CompactField label="ທະນາຄານ">
+                      <input
+                        name="bankName"
+                        defaultValue={initial.bankName}
+                        placeholder="BCEL LAK"
+                        className="o-field"
+                      />
+                    </CompactField>
+                  </div>
+                </div>
+
+                {/* Business license — printed at invoice footer */}
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <label className="block text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-2">
+                    ໃບອະນຸຍາດທຸລະກິດ (ສຳລັບພິມໃນທ້າຍບິນ)
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-0">
+                    <CompactField label="ເລກທີ">
+                      <input
+                        name="licenseNumber"
+                        defaultValue={initial.licenseNumber}
+                        placeholder="201/ສອ.ມຊຖ"
+                        className="o-field"
+                      />
+                    </CompactField>
+                    <CompactField label="ລົງວັນທີ">
+                      <input
+                        name="licenseDate"
+                        defaultValue={initial.licenseDate}
+                        placeholder="19-02-2025"
+                        className="o-field"
+                      />
+                    </CompactField>
+                  </div>
+                </div>
               </div>
             </SectionPanel>
           )}
@@ -434,67 +521,14 @@ export function SettingsForm({
                 />
               </FeatureCard>
 
-              <div className="bg-white border border-gray-200 rounded p-4 space-y-3">
-                <h4 className="text-[13px] font-medium text-gray-800">
-                  ຂໍ້ມູນປະຈຳຕົວ eTax
-                </h4>
-                <p className="text-[11px] text-gray-500">
-                  ຖ້າຫວ່າງ — ໃຊ້ຄ່າຈາກ environment (admin global default)
+              <div className="bg-white border border-gray-200 rounded p-4 text-[12px] text-gray-600">
+                <p className="font-medium text-gray-700 mb-1">
+                  ຂໍ້ມູນປະຈຳຕົວ eTax (Username / Secret / TIN)
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <label className="block">
-                    <span className="text-[11px] text-gray-500 block mb-0.5">
-                      Environment
-                    </span>
-                    <select
-                      name="etaxEnv"
-                      defaultValue={initial.etaxEnv ?? ""}
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
-                    >
-                      <option value="">— ໃຊ້ env default —</option>
-                      <option value="dev">dev (ທົດສອບ)</option>
-                      <option value="prod">prod (ໃຊ້ງານຈິງ)</option>
-                    </select>
-                  </label>
-                  <label className="block">
-                    <span className="text-[11px] text-gray-500 block mb-0.5">
-                      Issue Code (TIN)
-                    </span>
-                    <input
-                      name="etaxIssueCode"
-                      defaultValue={initial.etaxIssueCode ?? ""}
-                      placeholder="443545674000"
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px] font-mono"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-[11px] text-gray-500 block mb-0.5">
-                      Username
-                    </span>
-                    <input
-                      name="etaxUsername"
-                      defaultValue={initial.etaxUsername ?? ""}
-                      placeholder="smlao-443545674000-dev"
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px] font-mono"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-[11px] text-gray-500 block mb-0.5">
-                      Secret
-                    </span>
-                    <input
-                      name="etaxSecret"
-                      type="password"
-                      defaultValue={initial.etaxSecret ?? ""}
-                      placeholder={
-                        initial.etaxSecret
-                          ? "•••••••••• (ປ່ຽນແລ້ວປ້ອນໃໝ່)"
-                          : ""
-                      }
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px] font-mono"
-                    />
-                  </label>
-                </div>
+                <p>
+                  ການຕັ້ງຄ່ານີ້ຍ້າຍໄປ admin global ແລ້ວ — ທຸກ tenant ໃຊ້ບັນຊີ eTax ດຽວກັນ.
+                  ຕິດຕໍ່ admin SMLAO ຖ້າຈຳເປັນຕ້ອງປ່ຽນ.
+                </p>
               </div>
 
               <EtaxPanel />
@@ -749,6 +783,31 @@ function HiddenInputs({
           <input type="hidden" name="email" defaultValue={initial.email} />
           <input type="hidden" name="address" defaultValue={initial.address} />
           <input type="hidden" name="logoUrl" defaultValue={initial.logoUrl} />
+          <input
+            type="hidden"
+            name="bankName"
+            defaultValue={initial.bankName}
+          />
+          <input
+            type="hidden"
+            name="bankAccount"
+            defaultValue={initial.bankAccount}
+          />
+          <input
+            type="hidden"
+            name="bankAccountName"
+            defaultValue={initial.bankAccountName}
+          />
+          <input
+            type="hidden"
+            name="licenseNumber"
+            defaultValue={initial.licenseNumber}
+          />
+          <input
+            type="hidden"
+            name="licenseDate"
+            defaultValue={initial.licenseDate}
+          />
         </>
       )}
       {include.invoicing && (
@@ -795,29 +854,11 @@ function HiddenInputs({
         </>
       )}
       {include.etax && (
-        <>
-          <input
-            type="hidden"
-            name="etaxAutoSubmit"
-            defaultValue={initial.etaxAutoSubmit ? "true" : "false"}
-          />
-          <input type="hidden" name="etaxEnv" defaultValue={initial.etaxEnv} />
-          <input
-            type="hidden"
-            name="etaxUsername"
-            defaultValue={initial.etaxUsername}
-          />
-          <input
-            type="hidden"
-            name="etaxSecret"
-            defaultValue={initial.etaxSecret}
-          />
-          <input
-            type="hidden"
-            name="etaxIssueCode"
-            defaultValue={initial.etaxIssueCode}
-          />
-        </>
+        <input
+          type="hidden"
+          name="etaxAutoSubmit"
+          defaultValue={initial.etaxAutoSubmit ? "true" : "false"}
+        />
       )}
     </>
   );

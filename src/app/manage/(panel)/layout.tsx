@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireManagement } from "@/lib/management-session";
 import { LogoutButton } from "../logout/button";
+import { SidebarNav } from "./sidebar-nav";
 
 // Auth-guarded layout. Wraps every (panel)/* route. /manage/login lives outside
 // this group so unauthenticated users can still reach it.
@@ -13,9 +14,9 @@ export default async function ManagementPanelLayout({
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-slate-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/manage/tenants" className="flex items-center gap-3">
+      <header className="bg-slate-900 text-white sticky top-0 z-20">
+        <div className="max-w-[1400px] mx-auto px-4 py-2.5 flex items-center justify-between">
+          <Link href="/manage" className="flex items-center gap-3">
             <div className="w-7 h-7 rounded bg-white/10 flex items-center justify-center text-[12px] font-semibold">
               M
             </div>
@@ -24,38 +25,20 @@ export default async function ManagementPanelLayout({
                 SMLAO Management
               </div>
               <div className="text-[10px] text-slate-300 leading-tight">
-                ຄຸ້ມຄອງ tenant + plan
+                ຄຸ້ມຄອງ tenant + ໃບເກັບເງິນ
               </div>
             </div>
           </Link>
-          <nav className="flex items-center gap-1 text-[12px]">
-            <Link
-              href="/manage/tenants"
-              className="px-2 py-1 rounded text-slate-300 hover:bg-white/10 hover:text-white transition"
-            >
-              Tenants
-            </Link>
-            <Link
-              href="/manage/approvals"
-              className="px-2 py-1 rounded text-slate-300 hover:bg-white/10 hover:text-white transition"
-            >
-              Approvals
-            </Link>
-            <Link
-              href="/manage/admins"
-              className="px-2 py-1 rounded text-slate-300 hover:bg-white/10 hover:text-white transition"
-            >
-              Admins
-            </Link>
-            <span className="mx-2 text-slate-500">|</span>
+          <div className="flex items-center gap-3 text-[12px]">
             <span className="text-slate-300">{session.email}</span>
             <LogoutButton />
-          </nav>
+          </div>
         </div>
       </header>
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
-        {children}
-      </main>
+      <div className="flex-1 flex max-w-[1400px] mx-auto w-full">
+        <SidebarNav />
+        <main className="flex-1 px-5 py-5 min-w-0">{children}</main>
+      </div>
     </div>
   );
 }
