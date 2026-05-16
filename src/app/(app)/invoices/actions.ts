@@ -1,0 +1,373 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/session";
+import { generateInvoiceNumber } from "@/lib/invoice-number";
+import { computeVat } from "@/lib/vat";
+import { isEtaxConfigured } from "@/lib/etax";
+import { submitInvoiceToEtax } from "./etax-actions";
+
+const itemSchema = z.object({
+  productId: z.string().min(1),
+  quantity: z.coerce.number().positive(),
+  priceLak: z.coerce.number().min(0),
+  discount: z.coerce.number().min(0).default(0),
+});
+
+const invoiceSchema = z.object({
+  customerId: z.string().min(1, "ກະລຸນາເລືອກລູກຄ້າ"),
+  date: z.string().optional(),
+  dueDate: z.string().optional(),
+  paymentTermId: z.string().optional(),
+  currency: z.enum(["LAK", "USD", "THB"]).default("LAK"),
+  exchangeRate: z.coerce.number().positive().default(1),
+  discount: z.coerce.number().min(0).default(0),
+  vatRate: z.coerce.number().min(0).max(1).default(0.1),
+  vatMode: z.enum(["EXCLUSIVE", "INCLUSIVE", "EXEMPT"]).default("EXCLUSIVE"),
+  paymentMethod: z.enum(["CASH", "TRANSFER"]).default("CASH"),
+  paymentRef: z.string().optional(),
+  note: z.string().optional(),
+  items: z.array(itemSchema).min(1, "ຕ້ອງມີຢ່າງໜ້ອຍ 1 ລາຍການ"),
+});
+
+
+export type InvoiceFormState =
+  | { error?: string; fieldErrors?: Record<string, string[]> }
+  | undefined;
+
+type ParseResult =
+  | { ok: true; data: z.infer<typeof invoiceSchema> }
+  | { ok: false; state: InvoiceFormState };
+
+function parseForm(formData: FormData): ParseResult {
+  const itemsJson = String(formData.get("items") ?? "[]");
+  let items: unknown;
+  try {
+    items = JSON.parse(itemsJson);
+  } catch {
+    return { ok: false, state: { error: "ຂໍ້ມູນລາຍການບໍ່ຖືກຕ້ອງ" } };
+  }
+
+  const parsed = invoiceSchema.safeParse({
+    customerId: formData.get("customerId"),
+    date: formData.get("date"),
+    currency: formData.get("currency"),
+    exchangeRate: formData.get("exchangeRate"),
+    discount: formData.get("discount"),
+    vatRate: formData.get("vatRate"),
+    note: formData.get("note"),
+    items,
+  });
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      state: {
+        error: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ",
+        fieldErrors: z.flattenError(parsed.error).fieldErrors as Record<
+          string,
+          string[]
+        >,
+      },
+    };
+  }
+
+  return { ok: true, data: parsed.data };
+}
+
+export async function createInvoice(
+  _prev: InvoiceFormState,
+  formData: FormData,
+): Promise<InvoiceFormState> {
+  const session = await requireUser();
+  const parsed = parseForm(formData);
+  if (!parsed.ok) return parsed.state;
+  const data = parsed.data;
+
+  const settings = await prisma.setting.findUnique({ where: { id: "default" } });
+  const prefix = settings?.invoicePrefix ?? "INV";
+
+  const products = await prisma.product.findMany({
+    where: { id: { in: data.items.map((i) => i.productId) } },
+  });
+  const productMap = new Map(products.map((p) => [p.id, p]));
+
+  let subtotal = 0;
+  const itemsToCreate = data.items.map((it) => {
+    const product = productMap.get(it.productId);
+    if (!product) throw new Error("Product not found");
+    const lineTotal = it.quantity * it.priceLak - it.discount;
+    subtotal += lineTotal;
+    return {
+      productId: it.productId,
+      productName: product.name,
+      unit: product.unit,
+      quantity: it.quantity,
+      priceLak: it.priceLak,
+      discount: it.discount,
+      total: lineTotal,
+    };
+  });
+
+  const afterDiscount = subtotal - data.discount;
+  const { vatAmount, total } = computeVat(
+    afterDiscount,
+    data.vatRate,
+    data.vatMode,
+  );
+
+  const number = await generateInvoiceNumber(prefix);
+
+  const invoice = await prisma.$transaction(async (tx) => {
+    const created = await tx.invoice.create({
+      data: {
+        number,
+        date: data.date ? new Date(data.date) : new Date(),
+        dueDate: data.dueDate ? new Date(data.dueDate) : null,
+        paymentTermId: data.paymentTermId || null,
+        customerId: data.customerId,
+        userId: session.userId,
+        currency: data.currency,
+        exchangeRate: data.exchangeRate,
+        subtotal,
+        discount: data.discount,
+        vatRate: data.vatRate,
+        vatMode: data.vatMode,
+        vatAmount,
+        total,
+        paymentMethod: data.paymentMethod,
+        paymentRef: data.paymentRef || null,
+        note: data.note,
+        items: { create: itemsToCreate },
+      },
+    });
+
+    for (const it of data.items) {
+      await tx.product.update({
+        where: { id: it.productId },
+        data: { stock: { decrement: it.quantity } },
+      });
+      await tx.stockMovement.create({
+        data: {
+          productId: it.productId,
+          type: "OUT",
+          quantity: it.quantity,
+          reference: created.number,
+          note: "ຂາຍຕາມບິນ",
+        },
+      });
+    }
+    return created;
+  });
+
+  // Auto-submit to eTax if enabled (best-effort; failures are stored on the
+  // invoice and surfaced in the detail page so the user can retry).
+  if (isEtaxConfigured()) {
+    const setting = await prisma.setting.findUnique({
+      where: { id: "default" },
+      select: { etaxAutoSubmit: true },
+    });
+    if (setting?.etaxAutoSubmit) {
+      try {
+        await submitInvoiceToEtax(invoice.id);
+      } catch {
+        // Swallow — error is already persisted on the invoice row.
+      }
+    }
+  }
+
+  revalidatePath("/invoices");
+  revalidatePath("/products");
+  redirect(`/invoices/${invoice.id}`);
+}
+
+export async function updateInvoice(
+  id: string,
+  _prev: InvoiceFormState,
+  formData: FormData,
+): Promise<InvoiceFormState> {
+  await requireUser();
+  const parsed = parseForm(formData);
+  if (!parsed.ok) return parsed.state;
+  const data = parsed.data;
+
+  const existing = await prisma.invoice.findUnique({
+    where: { id },
+    include: { items: true },
+  });
+  if (!existing) return { error: "ບໍ່ພົບບິນ" };
+  if (existing.status === "CANCELLED")
+    return { error: "ບໍ່ສາມາດແກ້ໄຂບິນທີ່ຍົກເລີກແລ້ວ" };
+
+  const products = await prisma.product.findMany({
+    where: { id: { in: data.items.map((i) => i.productId) } },
+  });
+  const productMap = new Map(products.map((p) => [p.id, p]));
+
+  let subtotal = 0;
+  const itemsToCreate = data.items.map((it) => {
+    const product = productMap.get(it.productId);
+    if (!product) throw new Error("Product not found");
+    const lineTotal = it.quantity * it.priceLak - it.discount;
+    subtotal += lineTotal;
+    return {
+      productId: it.productId,
+      productName: product.name,
+      unit: product.unit,
+      quantity: it.quantity,
+      priceLak: it.priceLak,
+      discount: it.discount,
+      total: lineTotal,
+    };
+  });
+
+  const afterDiscount = subtotal - data.discount;
+  const { vatAmount, total } = computeVat(
+    afterDiscount,
+    data.vatRate,
+    data.vatMode,
+  );
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Restore stock from previous items (was ISSUED → stock was decremented)
+      for (const it of existing.items) {
+        await tx.product.update({
+          where: { id: it.productId },
+          data: { stock: { increment: it.quantity } },
+        });
+        await tx.stockMovement.create({
+          data: {
+            productId: it.productId,
+            type: "IN",
+            quantity: it.quantity,
+            reference: existing.number,
+            note: "ແກ້ໄຂບິນ (ຄືນສິນຄ້າເກົ່າ)",
+          },
+        });
+      }
+
+      // Delete old items, write new ones, update header
+      await tx.invoiceItem.deleteMany({ where: { invoiceId: id } });
+      await tx.invoice.update({
+        where: { id },
+        data: {
+          date: data.date ? new Date(data.date) : existing.date,
+          dueDate: data.dueDate ? new Date(data.dueDate) : null,
+          paymentTermId: data.paymentTermId || null,
+          customerId: data.customerId,
+          currency: data.currency,
+          exchangeRate: data.exchangeRate,
+          subtotal,
+          discount: data.discount,
+          vatRate: data.vatRate,
+          vatMode: data.vatMode,
+          vatAmount,
+          total,
+          note: data.note,
+          items: { create: itemsToCreate },
+        },
+      });
+
+      // Apply new stock decrements
+      for (const it of data.items) {
+        await tx.product.update({
+          where: { id: it.productId },
+          data: { stock: { decrement: it.quantity } },
+        });
+        await tx.stockMovement.create({
+          data: {
+            productId: it.productId,
+            type: "OUT",
+            quantity: it.quantity,
+            reference: existing.number,
+            note: "ແກ້ໄຂບິນ (ຫັກສິນຄ້າໃໝ່)",
+          },
+        });
+      }
+    });
+  } catch (e) {
+    return {
+      error: e instanceof Error ? e.message : "ບັນທຶກບໍ່ສຳເລັດ",
+    };
+  }
+
+  revalidatePath("/invoices");
+  revalidatePath(`/invoices/${id}`);
+  revalidatePath("/products");
+  redirect(`/invoices/${id}`);
+}
+
+export async function cancelInvoice(id: string) {
+  await requireUser();
+  const inv = await prisma.invoice.findUnique({
+    where: { id },
+    include: { items: true },
+  });
+  if (!inv || inv.status === "CANCELLED") return;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.invoice.update({
+      where: { id },
+      data: { status: "CANCELLED" },
+    });
+    for (const it of inv.items) {
+      await tx.product.update({
+        where: { id: it.productId },
+        data: { stock: { increment: it.quantity } },
+      });
+      await tx.stockMovement.create({
+        data: {
+          productId: it.productId,
+          type: "IN",
+          quantity: it.quantity,
+          reference: inv.number,
+          note: "ຍົກເລີກບິນ",
+        },
+      });
+    }
+  });
+
+  revalidatePath("/invoices");
+  revalidatePath(`/invoices/${id}`);
+  revalidatePath("/products");
+}
+
+export async function deleteInvoice(id: string) {
+  await requireUser();
+  const inv = await prisma.invoice.findUnique({
+    where: { id },
+    include: { items: true },
+  });
+  if (!inv) return;
+
+  await prisma.$transaction(async (tx) => {
+    // If still ISSUED, restore stock before deleting
+    if (inv.status === "ISSUED") {
+      for (const it of inv.items) {
+        await tx.product.update({
+          where: { id: it.productId },
+          data: { stock: { increment: it.quantity } },
+        });
+        await tx.stockMovement.create({
+          data: {
+            productId: it.productId,
+            type: "IN",
+            quantity: it.quantity,
+            reference: inv.number,
+            note: "ລົບບິນ (ຄືນສິນຄ້າ)",
+          },
+        });
+      }
+    }
+    // Items cascade-delete via schema
+    await tx.invoice.delete({ where: { id } });
+  });
+
+  revalidatePath("/invoices");
+  revalidatePath("/products");
+  redirect("/invoices");
+}

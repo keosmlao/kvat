@@ -1,0 +1,115 @@
+// Master DB — controls tenants, plans, and the management portal.
+// Each tenant row points at its own physical database (dbName) for app data.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../../src/generated/master"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TenantPlan {
+  TRIAL    // 30-day trial granted automatically on signup
+  YEARLY   // paidUntil = approved_at + 1 year
+  LIFETIME // paidUntil = null
+}
+
+enum TenantStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED  // trial expired or non-payment
+  CANCELLED
+}
+
+model Tenant {
+  id          String       @id @default(cuid())
+  slug        String       @unique           // URL path segment, e.g. "acme" → /t/acme/...
+  name        String                          // display name, e.g. "Acme Co."
+  email       String       @unique           // owner signup email (login lookup key)
+  password    String                          // owner password, bcrypt
+  ownerName   String
+  phone       String?
+  dbName      String       @unique           // physical DB, e.g. "kvat_acme"
+  plan        TenantPlan   @default(TRIAL)
+  status      TenantStatus @default(TRIAL)
+  trialEndsAt DateTime                        // createdAt + 30d
+  paidUntil   DateTime?                       // YEARLY → +1y; LIFETIME → null
+  approvedAt  DateTime?
+  approvedBy  String?                         // ManagementUser.id
+  notes       String?                         // internal notes from management
+  isTemplate  Boolean      @default(false)   // template tenant (existing kvat data)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  logins      LoginLog[]
+  requests    ApprovalRequest[]
+  users       TenantUserEmail[]
+
+  @@index([status])
+  @@index([trialEndsAt])
+}
+
+// Global email → tenant lookup. Lets staff users log in without the owner
+// email by walking master DB to find their tenant first, then auth against
+// the tenant DB. One row per (email, tenant) — email is globally unique
+// because a person can only belong to one tenant at a time.
+model TenantUserEmail {
+  email     String   @id           // globally unique login key
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+// Single-use password-reset token. Stored hashed so the DB leak alone doesn't
+// give an attacker a usable token.
+model PasswordResetToken {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique          // sha256 of the URL token
+  email      String                    // user email (lowercased)
+  tenantId   String                    // resolved at request time
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
+model ManagementUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LoginLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userEmail String                          // tenant user email that logged in
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+}
+
+model ApprovalRequest {
+  id            String     @id @default(cuid())
+  tenantId      String
+  tenant        Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  requestedPlan TenantPlan
+  status        String     @default("PENDING") // PENDING | APPROVED | REJECTED
+  reason        String?
+  decidedAt     DateTime?
+  decidedBy     String?                         // ManagementUser.id
+  createdAt     DateTime   @default(now())
+
+  @@index([tenantId])
+  @@index([status])
+}

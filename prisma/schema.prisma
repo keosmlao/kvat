@@ -1,0 +1,379 @@
+// Prisma schema for SMLAO Tax Invoice System
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(STAFF)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  invoices  Invoice[]
+  payments  Payment[]
+  messages  Message[]
+  activitiesAssigned Activity[] @relation("AssignedTo")
+  activitiesCreated  Activity[] @relation("CreatedBy")
+  follows   Follower[]
+}
+
+enum MessageKind {
+  COMMENT  // public message (email-like)
+  NOTE     // internal note
+  LOG      // system audit log
+}
+
+model Message {
+  id         String      @id @default(cuid())
+  body       String
+  kind       MessageKind @default(COMMENT)
+  recordType String      // "invoice" | "product" | "customer"
+  recordId   String
+  authorId   String
+  author     User        @relation(fields: [authorId], references: [id])
+  createdAt  DateTime    @default(now())
+
+  @@index([recordType, recordId, createdAt])
+}
+
+model Activity {
+  id           String    @id @default(cuid())
+  summary      String
+  note         String?
+  dueDate      DateTime
+  done         Boolean   @default(false)
+  doneAt       DateTime?
+  recordType   String
+  recordId     String
+  assignedToId String
+  assignedTo   User      @relation("AssignedTo", fields: [assignedToId], references: [id])
+  createdById  String
+  createdBy    User      @relation("CreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([recordType, recordId])
+  @@index([assignedToId, done])
+}
+
+model Follower {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  recordType String
+  recordId   String
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, recordType, recordId])
+  @@index([recordType, recordId])
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  name          String
+  description   String?
+  imageUrl      String?
+  unit          String   @default("ອັນ")
+  unitId        String?
+  uom           Unit?    @relation(fields: [unitId], references: [id])
+  categoryId    String?
+  category      Category? @relation(fields: [categoryId], references: [id])
+  typeId        String?
+  type          ProductType? @relation(fields: [typeId], references: [id])
+  warehouseId   String?
+  warehouse     Warehouse? @relation(fields: [warehouseId], references: [id])
+  costingMethod String   @default("STANDARD") // STANDARD | AVERAGE | FIFO
+  priceLak      Float
+  costLak       Float    @default(0)
+  stock         Float    @default(0)
+  minStock      Float    @default(0)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  invoiceItems   InvoiceItem[]
+  stockMovements StockMovement[]
+
+  @@index([categoryId])
+  @@index([typeId])
+  @@index([warehouseId])
+}
+
+model Unit {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  products  Product[]
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  products    Product[]
+}
+
+model ProductType {
+  id         String   @id @default(cuid())
+  code       String   @unique
+  name       String
+  trackStock Boolean  @default(true)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  products   Product[]
+}
+
+model Warehouse {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  address   String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  products  Product[]
+}
+
+model Customer {
+  id         String   @id @default(cuid())
+  code       String   @unique
+  name       String
+  imageUrl   String?
+  taxId      String?
+  phone      String?
+  email      String?
+  address    String?
+  provinceId String?
+  province   Province? @relation(fields: [provinceId], references: [id])
+  districtId String?
+  district   District? @relation(fields: [districtId], references: [id])
+  villageId  String?
+  village    Village?  @relation(fields: [villageId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  invoices   Invoice[]
+
+  @@index([provinceId])
+  @@index([districtId])
+  @@index([villageId])
+}
+
+model Province {
+  id        String     @id @default(cuid())
+  code      String     @unique
+  name      String
+  nameEn    String?
+  active    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  districts District[]
+  customers Customer[]
+}
+
+model District {
+  id         String     @id @default(cuid())
+  code       String     @unique
+  name       String
+  nameEn     String?
+  provinceId String
+  province   Province   @relation(fields: [provinceId], references: [id])
+  villages   Village[]
+  customers  Customer[]
+  active     Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([provinceId])
+}
+
+model Village {
+  id         String     @id @default(cuid())
+  code       String?
+  name       String
+  nameEn     String?
+  districtId String
+  district   District   @relation(fields: [districtId], references: [id])
+  customers  Customer[]
+  active     Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([districtId])
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  number        String        @unique
+  date          DateTime      @default(now())
+  dueDate       DateTime?
+  customerId    String
+  userId        String
+  currency      String        @default("LAK")
+  exchangeRate  Float         @default(1)
+  subtotal      Float
+  discount      Float         @default(0)
+  vatRate       Float         @default(0.1)
+  vatMode       String        @default("EXCLUSIVE") // EXCLUSIVE | INCLUSIVE | EXEMPT
+  vatAmount     Float
+  total         Float
+  paymentMethod String        @default("CASH") // CASH | TRANSFER
+  paymentRef    String?       // transfer reference / slip no.
+  paidAmount    Float         @default(0)
+  paymentStatus PaymentStatus @default(UNPAID)
+  status        InvoiceStatus @default(ISSUED)
+  note          String?
+  paymentTermId String?
+  paymentTerm   PaymentTerm?  @relation(fields: [paymentTermId], references: [id])
+  isCreditNote  Boolean       @default(false)
+  reversedId    String?       // original invoice if this is a credit note
+  reversed      Invoice?      @relation("InvoiceReversal", fields: [reversedId], references: [id])
+  reversals     Invoice[]     @relation("InvoiceReversal")
+  // eTax Invoice Gateway integration
+  etaxSerialNum     String?   // our unique 32-char idempotency key sent to gateway
+  etaxInvoiceNumber String?   // 20-digit tax authority invoice ID
+  etaxIssueTime     String?   // yyyy-MM-dd HH:mm:ss from tax server
+  etaxCheckCode     String?   // 16-char check code
+  etaxQrUrl         String?   // QR url for invoice delivery
+  etaxStatus        String?   // 0=Issued, 1=Approved, 3=Invalid, 6=Cancelled
+  etaxStatusReason  String?   // human-readable reason when status=3
+  etaxSubmittedAt   DateTime?
+  etaxLastCheckedAt DateTime?
+  etaxErrorCode     String?
+  etaxErrorMsg      String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  user          User          @relation(fields: [userId], references: [id])
+  items         InvoiceItem[]
+  payments      Payment[]
+
+  @@index([date])
+  @@index([customerId])
+  @@index([paymentStatus])
+}
+
+model PaymentTerm {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  days      Int      @default(0) // 0 = immediate, 30 = Net 30
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  invoices  Invoice[]
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  number    String   @unique
+  invoiceId String
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount    Float
+  method    String   @default("CASH") // CASH | BANK | TRANSFER | OTHER
+  date      DateTime @default(now())
+  reference String?
+  note      String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([invoiceId])
+}
+
+model InvoiceItem {
+  id         String  @id @default(cuid())
+  invoiceId  String
+  productId  String
+  productName String
+  unit       String
+  quantity   Float
+  priceLak   Float
+  discount   Float   @default(0)
+  total      Float
+  invoice    Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product    Product @relation(fields: [productId], references: [id])
+
+  @@index([invoiceId])
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  ADJUST
+}
+
+model StockMovement {
+  id        String            @id @default(cuid())
+  productId String
+  type      StockMovementType
+  quantity  Float
+  reference String?
+  note      String?
+  createdAt DateTime          @default(now())
+  product   Product           @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+}
+
+model Setting {
+  id              String   @id @default("default")
+  shopName        String   @default("ຮ້ານຄ້າ")
+  shopNameEn      String?
+  taxId           String?
+  address         String?
+  phone           String?
+  email           String?
+  logoUrl         String?
+  vatRate         Float    @default(0.1)
+  defaultCurrency String   @default("LAK")
+  invoicePrefix   String   @default("INV")
+  // Feature toggles
+  enablePos          Boolean @default(false)
+  enableCreditNotes  Boolean @default(true)
+  enableChatter      Boolean @default(true)
+  enableReports      Boolean @default(true)
+  enableDashboard    Boolean @default(true)
+  // eTax behaviour
+  etaxAutoSubmit     Boolean @default(false) // submit invoice to eTax immediately after creation
+  // Per-tenant eTax credentials (override env-level defaults). When all four
+  // are null the gateway is unconfigured for this tenant.
+  etaxEnv            String? // "dev" | "prod"
+  etaxUsername       String?
+  etaxSecret         String? // stored at rest; encrypt at app layer in production
+  etaxIssueCode      String? // tax-payer issue code (TIN)
+  updatedAt       DateTime @updatedAt
+}
