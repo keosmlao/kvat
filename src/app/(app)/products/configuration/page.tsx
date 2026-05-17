@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { ConfigClient } from "./config-client";
+import { OdooListPage } from "@/components/odoo/sheet";
 
 export default async function ProductConfigurationPage() {
   const [units, categories, types, warehouses] = await Promise.all([
@@ -22,38 +23,43 @@ export default async function ProductConfigurationPage() {
   ]);
 
   return (
-    <ConfigClient
-      units={units.map((u) => ({
-        id: u.id,
-        code: u.code,
-        name: u.name,
-        active: u.active,
-        productCount: u._count.products,
-      }))}
-      categories={categories.map((c) => ({
-        id: c.id,
-        code: c.code,
-        name: c.name,
-        description: c.description ?? "",
-        active: c.active,
-        productCount: c._count.products,
-      }))}
-      types={types.map((t) => ({
-        id: t.id,
-        code: t.code,
-        name: t.name,
-        trackStock: t.trackStock,
-        active: t.active,
-        productCount: t._count.products,
-      }))}
-      warehouses={warehouses.map((w) => ({
-        id: w.id,
-        code: w.code,
-        name: w.name,
-        address: w.address ?? "",
-        active: w.active,
-        productCount: w._count.products,
-      }))}
-    />
+    <OdooListPage
+      title="ການກຳນົດຄ່າສິນຄ້າ"
+      subtitle="ໜ່ວຍວັດແທກ / ໝວດໝູ່ / ປະເພດ / ສາງເກັບສິນຄ້າ"
+    >
+      <ConfigClient
+        units={units.map((u) => ({
+          id: u.id,
+          code: u.code,
+          name: u.name,
+          active: u.active,
+          productCount: u._count.products,
+        }))}
+        categories={categories.map((c) => ({
+          id: c.id,
+          code: c.code,
+          name: c.name,
+          description: c.description ?? "",
+          active: c.active,
+          productCount: c._count.products,
+        }))}
+        types={types.map((t) => ({
+          id: t.id,
+          code: t.code,
+          name: t.name,
+          trackStock: t.trackStock,
+          active: t.active,
+          productCount: t._count.products,
+        }))}
+        warehouses={warehouses.map((w) => ({
+          id: w.id,
+          code: w.code,
+          name: w.name,
+          address: w.address ?? "",
+          active: w.active,
+          productCount: w._count.products,
+        }))}
+      />
+    </OdooListPage>
   );
 }

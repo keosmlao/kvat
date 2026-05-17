@@ -20,8 +20,23 @@ const signupSchema = z.object({
   taxId: z.string().optional(),
 });
 
+export type SignupValues = {
+  shopName: string;
+  ownerName: string;
+  email: string;
+  phone: string;
+  taxId: string;
+};
+
 export type SignupState =
-  | { error?: string; fieldErrors?: Record<string, string[]> }
+  | {
+      error?: string;
+      fieldErrors?: Record<string, string[]>;
+      // Round-trip submitted values (minus password) so the form can
+      // restore them on any failure — uncontrolled inputs alone can't be
+      // relied on if React ever remounts the tree.
+      values?: SignupValues;
+    }
   | undefined;
 
 const RESERVED_SLUGS = new Set([
@@ -74,6 +89,14 @@ export async function signupAction(
   _prev: SignupState,
   formData: FormData,
 ): Promise<SignupState> {
+  const values: SignupValues = {
+    shopName: String(formData.get("shopName") ?? "").trim(),
+    ownerName: String(formData.get("ownerName") ?? "").trim(),
+    email: String(formData.get("email") ?? "").trim().toLowerCase(),
+    phone: String(formData.get("phone") ?? "").trim(),
+    taxId: String(formData.get("taxId") ?? "").trim(),
+  };
+
   // Cheap throttle: 5 signups per IP per hour. Catches spam without affecting
   // legit single-user flows. Replace with Redis-backed limiter for multi-instance.
   const h = await headers();
@@ -83,16 +106,14 @@ export async function signupAction(
     const minutes = Math.ceil(rl.retryAfterMs / 60000);
     return {
       error: `ສະໝັກຫຼາຍເກີນໄປ — ກະລຸນາລໍຖ້າ ${minutes} ນາທີ`,
+      values,
     };
   }
 
   const parsed = signupSchema.safeParse({
-    shopName: String(formData.get("shopName") ?? "").trim(),
-    ownerName: String(formData.get("ownerName") ?? "").trim(),
-    email: String(formData.get("email") ?? "").trim().toLowerCase(),
+    ...values,
     password: String(formData.get("password") ?? ""),
-    phone: String(formData.get("phone") ?? "").trim(),
-    taxId: String(formData.get("taxId") ?? "").trim() || undefined,
+    taxId: values.taxId || undefined,
   });
 
   if (!parsed.success) {
@@ -102,6 +123,7 @@ export async function signupAction(
         string,
         string[]
       >,
+      values,
     };
   }
   const v = parsed.data;
@@ -111,7 +133,7 @@ export async function signupAction(
   const byEmail = await masterPrisma.tenant.findUnique({
     where: { email: v.email },
   });
-  if (byEmail) return { error: `email "${v.email}" ມີບັນຊີຢູ່ແລ້ວ` };
+  if (byEmail) return { error: `email "${v.email}" ມີບັນຊີຢູ່ແລ້ວ`, values };
 
   // Auto-allocate slug + dbName from email. Falls back to "tenant-<rand>"
   // when the local part is unusable.
@@ -131,6 +153,7 @@ export async function signupAction(
   if (!provision.ok) {
     return {
       error: `ບໍ່ສາມາດ provision DB: ${provision.error}`,
+      values,
     };
   }
 
@@ -165,6 +188,7 @@ export async function signupAction(
       error: `ສ້າງ tenant record ບໍ່ໄດ້: ${
         e instanceof Error ? e.message : "unknown"
       }. DB "${dbName}" ມີຢູ່ແລ້ວ — ຕິດຕໍ່ admin.`,
+      values,
     };
   }
 
@@ -186,6 +210,7 @@ export async function signupAction(
     return {
       error:
         "ສ້າງ tenant ສຳເລັດແຕ່ login ບໍ່ໄດ້. ກະລຸນາໄປໜ້າ login ດ້ວຍ email ແລະ ລະຫັດຜ່ານ.",
+      values,
     };
   }
 

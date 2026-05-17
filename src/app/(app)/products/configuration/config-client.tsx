@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import Link from "next/link";
 import {
   createUnit,
   updateUnit,
@@ -45,49 +44,33 @@ export function ConfigClient({
   const [tab, setTab] = useState<Tab>("units");
 
   return (
-    <div className="-mx-4 md:-mx-6 -mt-4 md:-mt-6">
-      {/* Control panel */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="px-4 md:px-6 pt-3 pb-1">
-          <div className="text-[15px] flex items-center gap-2">
-            <Link href="/products" className="text-gray-500 hover:underline">
-              ສິນຄ້າ
-            </Link>
-            <span className="text-gray-300">›</span>
-            <span className="font-medium text-gray-800">ການກຳນົດຄ່າ</span>
-          </div>
-        </div>
-        <div className="px-4 md:px-6 pt-2">
-          <div className="flex gap-1 text-[13px]">
-            <TabBtn active={tab === "units"} onClick={() => setTab("units")}>
-              ໜ່ວຍວັດແທກ ({units.length})
-            </TabBtn>
-            <TabBtn
-              active={tab === "categories"}
-              onClick={() => setTab("categories")}
-            >
-              ໝວດໝູ່ ({categories.length})
-            </TabBtn>
-            <TabBtn active={tab === "types"} onClick={() => setTab("types")}>
-              ປະເພດ ({types.length})
-            </TabBtn>
-            <TabBtn
-              active={tab === "warehouses"}
-              onClick={() => setTab("warehouses")}
-            >
-              ສາງເກັບສິນຄ້າ ({warehouses.length})
-            </TabBtn>
-          </div>
-        </div>
+    <>
+      <div className="bg-white border border-gray-200 rounded mb-4 px-3 pt-2 flex gap-1 text-[13px]">
+        <TabBtn active={tab === "units"} onClick={() => setTab("units")}>
+          ໜ່ວຍວັດແທກ ({units.length})
+        </TabBtn>
+        <TabBtn
+          active={tab === "categories"}
+          onClick={() => setTab("categories")}
+        >
+          ໝວດໝູ່ ({categories.length})
+        </TabBtn>
+        <TabBtn active={tab === "types"} onClick={() => setTab("types")}>
+          ປະເພດ ({types.length})
+        </TabBtn>
+        <TabBtn
+          active={tab === "warehouses"}
+          onClick={() => setTab("warehouses")}
+        >
+          ສາງເກັບສິນຄ້າ ({warehouses.length})
+        </TabBtn>
       </div>
 
-      <div className="px-4 md:px-6 py-4">
-        {tab === "units" && <UnitsPanel items={units} />}
-        {tab === "categories" && <CategoriesPanel items={categories} />}
-        {tab === "types" && <TypesPanel items={types} />}
-        {tab === "warehouses" && <WarehousesPanel items={warehouses} />}
-      </div>
-    </div>
+      {tab === "units" && <UnitsPanel items={units} />}
+      {tab === "categories" && <CategoriesPanel items={categories} />}
+      {tab === "types" && <TypesPanel items={types} />}
+      {tab === "warehouses" && <WarehousesPanel items={warehouses} />}
+    </>
   );
 }
 
@@ -106,7 +89,7 @@ function TabBtn({
       onClick={onClick}
       className={`px-3 py-2 border-b-2 -mb-px transition ${
         active
-          ? "border-[#b91c1c] text-[#b91c1c] font-medium"
+          ? "border-odoo text-odoo font-medium"
           : "border-transparent text-gray-500 hover:text-gray-800"
       }`}
     >
@@ -163,7 +146,7 @@ function UnitsPanel({ items }: { items: Unit[] }) {
                 <button
                   type="submit"
                   disabled={pending}
-                  className="bg-[#b91c1c] hover:bg-[#991b1b] text-white px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
+                  className="bg-odoo hover:bg-odoo-hover text-white px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
                 >
                   {pending ? "..." : "+ ເພີ່ມ"}
                 </button>
@@ -234,7 +217,7 @@ function UnitRow({ item }: { item: Unit }) {
             type="checkbox"
             checked={active}
             onChange={(e) => setActive(e.target.checked)}
-            className="accent-[#b91c1c]"
+            className="accent-odoo"
           />
         </td>
         <td className="px-2 py-1.5 text-right text-gray-400">—</td>
@@ -262,7 +245,7 @@ function UnitRow({ item }: { item: Unit }) {
   }
 
   return (
-    <tr className="border-b border-gray-100 hover:bg-[#b91c1c]/5 group">
+    <tr className="border-b border-gray-100 hover:bg-odoo/5 group">
       <td className="px-3 py-1.5 font-mono text-[12px] text-gray-700">
         {item.code}
       </td>
@@ -278,7 +261,7 @@ function UnitRow({ item }: { item: Unit }) {
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="text-[#b91c1c] hover:text-[#991b1b]"
+            className="text-odoo hover:text-odoo-hover"
           >
             ແກ້ໄຂ
           </button>
@@ -351,7 +334,7 @@ function CategoriesPanel({ items }: { items: Category[] }) {
                 <button
                   type="submit"
                   disabled={pending}
-                  className="bg-[#b91c1c] hover:bg-[#991b1b] text-white px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
+                  className="bg-odoo hover:bg-odoo-hover text-white px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
                 >
                   {pending ? "..." : "+ ເພີ່ມ"}
                 </button>
@@ -431,7 +414,7 @@ function CategoryRow({ item }: { item: Category }) {
             type="checkbox"
             checked={active}
             onChange={(e) => setActive(e.target.checked)}
-            className="accent-[#b91c1c]"
+            className="accent-odoo"
           />
         </td>
         <td className="px-2 py-1.5 text-right text-gray-400">—</td>
@@ -459,7 +442,7 @@ function CategoryRow({ item }: { item: Category }) {
   }
 
   return (
-    <tr className="border-b border-gray-100 hover:bg-[#b91c1c]/5 group">
+    <tr className="border-b border-gray-100 hover:bg-odoo/5 group">
       <td className="px-3 py-1.5 font-mono text-[12px] text-gray-700">
         {item.code}
       </td>
@@ -476,7 +459,7 @@ function CategoryRow({ item }: { item: Category }) {
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="text-[#b91c1c] hover:text-[#991b1b]"
+            className="text-odoo hover:text-odoo-hover"
           >
             ແກ້ໄຂ
           </button>
@@ -546,7 +529,7 @@ function TypesPanel({ items }: { items: ProductType[] }) {
                     name="trackStock"
                     defaultChecked
                     value="true"
-                    className="accent-[#b91c1c]"
+                    className="accent-odoo"
                   />
                   ນັບຄັງ
                 </label>
@@ -554,7 +537,7 @@ function TypesPanel({ items }: { items: ProductType[] }) {
                 <button
                   type="submit"
                   disabled={pending}
-                  className="bg-[#b91c1c] hover:bg-[#991b1b] text-white px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
+                  className="bg-odoo hover:bg-odoo-hover text-white px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
                 >
                   {pending ? "..." : "+ ເພີ່ມ"}
                 </button>
@@ -627,7 +610,7 @@ function TypeRow({ item }: { item: ProductType }) {
             type="checkbox"
             checked={trackStock}
             onChange={(e) => setTrackStock(e.target.checked)}
-            className="accent-[#b91c1c]"
+            className="accent-odoo"
           />
         </td>
         <td className="px-2 py-1.5 text-center">
@@ -635,7 +618,7 @@ function TypeRow({ item }: { item: ProductType }) {
             type="checkbox"
             checked={active}
             onChange={(e) => setActive(e.target.checked)}
-            className="accent-[#b91c1c]"
+            className="accent-odoo"
           />
         </td>
         <td className="px-2 py-1.5 text-right text-gray-400">—</td>
@@ -663,7 +646,7 @@ function TypeRow({ item }: { item: ProductType }) {
   }
 
   return (
-    <tr className="border-b border-gray-100 hover:bg-[#b91c1c]/5 group">
+    <tr className="border-b border-gray-100 hover:bg-odoo/5 group">
       <td className="px-3 py-1.5 font-mono text-[12px] text-gray-700">
         {item.code}
       </td>
@@ -686,7 +669,7 @@ function TypeRow({ item }: { item: ProductType }) {
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="text-[#b91c1c] hover:text-[#991b1b]"
+            className="text-odoo hover:text-odoo-hover"
           >
             ແກ້ໄຂ
           </button>
@@ -759,7 +742,7 @@ function WarehousesPanel({ items }: { items: Warehouse[] }) {
                 <button
                   type="submit"
                   disabled={pending}
-                  className="bg-[#b91c1c] hover:bg-[#991b1b] text-white px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
+                  className="bg-odoo hover:bg-odoo-hover text-white px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
                 >
                   {pending ? "..." : "+ ເພີ່ມ"}
                 </button>
@@ -839,7 +822,7 @@ function WarehouseRow({ item }: { item: Warehouse }) {
             type="checkbox"
             checked={active}
             onChange={(e) => setActive(e.target.checked)}
-            className="accent-[#b91c1c]"
+            className="accent-odoo"
           />
         </td>
         <td className="px-2 py-1.5 text-right text-gray-400">—</td>
@@ -867,7 +850,7 @@ function WarehouseRow({ item }: { item: Warehouse }) {
   }
 
   return (
-    <tr className="border-b border-gray-100 hover:bg-[#b91c1c]/5 group">
+    <tr className="border-b border-gray-100 hover:bg-odoo/5 group">
       <td className="px-3 py-1.5 font-mono text-[12px] text-gray-700">
         {item.code}
       </td>
@@ -884,7 +867,7 @@ function WarehouseRow({ item }: { item: Warehouse }) {
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="text-[#b91c1c] hover:text-[#991b1b]"
+            className="text-odoo hover:text-odoo-hover"
           >
             ແກ້ໄຂ
           </button>

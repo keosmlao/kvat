@@ -1,5 +1,9 @@
 import { masterPrisma } from "@/lib/master-prisma";
 import { EtaxConfigForm } from "./form";
+import { OdooListPage } from "@/components/odoo/sheet";
+import { t } from "@/lib/i18n/messages";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 const DATETIME_FMT = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Asia/Vientiane",
@@ -22,16 +26,11 @@ export default async function EtaxConfigPage() {
   const configured = Boolean(initial.username && initial.secret);
 
   return (
-    <div>
-      <div className="mb-4">
-        <h1 className="text-[22px] font-medium text-gray-900">
-          eTax Gateway — ການຕັ້ງຄ່າສ່ວນກາງ
-        </h1>
-        <p className="text-[12px] text-gray-500 mt-1">
-          ຄ່າເຫຼົ່ານີ້ໃຊ້ສຳລັບທຸກ tenant ໃນລະບົບ. ການປ່ຽນແປງມີຜົນກັບການອອກບິນຫຼັງຈາກນັ້ນທັນທີ.
-        </p>
-      </div>
-
+    <OdooListPage
+      title={tm("etaxCfgTitle")}
+      subtitle={tm("etaxCfgSubtitle")}
+    >
+      <>
       <div className="bg-white border border-gray-200 rounded p-5 mb-4">
         <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
           {configured ? (
@@ -62,6 +61,7 @@ export default async function EtaxConfigPage() {
           <li>ໃນ env dev ໃຊ້ສຳລັບທົດສອບ — invoice ບໍ່ມີຜົນທາງພາສີ</li>
         </ul>
       </div>
-    </div>
+      </>
+    </OdooListPage>
   );
 }

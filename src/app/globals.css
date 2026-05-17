@@ -1,20 +1,63 @@
 @import "tailwindcss";
 
-:root {
+:root,
+[data-theme="light"] {
   --background: #f5f5f7;
+  --surface: #ffffff;
+  --surface-alt: #f9fafb;
   --foreground: #1f2937;
-  --odoo-primary: #b91c1c;
-  --odoo-primary-hover: #991b1b;
-  --odoo-primary-light: rgba(185, 28, 28, 0.1);
+  --odoo-primary: #714b67;
+  --odoo-primary-hover: #5f3f57;
+  --odoo-primary-light: rgba(113, 75, 103, 0.12);
   --odoo-text: #1f2937;
   --odoo-muted: #6b7280;
   --odoo-border: #e5e7eb;
 }
 
+/* Dark Odoo theme - keeps the primary accent, flips surfaces + text.
+   Tailwind utilities still apply; we only override the named CSS vars
+   plus a small set of bg-white / text-gray-* utilities that dominate
+   the existing markup. */
+[data-theme="dark"] {
+  --background: #1f1d2b;
+  --surface: #2a2738;
+  --surface-alt: #312e42;
+  --foreground: #e5e7eb;
+  --odoo-primary: #714b67;
+  --odoo-primary-hover: #8f6584;
+  --odoo-primary-light: rgba(113, 75, 103, 0.24);
+  --odoo-text: #e5e7eb;
+  --odoo-muted: #9ca3af;
+  --odoo-border: #3f3b54;
+  color-scheme: dark;
+}
+
+/* Remap the small set of Tailwind utilities that dominate the existing
+   markup so dark mode doesn't require touching every component. */
+[data-theme="dark"] .bg-white { background-color: var(--surface) !important; }
+[data-theme="dark"] .bg-gray-50 { background-color: var(--surface-alt) !important; }
+[data-theme="dark"] .bg-gray-100 { background-color: var(--surface-alt) !important; }
+[data-theme="dark"] .border-gray-200 { border-color: var(--odoo-border) !important; }
+[data-theme="dark"] .border-gray-300 { border-color: var(--odoo-border) !important; }
+[data-theme="dark"] .border-gray-100 { border-color: var(--odoo-border) !important; }
+[data-theme="dark"] .divide-gray-100 > * + * { border-color: var(--odoo-border) !important; }
+[data-theme="dark"] .text-gray-900 { color: var(--foreground) !important; }
+[data-theme="dark"] .text-gray-800 { color: #d1d5db !important; }
+[data-theme="dark"] .text-gray-700 { color: #c4c6cc !important; }
+[data-theme="dark"] .text-gray-600 { color: #a8acb5 !important; }
+[data-theme="dark"] .text-gray-500 { color: var(--odoo-muted) !important; }
+[data-theme="dark"] .hover\:bg-gray-50:hover { background-color: var(--surface-alt) !important; }
+[data-theme="dark"] .hover\:bg-gray-100:hover { background-color: var(--surface-alt) !important; }
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-odoo: var(--odoo-primary);
+  --color-odoo-hover: var(--odoo-primary-hover);
+  --color-odoo-muted: var(--odoo-muted);
+  --color-odoo-border: var(--odoo-border);
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
   --font-sans: var(--font-noto-lao);
   --font-mono: var(--font-geist-mono);
 }
@@ -25,6 +68,16 @@ body {
   font-family: var(--font-noto-lao), "Noto Sans Lao", system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.45;
+}
+
+.o-topbar,
+.o-trial-banner {
+  background: var(--odoo-primary);
+  color: #fff;
+}
+
+.o-topbar :is(button, a):hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* Odoo-style buttons */
@@ -203,7 +256,7 @@ body {
   color: var(--odoo-primary);
   font-size: 12px;
   font-weight: 500;
-  border: 1px solid rgba(185, 28, 28, 0.2);
+  border: 1px solid rgba(113, 75, 103, 0.24);
 }
 .o-facet-x {
   cursor: pointer;
@@ -214,7 +267,7 @@ body {
 }
 .o-facet-x:hover {
   opacity: 1;
-  color: #991b1b;
+  color: var(--odoo-primary-hover);
 }
 
 @media print {

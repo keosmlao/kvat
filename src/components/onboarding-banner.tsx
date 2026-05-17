@@ -1,16 +1,21 @@
 import Link from "next/link";
+import { t, type Locale } from "@/lib/i18n/messages";
 
 // Shown for the first 7 days after a tenant signs up, only on /dashboard.
 // Helps new owners discover the setup steps without a tour overlay.
 export function OnboardingBanner({
   tenantCreatedAt,
   ownerName,
+  locale = "lo",
 }: {
   tenantCreatedAt: Date;
   ownerName: string;
+  locale?: Locale;
 }) {
+  const tb = (k: string) => t(locale, "onboarding", k);
+  const nowMs = new Date().getTime();
   const days = Math.floor(
-    (Date.now() - tenantCreatedAt.getTime()) / (1000 * 60 * 60 * 24),
+    (nowMs - tenantCreatedAt.getTime()) / (1000 * 60 * 60 * 24),
   );
   if (days >= 7) return null;
 
@@ -20,51 +25,51 @@ export function OnboardingBanner({
         <div className="text-2xl">👋</div>
         <div className="flex-1">
           <h3 className="text-[14px] font-medium text-gray-900">
-            ຍິນດີຕ້ອນຮັບ, {ownerName}!
+            {tb("welcome")}, {ownerName}!
           </h3>
           <p className="text-[12px] text-gray-600 mt-1">
-            ເລີ່ມຕົ້ນດ້ວຍ 4 ຂັ້ນຕອນງ່າຍໆເພື່ອອອກບິນຄັ້ງທຳອິດ:
+            {tb("intro")}
           </p>
           <ol className="text-[12px] text-gray-700 mt-2 space-y-1 list-decimal list-inside">
             <li>
               <Link
                 href="/settings"
-                className="text-[#b91c1c] hover:underline"
+                className="text-odoo hover:underline"
               >
-                ຕັ້ງຄ່າຮ້ານ
+                {tb("step1Link")}
               </Link>{" "}
-              — ຊື່, ເລກ TIN, ທີ່ຢູ່, logo
+              — {tb("step1Hint")}
             </li>
             <li>
               <Link
                 href="/settings?section=etax"
-                className="text-[#b91c1c] hover:underline"
+                className="text-odoo hover:underline"
               >
-                ເຊື່ອມ eTax Gateway
+                {tb("step2Link")}
               </Link>{" "}
-              — ໃສ່ username/secret ຈາກ ກົມສ່ວຍສາ
+              — {tb("step2Hint")}
             </li>
             <li>
               <Link
                 href="/products/new"
-                className="text-[#b91c1c] hover:underline"
+                className="text-odoo hover:underline"
               >
-                ເພີ່ມສິນຄ້າ
+                {tb("step3Products")}
               </Link>{" "}
-              ແລະ{" "}
+              {tb("step3Join")}{" "}
               <Link
                 href="/customers/new"
-                className="text-[#b91c1c] hover:underline"
+                className="text-odoo hover:underline"
               >
-                ລູກຄ້າ
+                {tb("step3Customers")}
               </Link>
             </li>
             <li>
               <Link
                 href="/invoices/new"
-                className="text-[#b91c1c] hover:underline"
+                className="text-odoo hover:underline"
               >
-                ອອກບິນຄັ້ງທຳອິດ
+                {tb("step4Link")}
               </Link>
             </li>
           </ol>

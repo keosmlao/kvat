@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { masterPrisma } from "@/lib/master-prisma";
 import { TenantStatus } from "@/generated/master/client";
+import { OdooListPage } from "@/components/odoo/sheet";
+import { t } from "@/lib/i18n/messages";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 const DATE_FMT = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Asia/Vientiane",
@@ -20,18 +24,13 @@ export default async function ApprovalsPage() {
     where: { status: TenantStatus.TRIAL, isTemplate: false },
     orderBy: { trialEndsAt: "asc" },
   });
+  const nowMs = new Date().getTime();
 
   return (
-    <div>
-      <div className="mb-4">
-        <h1 className="text-[18px] font-medium text-gray-900">
-          ລໍຖ້າ approve
-        </h1>
-        <p className="text-[12px] text-gray-500 mt-0.5">
-          tenant ທີ່ໃຊ້ trial ແລະ ຍັງບໍ່ໄດ້ approve ໄປ paid plan
-        </p>
-      </div>
-
+    <OdooListPage
+      title={tm("approvalsTitle")}
+      subtitle={tm("approvalsSubtitle")}
+    >
       <div className="bg-white border border-gray-200 rounded overflow-hidden">
         <table className="w-full text-[13px]">
           <thead className="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
@@ -56,7 +55,7 @@ export default async function ApprovalsPage() {
             )}
             {pending.map((t) => {
               const days = Math.ceil(
-                (t.trialEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+                (t.trialEndsAt.getTime() - nowMs) / (1000 * 60 * 60 * 24),
               );
               const expired = days < 0;
               return (
@@ -97,6 +96,6 @@ export default async function ApprovalsPage() {
           </tbody>
         </table>
       </div>
-    </div>
+    </OdooListPage>
   );
 }

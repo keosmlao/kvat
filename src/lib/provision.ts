@@ -76,6 +76,11 @@ export async function dropTenantDatabase(dbName: string): Promise<void> {
 
 let schemaSqlCache: string | null = null;
 
+// SET statements that only exist on PG 17+. pg_dump always emits them; if the
+// target server is older we strip them so replay still works. The values are
+// "0" (default) anyway, so dropping them changes nothing semantically.
+const PG17_ONLY_SETTINGS = ["transaction_timeout"];
+
 async function loadSchemaSql(): Promise<string> {
   if (schemaSqlCache) return schemaSqlCache;
   const file = path.join(
@@ -84,7 +89,16 @@ async function loadSchemaSql(): Promise<string> {
     "master",
     "tenant-schema.sql",
   );
-  schemaSqlCache = await readFile(file, "utf8");
+  const raw = await readFile(file, "utf8");
+  schemaSqlCache = raw
+    .split("\n")
+    .filter((line) => {
+      const trimmed = line.trim();
+      return !PG17_ONLY_SETTINGS.some((s) =>
+        trimmed.startsWith(`SET ${s}`),
+      );
+    })
+    .join("\n");
   return schemaSqlCache;
 }
 
@@ -97,6 +111,20 @@ export async function replayTenantSchema(dbName: string): Promise<void> {
     // pg-node accepts multi-statement strings via simple Query. The dump is
     // self-contained (SET statements + DDL) and idempotent enough to run once.
     await client.query(sql);
+  } finally {
+    await client.end();
+  }
+}
+
+async function ensureTenantCompatibility(dbName: string): Promise<void> {
+  assertSafeDbName(dbName);
+  const client = new Client({ connectionString: tenantUrl(dbName) });
+  await client.connect();
+  try {
+    await client.query(`
+      ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "locale" TEXT NOT NULL DEFAULT 'lo';
+      ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "theme" TEXT NOT NULL DEFAULT 'light';
+    `);
   } finally {
     await client.end();
   }
@@ -205,6 +233,7 @@ export async function provisionTenant(
 
   try {
     await replayTenantSchema(dbName);
+    await ensureTenantCompatibility(dbName);
     await seedTenantCore(dbName, seed);
     return { ok: true, dbName };
   } catch (e) {

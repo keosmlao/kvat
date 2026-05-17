@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { masterPrisma } from "@/lib/master-prisma";
 import { CustomerForm } from "../customer-form";
+import { OdooListPage } from "@/components/odoo/sheet";
 
 export default async function NewCustomerPage() {
   // Only show tenants that don't already have a customer row.
@@ -18,8 +19,9 @@ export default async function NewCustomerPage() {
   });
 
   return (
-    <div>
-      <div className="mb-4">
+    <OdooListPage title="ເພີ່ມລູກຄ້າ">
+      <>
+      <div className="mb-3">
         <Link
           href="/manage/billing/customers"
           className="text-[12px] text-gray-500 hover:text-gray-800"
@@ -27,9 +29,6 @@ export default async function NewCustomerPage() {
           ← Customers
         </Link>
       </div>
-      <h1 className="text-[22px] font-medium text-gray-900 mb-5">
-        ເພີ່ມລູກຄ້າ
-      </h1>
       <div className="bg-white border border-gray-200 rounded p-5 max-w-2xl">
         <CustomerForm
           mode="create"
@@ -49,6 +48,7 @@ export default async function NewCustomerPage() {
           }}
         />
       </div>
-    </div>
+      </>
+    </OdooListPage>
   );
 }

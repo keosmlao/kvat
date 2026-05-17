@@ -1,7 +1,10 @@
 "use client";
 
 import { useActionState, useTransition } from "react";
+import { t } from "@/lib/i18n/messages";
 import { createAdmin, deleteAdmin, type AdminState } from "./actions";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 export function CreateAdminForm() {
   const [state, action, pending] = useActionState<AdminState, FormData>(
@@ -20,7 +23,7 @@ export function CreateAdminForm() {
       <input
         name="name"
         required
-        placeholder="ຊື່"
+        placeholder={tm("admNamePh")}
         className="px-2 py-1.5 border border-gray-300 rounded text-[13px]"
       />
       <input
@@ -28,7 +31,7 @@ export function CreateAdminForm() {
         type="password"
         required
         minLength={8}
-        placeholder="ລະຫັດຜ່ານ ≥ 8"
+        placeholder={tm("admPwPh")}
         className="px-2 py-1.5 border border-gray-300 rounded text-[13px]"
       />
       <button
@@ -36,7 +39,7 @@ export function CreateAdminForm() {
         disabled={pending}
         className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded text-[13px] font-medium disabled:opacity-50"
       >
-        {pending ? "ກຳລັງ..." : "ເພີ່ມ admin"}
+        {pending ? tm("working") : tm("admAddBtn")}
       </button>
       {state?.error && (
         <p className="md:col-span-4 text-[12px] text-red-600">{state.error}</p>
@@ -56,13 +59,13 @@ export function DeleteAdminButton({ id }: { id: string }) {
     <button
       type="button"
       onClick={() => {
-        if (!confirm("ລົບ admin ນີ້?")) return;
+        if (!confirm(tm("admDeleteConfirm"))) return;
         start(() => deleteAdmin(id));
       }}
       disabled={pending}
       className="text-[12px] text-red-600 hover:underline disabled:opacity-50"
     >
-      {pending ? "..." : "ລົບ"}
+      {pending ? "..." : tm("admDeleteBtn")}
     </button>
   );
 }

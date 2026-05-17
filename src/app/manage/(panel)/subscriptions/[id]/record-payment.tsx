@@ -1,10 +1,13 @@
 "use client";
 
 import { useActionState } from "react";
+import { t } from "@/lib/i18n/messages";
 import {
   recordSubscriptionPayment,
   type SubState,
 } from "../actions";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 export function RecordPaymentForm({
   id,
@@ -22,7 +25,7 @@ export function RecordPaymentForm({
   return (
     <form action={action} className="space-y-3">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <Field label="ວັນທີຈ່າຍ">
+        <Field label={tm("subPaidAt")}>
           <input
             type="date"
             name="paidAt"
@@ -31,17 +34,17 @@ export function RecordPaymentForm({
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
           />
         </Field>
-        <Field label="ວິທີຈ່າຍ">
+        <Field label={tm("subColPayMethod")}>
           <select
             name="paymentMethod"
             defaultValue="TRANSFER"
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
           >
-            <option value="CASH">ເງິນສົດ</option>
-            <option value="TRANSFER">ໂອນ</option>
+            <option value="CASH">{tm("ledCash")}</option>
+            <option value="TRANSFER">{tm("ledTransfer")}</option>
           </select>
         </Field>
-        <Field label={`ຈໍານວນ (${currency})`}>
+        <Field label={`${tm("subAmountWith")} (${currency})`}>
           <input
             type="number"
             name="amount"
@@ -51,11 +54,11 @@ export function RecordPaymentForm({
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px] font-mono"
           />
         </Field>
-        <Field label="Reference (ບໍ່ບັງຄັບ)">
+        <Field label={tm("subRefOpt")}>
           <input
             type="text"
             name="paymentRef"
-            placeholder="slip / txn id"
+            placeholder={tm("subRefPh")}
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
           />
         </Field>
@@ -66,7 +69,7 @@ export function RecordPaymentForm({
           disabled={pending}
           className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded text-[13px] font-medium disabled:opacity-50"
         >
-          {pending ? "ກຳລັງ..." : "✓ ບັນທຶກການຈ່າຍ + ຕໍ່ໃໝ່"}
+          {pending ? tm("working") : tm("subSavePayBtn")}
         </button>
         {state?.error && (
           <span className="text-[12px] text-red-600">{state.error}</span>

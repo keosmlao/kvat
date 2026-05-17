@@ -2,10 +2,13 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
+import { t } from "@/lib/i18n/messages";
 import {
   saveBillingConfig,
   type BillingState,
 } from "../billing/actions";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 type Initial = {
   invoicePrefix: string;
@@ -49,10 +52,10 @@ export function BillingConfigForm({
     <form action={action} className="space-y-6">
       <section>
         <h2 className="text-[13px] uppercase tracking-widest text-gray-500 font-medium mb-3 border-b border-gray-200 pb-1">
-          ໝາຍເລກບິນ
+          {tm("compInvoiceNum")}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Field label="Prefix ເລກບິນ" hint="ເຊັ່ນ BIL- → BIL-2026-0001">
+          <Field label={tm("compPrefixLabel")} hint={tm("compPrefixHint")}>
             <input
               type="text"
               name="invoicePrefix"
@@ -67,28 +70,27 @@ export function BillingConfigForm({
       <section>
         <div className="flex items-center justify-between mb-3 border-b border-gray-200 pb-1">
           <h2 className="text-[13px] uppercase tracking-widest text-gray-500 font-medium">
-            ສິນຄ້າ/ບໍລິການ ສຳລັບ Plan
+            {tm("compPlanProducts")}
           </h2>
           <Link
             href="/manage/billing/products"
             className="text-[12px] text-slate-700 hover:underline"
           >
-            ຈັດການສິນຄ້າ →
+            {tm("compManageProd")}
           </Link>
         </div>
         <p className="text-[12px] text-gray-500 mb-3">
-          ເລືອກ product ທີ່ຈະຖືກໃຊ້ເປັນ line item ຕອນ auto-create invoice ສຳລັບ
-          tenant ທີ່ approve plan
+          {tm("compPlanDesc")}
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Field label="Plan YEARLY" hint="ສຳລັບ tenant ທີ່ approve YEARLY">
+          <Field label={tm("compPlanYearly")} hint={tm("compPlanYearlyHint")}>
             <ProductPicker
               name="yearlyProductId"
               defaultValue={initial.yearlyProductId}
               products={products}
             />
           </Field>
-          <Field label="Plan LIFETIME" hint="ສຳລັບ tenant ທີ່ approve LIFETIME">
+          <Field label={tm("compPlanLifetime")} hint={tm("compPlanLifeHint")}>
             <ProductPicker
               name="lifetimeProductId"
               defaultValue={initial.lifetimeProductId}
@@ -100,10 +102,10 @@ export function BillingConfigForm({
 
       <section>
         <h2 className="text-[13px] uppercase tracking-widest text-gray-500 font-medium mb-3 border-b border-gray-200 pb-1">
-          ຂໍ້ມູນຜູ້ອອກບິນ (SMLAO)
+          {tm("compSellerInfo")}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Field label="ຊື່ (Lao)">
+          <Field label={tm("compNameLo")}>
             <input
               type="text"
               name="sellerName"
@@ -112,7 +114,7 @@ export function BillingConfigForm({
               className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
             />
           </Field>
-          <Field label="ຊື່ (English)">
+          <Field label={tm("compNameEn")}>
             <input
               type="text"
               name="sellerNameEn"
@@ -120,7 +122,7 @@ export function BillingConfigForm({
               className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
             />
           </Field>
-          <Field label="TIN">
+          <Field label={tm("compTin")}>
             <input
               type="text"
               name="sellerTaxId"
@@ -128,7 +130,7 @@ export function BillingConfigForm({
               className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px] font-mono"
             />
           </Field>
-          <Field label="ໂທ">
+          <Field label={tm("compPhone")}>
             <input
               type="text"
               name="sellerPhone"
@@ -136,7 +138,7 @@ export function BillingConfigForm({
               className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
             />
           </Field>
-          <Field label="ທີ່ຢູ່" full>
+          <Field label={tm("compAddress")} full>
             <textarea
               name="sellerAddress"
               defaultValue={initial.sellerAddress}
@@ -149,10 +151,10 @@ export function BillingConfigForm({
 
       <section>
         <h2 className="text-[13px] uppercase tracking-widest text-gray-500 font-medium mb-3 border-b border-gray-200 pb-1">
-          ບັນຊີທະນາຄານ (ສຳລັບ TRANSFER)
+          {tm("compBankAccount")}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Field label="ຊື່ບັນຊີ">
+          <Field label={tm("compAcctName")}>
             <input
               type="text"
               name="sellerBankAccountName"
@@ -160,7 +162,7 @@ export function BillingConfigForm({
               className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
             />
           </Field>
-          <Field label="ເລກບັນຊີ">
+          <Field label={tm("compAcctNo")}>
             <input
               type="text"
               name="sellerBankAccount"
@@ -168,7 +170,7 @@ export function BillingConfigForm({
               className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px] font-mono"
             />
           </Field>
-          <Field label="ທະນາຄານ">
+          <Field label={tm("compBank")}>
             <input
               type="text"
               name="sellerBankName"
@@ -186,7 +188,7 @@ export function BillingConfigForm({
           disabled={pending}
           className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-1.5 rounded text-[13px] font-medium disabled:opacity-50"
         >
-          {pending ? "ກຳລັງບັນທຶກ..." : "ບັນທຶກ"}
+          {pending ? tm("saving") : tm("save")}
         </button>
         {state?.error && (
           <span className="text-[12px] text-red-600">{state.error}</span>
@@ -216,16 +218,16 @@ function ProductPicker({
         defaultValue={defaultValue}
         className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
       >
-        <option value="">— ບໍ່ໄດ້ກຳນົດ (ບໍ່ສ້າງ invoice ອັດຕະໂນມັດ) —</option>
+        <option value="">{tm("compProdEmpty")}</option>
         {products.map((p) => (
           <option key={p.id} value={p.id}>
-            [{p.code}] {p.name} — {fmt(p.priceLak)} ກີບ / {p.unit}
+            [{p.code}] {p.name} — {fmt(p.priceLak)} {tm("reportsKipSuffix")} / {p.unit}
           </option>
         ))}
       </select>
       {selected && (
         <p className="text-[11px] text-emerald-700">
-          ✓ ລາຄາ: {fmt(selected.priceLak)} ກີບ · ຫົວໜ່ວຍ: {selected.unit}
+          ✓ {tm("compProdPrice")} {fmt(selected.priceLak)} {tm("reportsKipSuffix")} · {tm("compProdUnit")} {selected.unit}
         </p>
       )}
     </div>

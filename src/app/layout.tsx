@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Sans_Lao, Geist_Mono } from "next/font/google";
+import { getTheme } from "@/lib/theme";
 import "./globals.css";
 
 const notoLao = Noto_Sans_Lao({
@@ -18,17 +19,19 @@ export const metadata: Metadata = {
   description: "ລະບົບອອກບິນອາກອນ ຮ້ານຄ້າ",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const theme = await getTheme();
   return (
     <html
       lang="lo"
+      data-theme={theme}
       className={`${notoLao.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-gray-50 text-gray-900 font-[var(--font-noto-lao)]">
+      <body className="min-h-full flex flex-col font-[var(--font-noto-lao)]">
         {children}
       </body>
     </html>

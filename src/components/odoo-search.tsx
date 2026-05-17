@@ -97,7 +97,7 @@ export function OdooSearch({
   return (
     <div
       ref={rootRef}
-      className="relative flex items-center gap-1.5 flex-wrap px-2 py-1 border border-gray-300 rounded bg-white focus-within:border-[#b91c1c] focus-within:ring-2 focus-within:ring-[#b91c1c]/15 transition w-full max-w-md min-w-[240px]"
+      className="relative flex items-center gap-1.5 flex-wrap px-2 py-1 border border-gray-300 rounded bg-white focus-within:border-odoo focus-within:ring-2 focus-within:ring-odoo/15 transition w-full max-w-md min-w-[240px]"
     >
       <svg
         className="w-3.5 h-3.5 text-gray-400 flex-shrink-0"
@@ -158,7 +158,7 @@ export function OdooSearch({
                       key={v.value}
                       type="button"
                       onClick={() => applyFacet(opt.key, v.value)}
-                      className="block w-full text-left px-2 py-1 rounded hover:bg-[#b91c1c]/10 hover:text-[#b91c1c]"
+                      className="block w-full text-left px-2 py-1 rounded hover:bg-odoo/10 hover:text-odoo"
                     >
                       {v.label}
                     </button>
@@ -173,7 +173,7 @@ export function OdooSearch({
                 key={opt.key}
                 type="button"
                 onClick={() => applyFacet(opt.key, query.trim())}
-                className="block w-full text-left px-3 py-1.5 hover:bg-[#b91c1c]/10 hover:text-[#b91c1c]"
+                className="block w-full text-left px-3 py-1.5 hover:bg-odoo/10 hover:text-odoo"
               >
                 <span className="text-[10px] uppercase tracking-wider text-gray-400">
                   {opt.label}

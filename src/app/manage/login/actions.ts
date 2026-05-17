@@ -6,7 +6,7 @@ import {
   createManagementSession,
 } from "@/lib/management-session";
 
-export type LoginState = { error?: string } | undefined;
+export type LoginState = { error?: string; email?: string } | undefined;
 
 export async function managementLoginAction(
   _prev: LoginState,
@@ -15,11 +15,11 @@ export async function managementLoginAction(
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   if (!email || !password) {
-    return { error: "ກະລຸນາປ້ອນ email ແລະ ລະຫັດຜ່ານ" };
+    return { error: "ກະລຸນາປ້ອນ email ແລະ ລະຫັດຜ່ານ", email };
   }
   const user = await authenticateManagement(email, password);
   if (!user) {
-    return { error: "Email ຫຼື ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ" };
+    return { error: "Email ຫຼື ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ", email };
   }
   await createManagementSession({
     managementUserId: user.id,

@@ -1,7 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
+import { t } from "@/lib/i18n/messages";
 import { markBillingPaid, type BillingState } from "../actions";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 export function MarkPaidForm({ id }: { id: string }) {
   const [state, action, pending] = useActionState<BillingState, FormData>(
@@ -13,20 +16,20 @@ export function MarkPaidForm({ id }: { id: string }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="space-y-1">
           <label className="block text-[11px] uppercase tracking-wider text-gray-500 font-medium">
-            ວິທີຈ່າຍ
+            {tm("mkPayMethod")}
           </label>
           <select
             name="paymentMethod"
             defaultValue="CASH"
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
           >
-            <option value="CASH">ເງິນສົດ</option>
-            <option value="TRANSFER">ໂອນ</option>
+            <option value="CASH">{tm("ledCash")}</option>
+            <option value="TRANSFER">{tm("ledTransfer")}</option>
           </select>
         </div>
         <div className="space-y-1">
           <label className="block text-[11px] uppercase tracking-wider text-gray-500 font-medium">
-            ວັນທີຈ່າຍ
+            {tm("mkPaidAt")}
           </label>
           <input
             type="date"
@@ -37,7 +40,7 @@ export function MarkPaidForm({ id }: { id: string }) {
         </div>
         <div className="space-y-1">
           <label className="block text-[11px] uppercase tracking-wider text-gray-500 font-medium">
-            Reference (ບໍ່ບັງຄັບ)
+            {tm("mkRefOpt")}
           </label>
           <input
             type="text"
@@ -53,7 +56,7 @@ export function MarkPaidForm({ id }: { id: string }) {
           disabled={pending}
           className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded text-[13px] font-medium disabled:opacity-50"
         >
-          {pending ? "ກຳລັງ..." : "✓ ບັນທຶກການຈ່າຍ"}
+          {pending ? tm("working") : tm("mkSaveBtn")}
         </button>
         {state?.error && (
           <span className="text-[12px] text-red-600">{state.error}</span>

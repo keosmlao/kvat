@@ -6,78 +6,76 @@ import {
   resetToDraft,
   postInvoice,
 } from "../payment-actions";
+import { t, type Locale } from "@/lib/i18n/messages";
 
-export function CreditNoteButton({ id }: { id: string }) {
+export function CreditNoteButton({ id, locale = "lo" }: { id: string; locale?: Locale }) {
+  const tia = (k: string) => t(locale, "invoiceActions", k);
   const [pending, start] = useTransition();
   return (
     <button
       type="button"
       onClick={() => {
-        if (
-          !confirm(
-            "ສ້າງໃບລົດໜີ້ (Credit Note) ຈາກບິນນີ້? ສິນຄ້າຈະຖືກຄືນເຂົ້າຄັງ.",
-          )
-        )
-          return;
+        if (!confirm(tia("creditNoteConfirm"))) return;
         start(async () => {
           try {
             await createCreditNote(id);
           } catch (e) {
-            alert(e instanceof Error ? e.message : "ສ້າງບໍ່ສຳເລັດ");
+            alert(e instanceof Error ? e.message : tia("creditNoteFailed"));
           }
         });
       }}
       disabled={pending}
       className="border border-gray-300 text-gray-700 px-3 py-1 rounded text-[13px] font-medium hover:bg-gray-50 transition disabled:opacity-50"
     >
-      {pending ? "..." : "ໃບລົດໜີ້"}
+      {pending ? "..." : tia("creditNoteBtn")}
     </button>
   );
 }
 
-export function ResetToDraftButton({ id }: { id: string }) {
+export function ResetToDraftButton({ id, locale = "lo" }: { id: string; locale?: Locale }) {
+  const tia = (k: string) => t(locale, "invoiceActions", k);
   const [pending, start] = useTransition();
   return (
     <button
       type="button"
       onClick={() => {
-        if (!confirm("ປ່ຽນບິນກັບເປັນຮ່າງ? ສິນຄ້າຈະຖືກຄືນເຂົ້າຄັງຊົ່ວຄາວ."))
-          return;
+        if (!confirm(tia("resetDraftConfirm"))) return;
         start(async () => {
           try {
             await resetToDraft(id);
           } catch (e) {
-            alert(e instanceof Error ? e.message : "ບໍ່ສຳເລັດ");
+            alert(e instanceof Error ? e.message : tia("resetDraftFailed"));
           }
         });
       }}
       disabled={pending}
       className="border border-gray-300 text-gray-700 px-3 py-1 rounded text-[13px] font-medium hover:bg-gray-50 transition disabled:opacity-50"
     >
-      {pending ? "..." : "ກັບເປັນຮ່າງ"}
+      {pending ? "..." : tia("resetDraftBtn")}
     </button>
   );
 }
 
-export function PostInvoiceButton({ id }: { id: string }) {
+export function PostInvoiceButton({ id, locale = "lo" }: { id: string; locale?: Locale }) {
+  const tia = (k: string) => t(locale, "invoiceActions", k);
   const [pending, start] = useTransition();
   return (
     <button
       type="button"
       onClick={() => {
-        if (!confirm("ປະກາດບິນ? ສິນຄ້າຈະຖືກຫັກອອກຈາກຄັງ.")) return;
+        if (!confirm(tia("postConfirm"))) return;
         start(async () => {
           try {
             await postInvoice(id);
           } catch (e) {
-            alert(e instanceof Error ? e.message : "ບໍ່ສຳເລັດ");
+            alert(e instanceof Error ? e.message : tia("resetDraftFailed"));
           }
         });
       }}
       disabled={pending}
-      className="bg-[#b91c1c] text-white px-3 py-1 rounded text-[13px] font-medium hover:bg-[#991b1b] transition disabled:opacity-50"
+      className="bg-odoo text-white px-3 py-1 rounded text-[13px] font-medium hover:bg-odoo-hover transition disabled:opacity-50"
     >
-      {pending ? "..." : "ປະກາດບິນ"}
+      {pending ? "..." : tia("postBtn")}
     </button>
   );
 }

@@ -5,8 +5,10 @@ import {
   testEtaxConnection,
   type EtaxTestResult,
 } from "./etax-actions";
+import { t, type Locale } from "@/lib/i18n/messages";
 
-export function EtaxPanel() {
+export function EtaxPanel({ locale = "lo" }: { locale?: Locale } = {}) {
+  const ts = (k: string) => t(locale, "settings", k);
   const [result, setResult] = useState<EtaxTestResult | null>(null);
   const [pending, start] = useTransition();
 
@@ -23,19 +25,19 @@ export function EtaxPanel() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-[14px] font-semibold text-gray-800">
-            ການເຊື່ອມຕໍ່ eTax Gateway
+            {ts("etaxConnTitle")}
           </h3>
           <p className="text-[12px] text-gray-500">
-            ສົ່ງບິນອາກອນເຂົ້າລະບົບໃບອາກອນເອເລັກໂຕຣນິກ (ກົມສ່ວຍສາ)
+            {ts("etaxConnDesc")}
           </p>
         </div>
         <button
           type="button"
           onClick={onTest}
           disabled={pending}
-          className="bg-[#b91c1c] hover:bg-[#991b1b] text-white px-3 py-1.5 rounded text-[13px] font-medium disabled:opacity-50 transition"
+          className="bg-odoo hover:bg-odoo-hover text-white px-3 py-1.5 rounded text-[13px] font-medium disabled:opacity-50 transition"
         >
-          {pending ? "ກຳລັງທົດສອບ..." : "ທົດສອບການເຊື່ອມຕໍ່"}
+          {pending ? ts("etaxTesting") : ts("etaxTest")}
         </button>
       </div>
 
@@ -73,15 +75,15 @@ export function EtaxPanel() {
           {result.ok && result.rates && (
             <div className="mt-2 border-t border-emerald-200 pt-2">
               <div className="text-[11px] uppercase tracking-wider font-medium mb-1 text-emerald-700">
-                ອັດຕາພາສີ ({result.rates.length})
+                {ts("etaxRates")} ({result.rates.length})
               </div>
               <table className="w-full text-[12px]">
                 <thead>
                   <tr className="text-emerald-700">
-                    <th className="text-left font-medium px-1 py-0.5">ປະເພດ</th>
-                    <th className="text-left font-medium px-1 py-0.5">ຊື່</th>
+                    <th className="text-left font-medium px-1 py-0.5">{ts("etaxRateType")}</th>
+                    <th className="text-left font-medium px-1 py-0.5">{ts("etaxRateName")}</th>
                     <th className="text-right font-medium px-1 py-0.5">
-                      ອັດຕາ
+                      {ts("etaxRateValue")}
                     </th>
                   </tr>
                 </thead>
@@ -103,8 +105,7 @@ export function EtaxPanel() {
       )}
 
       <div className="text-[11px] text-gray-500 italic">
-        💡 Credentials ຖືກເກັບໃນ <code>.env</code> (ETAX_*). ປ່ຽນທີ່ນັ້ນແລ້ວ
-        restart server.
+        {ts("etaxEnvHint")}
       </div>
     </div>
   );

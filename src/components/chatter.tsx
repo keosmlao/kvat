@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { createContext, useActionState, useContext, useState, useTransition } from "react";
 import {
   postMessage,
   createActivity,
@@ -9,6 +9,14 @@ import {
   toggleFollow,
   type ChatterState,
 } from "@/lib/chatter";
+import { t, type Locale } from "@/lib/i18n/messages";
+
+// Share locale across all chatter sub-components without prop-drilling.
+const LocaleCtx = createContext<Locale>("lo");
+const useTr = () => {
+  const locale = useContext(LocaleCtx);
+  return (k: string) => t(locale, "chatter", k);
+};
 
 type MessageItem = {
   id: string;
@@ -36,7 +44,55 @@ type FollowerItem = {
 
 type UserItem = { id: string; name: string; email: string };
 
+function getNowMs() {
+  return new Date().getTime();
+}
+
+function getTodayDate() {
+  return new Date();
+}
+
 export function Chatter({
+  recordType,
+  recordId,
+  revalidate,
+  messages,
+  activities,
+  followers,
+  users,
+  isFollowing,
+  currentUserId,
+  locale = "lo",
+}: {
+  recordType: string;
+  recordId: string;
+  revalidate: string;
+  messages: MessageItem[];
+  activities: ActivityItem[];
+  followers: FollowerItem[];
+  users: UserItem[];
+  isFollowing: boolean;
+  currentUserId: string;
+  locale?: Locale;
+}) {
+  return (
+    <LocaleCtx.Provider value={locale}>
+      <ChatterBody
+        recordType={recordType}
+        recordId={recordId}
+        revalidate={revalidate}
+        messages={messages}
+        activities={activities}
+        followers={followers}
+        users={users}
+        isFollowing={isFollowing}
+        currentUserId={currentUserId}
+      />
+    </LocaleCtx.Provider>
+  );
+}
+
+function ChatterBody({
   recordType,
   recordId,
   revalidate,
@@ -57,6 +113,7 @@ export function Chatter({
   isFollowing: boolean;
   currentUserId: string;
 }) {
+  const tr = useTr();
   const [tab, setTab] = useState<"message" | "note" | "activity">("message");
 
   return (
@@ -66,10 +123,10 @@ export function Chatter({
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <div className="flex gap-0 text-[13px]">
             <ToolBtn active={tab === "message"} onClick={() => setTab("message")} icon="✉">
-              ສົ່ງຂໍ້ຄວາມ
+              {tr("sendMessageTab")}
             </ToolBtn>
             <ToolBtn active={tab === "note"} onClick={() => setTab("note")} icon="📝">
-              ບັນທຶກພາຍໃນ
+              {tr("internalNote")}
             </ToolBtn>
             <ToolBtn
               active={tab === "activity"}
@@ -77,7 +134,7 @@ export function Chatter({
               icon="⏰"
               badge={activities.filter((a) => !a.done).length}
             >
-              ກິດຈະກຳ
+              {tr("activityTab")}
             </ToolBtn>
           </div>
           <FollowSection
@@ -120,7 +177,7 @@ export function Chatter({
         {activities.filter((a) => !a.done).length > 0 && (
           <div className="mt-4">
             <h4 className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-2">
-              ກິດຈະກຳທີ່ຄ້າງ
+              {tr("pendingActivities")}
             </h4>
             <div className="space-y-1.5">
               {activities
@@ -158,14 +215,14 @@ function ToolBtn({
       onClick={onClick}
       className={`px-3 py-1.5 border-b-2 transition flex items-center gap-1.5 ${
         active
-          ? "border-[#b91c1c] text-[#b91c1c] font-medium"
+          ? "border-odoo text-odoo font-medium"
           : "border-transparent text-gray-500 hover:text-gray-800"
       }`}
     >
       <span>{icon}</span>
       <span>{children}</span>
       {badge !== undefined && badge > 0 && (
-        <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#b91c1c] text-white text-[10px] font-semibold">
+        <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-odoo text-white text-[10px] font-semibold">
           {badge}
         </span>
       )}
@@ -184,6 +241,7 @@ function MessageComposer({
   recordId: string;
   revalidate: string;
 }) {
+  const tr = useTr();
   const [state, formAction, pending] = useActionState<ChatterState, FormData>(
     postMessage,
     undefined,
@@ -207,20 +265,14 @@ function MessageComposer({
         value={body}
         onChange={(e) => setBody(e.target.value)}
         rows={3}
-        placeholder={
-          kind === "NOTE"
-            ? "ບັນທຶກພາຍໃນ (ລູກຄ້າບໍ່ເຫັນ)..."
-            : "ຂໍ້ຄວາມສົ່ງໄປຫາລູກຄ້າ ຫລື ຜູ້ຕິດຕາມ..."
-        }
-        className={`w-full p-2 text-[13px] border rounded resize-none focus:outline-none focus:border-[#b91c1c] focus:ring-2 focus:ring-[#b91c1c]/15 ${
+        placeholder={kind === "NOTE" ? tr("notePh") : tr("messagePh")}
+        className={`w-full p-2 text-[13px] border rounded resize-none focus:outline-none focus:border-odoo focus:ring-2 focus:ring-odoo/15 ${
           kind === "NOTE" ? "bg-yellow-50 border-yellow-200" : "bg-white border-gray-300"
         }`}
       />
       <div className="flex justify-between items-center">
         <div className="text-[11px] text-gray-500">
-          {kind === "NOTE"
-            ? "📒 ບັນທຶກພາຍໃນ — ສະເພາະພະນັກງານ"
-            : "✉ ສົ່ງເປັນຂໍ້ຄວາມ + ແຈ້ງເຕືອນຜູ້ຕິດຕາມ"}
+          {kind === "NOTE" ? tr("noteHint") : tr("messageHint")}
         </div>
         <div className="flex items-center gap-2">
           {state?.error && (
@@ -229,9 +281,9 @@ function MessageComposer({
           <button
             type="submit"
             disabled={pending || !body.trim()}
-            className="bg-[#b91c1c] text-white px-3 py-1 rounded text-[13px] font-medium hover:bg-[#991b1b] disabled:opacity-50"
+            className="bg-odoo text-white px-3 py-1 rounded text-[13px] font-medium hover:bg-odoo-hover disabled:opacity-50"
           >
-            {pending ? "..." : kind === "NOTE" ? "ບັນທຶກ" : "ສົ່ງ"}
+            {pending ? "..." : kind === "NOTE" ? tr("saveText") : tr("sendBtn")}
           </button>
         </div>
       </div>
@@ -252,13 +304,14 @@ function ActivityComposer({
   recordId: string;
   revalidate: string;
 }) {
+  const tr = useTr();
   const [state, formAction, pending] = useActionState<ChatterState, FormData>(
     createActivity,
     undefined,
   );
   const [summary, setSummary] = useState("");
 
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const tomorrow = new Date(getNowMs() + 86400000).toISOString().slice(0, 10);
 
   return (
     <form
@@ -276,37 +329,37 @@ function ActivityComposer({
         value={summary}
         onChange={(e) => setSummary(e.target.value)}
         required
-        placeholder="ຫົວຂໍ້ກິດຈະກຳ ເຊັ່ນ: ໂທຕາມຊຳລະບິນ"
-        className="w-full p-1.5 text-[13px] border border-gray-300 rounded focus:outline-none focus:border-[#b91c1c]"
+        placeholder={tr("activityTitlePh")}
+        className="w-full p-1.5 text-[13px] border border-gray-300 rounded focus:outline-none focus:border-odoo"
       />
       <textarea
         name="note"
         rows={2}
-        placeholder="ລາຍລະອຽດ (optional)..."
-        className="w-full p-1.5 text-[13px] border border-gray-300 rounded resize-none focus:outline-none focus:border-[#b91c1c]"
+        placeholder={tr("activityNotePh")}
+        className="w-full p-1.5 text-[13px] border border-gray-300 rounded resize-none focus:outline-none focus:border-odoo"
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div>
           <label className="block text-[11px] text-gray-500 uppercase tracking-wider mb-0.5">
-            ກຳນົດສົ່ງ
+            {tr("dueDate")}
           </label>
           <input
             type="date"
             name="dueDate"
             required
             defaultValue={tomorrow}
-            className="w-full p-1.5 text-[13px] border border-gray-300 rounded focus:outline-none focus:border-[#b91c1c]"
+            className="w-full p-1.5 text-[13px] border border-gray-300 rounded focus:outline-none focus:border-odoo"
           />
         </div>
         <div>
           <label className="block text-[11px] text-gray-500 uppercase tracking-wider mb-0.5">
-            ມອບໃຫ້
+            {tr("assignedTo")}
           </label>
           <select
             name="assignedToId"
             required
             defaultValue={currentUserId}
-            className="w-full p-1.5 text-[13px] border border-gray-300 rounded focus:outline-none focus:border-[#b91c1c]"
+            className="w-full p-1.5 text-[13px] border border-gray-300 rounded focus:outline-none focus:border-odoo"
           >
             {users.map((u) => (
               <option key={u.id} value={u.id}>
@@ -324,9 +377,9 @@ function ActivityComposer({
           <button
             type="submit"
             disabled={pending || !summary.trim()}
-            className="bg-[#b91c1c] text-white px-3 py-1 rounded text-[13px] font-medium hover:bg-[#991b1b] disabled:opacity-50"
+            className="bg-odoo text-white px-3 py-1 rounded text-[13px] font-medium hover:bg-odoo-hover disabled:opacity-50"
           >
-            {pending ? "..." : "+ ສ້າງກິດຈະກຳ"}
+            {pending ? "..." : tr("createActivityBtn")}
           </button>
         </div>
       </div>
@@ -347,6 +400,7 @@ function FollowSection({
   isFollowing: boolean;
   followers: FollowerItem[];
 }) {
+  const tr = useTr();
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
 
@@ -364,12 +418,12 @@ function FollowSection({
         disabled={pending}
         className={`text-[12px] px-2.5 py-1 rounded border transition flex items-center gap-1 ${
           isFollowing
-            ? "bg-[#b91c1c]/10 border-[#b91c1c]/30 text-[#b91c1c]"
+            ? "bg-odoo/10 border-odoo/30 text-odoo"
             : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
         }`}
       >
         <span>{isFollowing ? "✓" : "+"}</span>
-        {isFollowing ? "ກຳລັງຕິດຕາມ" : "ຕິດຕາມ"}
+        {isFollowing ? tr("followingNow") : tr("followBtn")}
       </button>
       {followers.length > 0 && (
         <button
@@ -381,14 +435,14 @@ function FollowSection({
             {followers.slice(0, 3).map((f) => (
               <span
                 key={f.id}
-                className="w-6 h-6 rounded-full bg-[#b91c1c]/10 text-[#b91c1c] flex items-center justify-center text-[10px] font-semibold border-2 border-white"
+                className="w-6 h-6 rounded-full bg-odoo/10 text-odoo flex items-center justify-center text-[10px] font-semibold border-2 border-white"
                 title={f.user.name}
               >
                 {f.user.name.charAt(0).toUpperCase()}
               </span>
             ))}
           </div>
-          <span>{followers.length} ຄົນຕິດຕາມ</span>
+          <span>{followers.length} {tr("followersSuffix")}</span>
         </button>
       )}
       {open && followers.length > 0 && (
@@ -412,10 +466,12 @@ function ActivityRow({
   item: ActivityItem;
   revalidate: string;
 }) {
+  const tr = useTr();
   const [pending, start] = useTransition();
   const due = new Date(item.dueDate);
-  const overdue = !item.done && due.getTime() < Date.now() - 86400000;
-  const today = !item.done && due.toDateString() === new Date().toDateString();
+  const currentDate = getTodayDate();
+  const overdue = !item.done && due.getTime() < currentDate.getTime() - 86400000;
+  const today = !item.done && due.toDateString() === currentDate.toDateString();
 
   return (
     <div
@@ -436,7 +492,7 @@ function ActivityRow({
           });
         }}
         disabled={pending}
-        className="mt-1 accent-[#b91c1c]"
+        className="mt-1 accent-odoo"
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
@@ -446,14 +502,14 @@ function ActivityRow({
           <button
             type="button"
             onClick={() => {
-              if (!confirm("ລົບກິດຈະກຳນີ້?")) return;
+              if (!confirm(tr("deleteActivityConfirm"))) return;
               start(async () => {
                 await deleteActivity(item.id, revalidate);
               });
             }}
             disabled={pending}
             className="text-gray-300 hover:text-red-600 text-sm leading-none"
-            title="ລົບ"
+            title={tr("deleteTitle")}
           >
             ×
           </button>
@@ -477,8 +533,8 @@ function ActivityRow({
               month: "short",
               day: "numeric",
             })}
-            {overdue && " (ເລີຍກຳນົດ)"}
-            {today && " (ມື້ນີ້)"}
+            {overdue && ` ${tr("overdueLabel")}`}
+            {today && ` ${tr("todayLabel")}`}
           </span>
           <span>👤 {item.assignedTo.name}</span>
         </div>
@@ -490,12 +546,13 @@ function ActivityRow({
 function Timeline({
   messages,
   activities,
-  revalidate: _revalidate,
 }: {
   messages: MessageItem[];
   activities: ActivityItem[];
   revalidate: string;
 }) {
+  const tr = useTr();
+  const formatRelative = useFormatRelative();
   // Merge messages + completed activities into single timeline
   type Entry =
     | { kind: "message"; ts: Date; data: MessageItem }
@@ -518,7 +575,7 @@ function Timeline({
   if (entries.length === 0) {
     return (
       <div className="mt-4 text-center text-[12px] text-gray-400 py-4">
-        ຍັງບໍ່ມີຂໍ້ຄວາມ ຫລື ກິດຈະກຳ
+        {tr("noMessagesOrAct")}
       </div>
     );
   }
@@ -530,7 +587,7 @@ function Timeline({
           const m = e.data;
           return (
             <div key={`m-${m.id}`} className="flex gap-2.5">
-              <span className="w-8 h-8 rounded-full bg-[#b91c1c]/10 text-[#b91c1c] flex items-center justify-center text-[11px] font-semibold flex-shrink-0">
+              <span className="w-8 h-8 rounded-full bg-odoo/10 text-odoo flex items-center justify-center text-[11px] font-semibold flex-shrink-0">
                 {m.author.name.charAt(0).toUpperCase()}
               </span>
               <div className="flex-1 min-w-0">
@@ -543,7 +600,7 @@ function Timeline({
                   </span>
                   {m.kind === "NOTE" && (
                     <span className="text-[10px] uppercase tracking-wider text-yellow-700 bg-yellow-100 px-1.5 py-0.5 rounded border border-yellow-200">
-                      ບັນທຶກພາຍໃນ
+                      {tr("internalNoteChip")}
                     </span>
                   )}
                 </div>
@@ -569,7 +626,7 @@ function Timeline({
             </span>
             <div className="flex-1 pt-1.5">
               <span className="text-gray-700">{a.assignedTo.name}</span>
-              <span> ໄດ້ເຮັດກິດຈະກຳ </span>
+              <span> {tr("didActivity")} </span>
               <span className="text-gray-800 font-medium">
                 &ldquo;{a.summary}&rdquo;
               </span>
@@ -584,15 +641,18 @@ function Timeline({
   );
 }
 
-function formatRelative(d: Date) {
-  const diff = (Date.now() - d.getTime()) / 1000;
-  if (diff < 60) return "ໃໝ່ໆ";
-  if (diff < 3600) return `${Math.floor(diff / 60)} ນາທີຜ່ານມາ`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} ຊົ່ວໂມງຜ່ານມາ`;
-  if (diff < 604800) return `${Math.floor(diff / 86400)} ມື້ຜ່ານມາ`;
-  return d.toLocaleDateString("lo-LA", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+function useFormatRelative() {
+  const tr = useTr();
+  return (d: Date) => {
+    const diff = (Date.now() - d.getTime()) / 1000;
+    if (diff < 60) return tr("justNow");
+    if (diff < 3600) return `${Math.floor(diff / 60)} ${tr("minutesAgo")}`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} ${tr("hoursAgo")}`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)} ${tr("daysAgo")}`;
+    return d.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
 }

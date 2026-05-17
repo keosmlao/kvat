@@ -166,11 +166,14 @@ export type BillingPdfInput = {
     notes: string | null;
     items: {
       sn: number;
+      lineType: string;
       description: string;
       unit: string;
       quantity: number;
       unitPrice: number;
       discount: number;
+      taxRate: number;
+      taxAmount: number;
       total: number;
     }[];
   };
@@ -213,15 +216,36 @@ function paymentMethodLabel(m: string | null) {
   return "";
 }
 
+function vatRateLabel(
+  items: BillingPdfInput["invoice"]["items"],
+  fallbackRate: number,
+): string {
+  const rates = Array.from(
+    new Set(
+      items
+        .filter((item) => item.lineType === "PRODUCT")
+        .map((item) => item.taxRate),
+    ),
+  );
+  if (rates.length === 0) return `${(fallbackRate * 100).toFixed(0)} %`;
+  if (rates.length === 1) return `${(rates[0] * 100).toFixed(0)} %`;
+  return "ຕາມແຕ່ລະລາຍການ";
+}
+
 function BillingDoc({ invoice, customer, seller }: BillingPdfInput) {
   const dateStr = formatDDMMYYYY(invoice.issueDate);
   const currencyLabel = invoice.currency === "LAK" ? "ກີບ" : invoice.currency;
-  const taxExcluding = invoice.subtotal - invoice.discount;
+  const afterDiscount = Math.max(0, invoice.subtotal - invoice.discount);
+  const taxExcluding =
+    invoice.vatMode === "INCLUSIVE"
+      ? Math.max(0, afterDiscount - invoice.vatAmount)
+      : afterDiscount;
 
   return (
     <Document>
       <Page size="A4" style={s.page}>
         {HAS_BG && (
+          // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image does not support alt.
           <Image
             src={BG_PATH}
             style={{
@@ -342,16 +366,34 @@ function BillingDoc({ invoice, customer, seller }: BillingPdfInput) {
             <Text style={s.cPrice}>ລາຄາ</Text>
             <Text style={s.cTotal}>ລວມ</Text>
           </View>
-          {invoice.items.map((it) => (
-            <View key={it.sn} style={s.tableRow}>
-              <Text style={s.cNo}>{it.sn}</Text>
-              <Text style={s.cName}>{it.description}</Text>
-              <Text style={s.cQty}>{fmtNum(it.quantity)}</Text>
-              <Text style={s.cUnit}>{it.unit}</Text>
-              <Text style={s.cPrice}>{fmtNum(it.unitPrice)}</Text>
-              <Text style={s.cTotal}>{fmtNum(it.total)}</Text>
-            </View>
-          ))}
+          {invoice.items.map((it) =>
+            it.lineType === "SECTION" || it.lineType === "NOTE" ? (
+              <View key={it.sn} style={s.tableRow}>
+                <Text style={s.cNo}>{it.sn}</Text>
+                <Text
+                  style={[
+                    s.cName,
+                    it.lineType === "SECTION" ? { fontWeight: 700 } : {},
+                  ]}
+                >
+                  {it.description}
+                </Text>
+                <Text style={s.cQty}></Text>
+                <Text style={s.cUnit}></Text>
+                <Text style={s.cPrice}></Text>
+                <Text style={s.cTotal}></Text>
+              </View>
+            ) : (
+              <View key={it.sn} style={s.tableRow}>
+                <Text style={s.cNo}>{it.sn}</Text>
+                <Text style={s.cName}>{it.description}</Text>
+                <Text style={s.cQty}>{fmtNum(it.quantity)}</Text>
+                <Text style={s.cUnit}>{it.unit}</Text>
+                <Text style={s.cPrice}>{fmtNum(it.unitPrice)}</Text>
+                <Text style={s.cTotal}>{fmtNum(it.total)}</Text>
+              </View>
+            ),
+          )}
         </View>
 
         {/* Totals */}
@@ -371,7 +413,7 @@ function BillingDoc({ invoice, customer, seller }: BillingPdfInput) {
             <View style={s.totRow}>
               <Text style={s.totLabel}>
                 ອັດຕາອາກອນມູນຄ່າເພີ່ມ: ອມພ{" "}
-                {(invoice.vatRate * 100).toFixed(0)} %, ເປັນຈໍານວນເງິນ:
+                {vatRateLabel(invoice.items, invoice.vatRate)}, ເປັນຈໍານວນເງິນ:
               </Text>
               <Text style={[s.totVal, s.totValueCell]}>
                 {fmtNum(invoice.vatAmount)}

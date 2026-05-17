@@ -48,9 +48,8 @@ function round2(n: number): number {
 
 /**
  * Build the EtaxIssueData payload from a local invoice.
- * - For EXCLUSIVE VAT: line.priceLak is tax-free → taxExcluding = qty*price, taxAmount = ex*rate
- * - For INCLUSIVE VAT: line.priceLak includes tax → back it out
- * - For EXEMPT: taxRate "0", taxAmount "0"
+ * Uses stored line-level tax values so mixed-rate invoices match the local
+ * document totals. Document discount is allocated proportionally by line.
  */
 async function buildPayload(
   invoiceId: string,
@@ -95,27 +94,27 @@ async function buildPayload(
   }
 
   const warnings: string[] = [];
-  const vatRate = invoice.vatRate;
   const vatMode = invoice.vatMode as "EXCLUSIVE" | "INCLUSIVE" | "EXEMPT";
-  const effectiveRate = vatMode === "EXEMPT" ? 0 : vatRate;
+  const productItems = invoice.items.filter((it) => it.lineType === "PRODUCT");
+  const subtotal = productItems.reduce((sum, it) => sum + it.total, 0);
+  const afterDiscount = Math.max(0, subtotal - invoice.discount);
+  const discountRatio = subtotal > 0 ? afterDiscount / subtotal : 0;
 
   // Build line items — round each amount to 2 decimals to keep totals consistent
-  const lines: EtaxLine[] = invoice.items.map((it, idx) => {
+  const lines: EtaxLine[] = productItems.map((it, idx) => {
     const qty = it.quantity;
     const price = it.priceLak;
+    const lineBase = round2(it.total * discountRatio);
+    const taxRate = vatMode === "EXEMPT" ? 0 : it.taxRate;
+    const taxAmt = vatMode === "EXEMPT" ? 0 : round2(it.taxAmount);
     let taxExcluding: number;
-    let taxAmt: number;
+
     if (vatMode === "INCLUSIVE") {
-      const gross = qty * price - it.discount;
-      taxExcluding = round2(gross / (1 + vatRate));
-      taxAmt = round2(gross - taxExcluding);
+      taxExcluding = round2(lineBase - taxAmt);
     } else if (vatMode === "EXEMPT") {
-      taxExcluding = round2(qty * price - it.discount);
-      taxAmt = 0;
+      taxExcluding = lineBase;
     } else {
-      // EXCLUSIVE
-      taxExcluding = round2(qty * price - it.discount);
-      taxAmt = round2(taxExcluding * vatRate);
+      taxExcluding = lineBase;
     }
     const taxIncluding = round2(taxExcluding + taxAmt);
 
@@ -132,7 +131,7 @@ async function buildPayload(
         {
           sn: 1,
           taxType: "001",
-          taxRate: rate(effectiveRate),
+          taxRate: rate(taxRate),
           taxAmount: dec(taxAmt, 2),
         },
       ],

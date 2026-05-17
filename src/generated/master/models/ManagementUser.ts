@@ -190,6 +190,10 @@ export type ManagementUserWhereInput = {
   name?: Prisma.StringFilter<"ManagementUser"> | string
   createdAt?: Prisma.DateTimeFilter<"ManagementUser"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ManagementUser"> | Date | string
+  messages?: Prisma.ManagementMessageListRelationFilter
+  follows?: Prisma.ManagementFollowerListRelationFilter
+  activitiesAssigned?: Prisma.ManagementActivityListRelationFilter
+  activitiesCreated?: Prisma.ManagementActivityListRelationFilter
 }
 
 export type ManagementUserOrderByWithRelationInput = {
@@ -199,6 +203,10 @@ export type ManagementUserOrderByWithRelationInput = {
   name?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  messages?: Prisma.ManagementMessageOrderByRelationAggregateInput
+  follows?: Prisma.ManagementFollowerOrderByRelationAggregateInput
+  activitiesAssigned?: Prisma.ManagementActivityOrderByRelationAggregateInput
+  activitiesCreated?: Prisma.ManagementActivityOrderByRelationAggregateInput
 }
 
 export type ManagementUserWhereUniqueInput = Prisma.AtLeast<{
@@ -211,6 +219,10 @@ export type ManagementUserWhereUniqueInput = Prisma.AtLeast<{
   name?: Prisma.StringFilter<"ManagementUser"> | string
   createdAt?: Prisma.DateTimeFilter<"ManagementUser"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ManagementUser"> | Date | string
+  messages?: Prisma.ManagementMessageListRelationFilter
+  follows?: Prisma.ManagementFollowerListRelationFilter
+  activitiesAssigned?: Prisma.ManagementActivityListRelationFilter
+  activitiesCreated?: Prisma.ManagementActivityListRelationFilter
 }, "id" | "email">
 
 export type ManagementUserOrderByWithAggregationInput = {
@@ -244,6 +256,10 @@ export type ManagementUserCreateInput = {
   name: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  messages?: Prisma.ManagementMessageCreateNestedManyWithoutAuthorInput
+  follows?: Prisma.ManagementFollowerCreateNestedManyWithoutUserInput
+  activitiesAssigned?: Prisma.ManagementActivityCreateNestedManyWithoutAssignedToInput
+  activitiesCreated?: Prisma.ManagementActivityCreateNestedManyWithoutCreatedByInput
 }
 
 export type ManagementUserUncheckedCreateInput = {
@@ -253,6 +269,10 @@ export type ManagementUserUncheckedCreateInput = {
   name: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  messages?: Prisma.ManagementMessageUncheckedCreateNestedManyWithoutAuthorInput
+  follows?: Prisma.ManagementFollowerUncheckedCreateNestedManyWithoutUserInput
+  activitiesAssigned?: Prisma.ManagementActivityUncheckedCreateNestedManyWithoutAssignedToInput
+  activitiesCreated?: Prisma.ManagementActivityUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type ManagementUserUpdateInput = {
@@ -262,6 +282,10 @@ export type ManagementUserUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  messages?: Prisma.ManagementMessageUpdateManyWithoutAuthorNestedInput
+  follows?: Prisma.ManagementFollowerUpdateManyWithoutUserNestedInput
+  activitiesAssigned?: Prisma.ManagementActivityUpdateManyWithoutAssignedToNestedInput
+  activitiesCreated?: Prisma.ManagementActivityUpdateManyWithoutCreatedByNestedInput
 }
 
 export type ManagementUserUncheckedUpdateInput = {
@@ -271,6 +295,10 @@ export type ManagementUserUncheckedUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  messages?: Prisma.ManagementMessageUncheckedUpdateManyWithoutAuthorNestedInput
+  follows?: Prisma.ManagementFollowerUncheckedUpdateManyWithoutUserNestedInput
+  activitiesAssigned?: Prisma.ManagementActivityUncheckedUpdateManyWithoutAssignedToNestedInput
+  activitiesCreated?: Prisma.ManagementActivityUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type ManagementUserCreateManyInput = {
@@ -327,6 +355,379 @@ export type ManagementUserMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
 }
 
+export type ManagementUserScalarRelationFilter = {
+  is?: Prisma.ManagementUserWhereInput
+  isNot?: Prisma.ManagementUserWhereInput
+}
+
+export type ManagementUserCreateNestedOneWithoutMessagesInput = {
+  create?: Prisma.XOR<Prisma.ManagementUserCreateWithoutMessagesInput, Prisma.ManagementUserUncheckedCreateWithoutMessagesInput>
+  connectOrCreate?: Prisma.ManagementUserCreateOrConnectWithoutMessagesInput
+  connect?: Prisma.ManagementUserWhereUniqueInput
+}
+
+export type ManagementUserUpdateOneRequiredWithoutMessagesNestedInput = {
+  create?: Prisma.XOR<Prisma.ManagementUserCreateWithoutMessagesInput, Prisma.ManagementUserUncheckedCreateWithoutMessagesInput>
+  connectOrCreate?: Prisma.ManagementUserCreateOrConnectWithoutMessagesInput
+  upsert?: Prisma.ManagementUserUpsertWithoutMessagesInput
+  connect?: Prisma.ManagementUserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ManagementUserUpdateToOneWithWhereWithoutMessagesInput, Prisma.ManagementUserUpdateWithoutMessagesInput>, Prisma.ManagementUserUncheckedUpdateWithoutMessagesInput>
+}
+
+export type ManagementUserCreateNestedOneWithoutFollowsInput = {
+  create?: Prisma.XOR<Prisma.ManagementUserCreateWithoutFollowsInput, Prisma.ManagementUserUncheckedCreateWithoutFollowsInput>
+  connectOrCreate?: Prisma.ManagementUserCreateOrConnectWithoutFollowsInput
+  connect?: Prisma.ManagementUserWhereUniqueInput
+}
+
+export type ManagementUserUpdateOneRequiredWithoutFollowsNestedInput = {
+  create?: Prisma.XOR<Prisma.ManagementUserCreateWithoutFollowsInput, Prisma.ManagementUserUncheckedCreateWithoutFollowsInput>
+  connectOrCreate?: Prisma.ManagementUserCreateOrConnectWithoutFollowsInput
+  upsert?: Prisma.ManagementUserUpsertWithoutFollowsInput
+  connect?: Prisma.ManagementUserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ManagementUserUpdateToOneWithWhereWithoutFollowsInput, Prisma.ManagementUserUpdateWithoutFollowsInput>, Prisma.ManagementUserUncheckedUpdateWithoutFollowsInput>
+}
+
+export type ManagementUserCreateNestedOneWithoutActivitiesAssignedInput = {
+  create?: Prisma.XOR<Prisma.ManagementUserCreateWithoutActivitiesAssignedInput, Prisma.ManagementUserUncheckedCreateWithoutActivitiesAssignedInput>
+  connectOrCreate?: Prisma.ManagementUserCreateOrConnectWithoutActivitiesAssignedInput
+  connect?: Prisma.ManagementUserWhereUniqueInput
+}
+
+export type ManagementUserCreateNestedOneWithoutActivitiesCreatedInput = {
+  create?: Prisma.XOR<Prisma.ManagementUserCreateWithoutActivitiesCreatedInput, Prisma.ManagementUserUncheckedCreateWithoutActivitiesCreatedInput>
+  connectOrCreate?: Prisma.ManagementUserCreateOrConnectWithoutActivitiesCreatedInput
+  connect?: Prisma.ManagementUserWhereUniqueInput
+}
+
+export type ManagementUserUpdateOneRequiredWithoutActivitiesAssignedNestedInput = {
+  create?: Prisma.XOR<Prisma.ManagementUserCreateWithoutActivitiesAssignedInput, Prisma.ManagementUserUncheckedCreateWithoutActivitiesAssignedInput>
+  connectOrCreate?: Prisma.ManagementUserCreateOrConnectWithoutActivitiesAssignedInput
+  upsert?: Prisma.ManagementUserUpsertWithoutActivitiesAssignedInput
+  connect?: Prisma.ManagementUserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ManagementUserUpdateToOneWithWhereWithoutActivitiesAssignedInput, Prisma.ManagementUserUpdateWithoutActivitiesAssignedInput>, Prisma.ManagementUserUncheckedUpdateWithoutActivitiesAssignedInput>
+}
+
+export type ManagementUserUpdateOneRequiredWithoutActivitiesCreatedNestedInput = {
+  create?: Prisma.XOR<Prisma.ManagementUserCreateWithoutActivitiesCreatedInput, Prisma.ManagementUserUncheckedCreateWithoutActivitiesCreatedInput>
+  connectOrCreate?: Prisma.ManagementUserCreateOrConnectWithoutActivitiesCreatedInput
+  upsert?: Prisma.ManagementUserUpsertWithoutActivitiesCreatedInput
+  connect?: Prisma.ManagementUserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ManagementUserUpdateToOneWithWhereWithoutActivitiesCreatedInput, Prisma.ManagementUserUpdateWithoutActivitiesCreatedInput>, Prisma.ManagementUserUncheckedUpdateWithoutActivitiesCreatedInput>
+}
+
+export type ManagementUserCreateWithoutMessagesInput = {
+  id?: string
+  email: string
+  password: string
+  name: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  follows?: Prisma.ManagementFollowerCreateNestedManyWithoutUserInput
+  activitiesAssigned?: Prisma.ManagementActivityCreateNestedManyWithoutAssignedToInput
+  activitiesCreated?: Prisma.ManagementActivityCreateNestedManyWithoutCreatedByInput
+}
+
+export type ManagementUserUncheckedCreateWithoutMessagesInput = {
+  id?: string
+  email: string
+  password: string
+  name: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  follows?: Prisma.ManagementFollowerUncheckedCreateNestedManyWithoutUserInput
+  activitiesAssigned?: Prisma.ManagementActivityUncheckedCreateNestedManyWithoutAssignedToInput
+  activitiesCreated?: Prisma.ManagementActivityUncheckedCreateNestedManyWithoutCreatedByInput
+}
+
+export type ManagementUserCreateOrConnectWithoutMessagesInput = {
+  where: Prisma.ManagementUserWhereUniqueInput
+  create: Prisma.XOR<Prisma.ManagementUserCreateWithoutMessagesInput, Prisma.ManagementUserUncheckedCreateWithoutMessagesInput>
+}
+
+export type ManagementUserUpsertWithoutMessagesInput = {
+  update: Prisma.XOR<Prisma.ManagementUserUpdateWithoutMessagesInput, Prisma.ManagementUserUncheckedUpdateWithoutMessagesInput>
+  create: Prisma.XOR<Prisma.ManagementUserCreateWithoutMessagesInput, Prisma.ManagementUserUncheckedCreateWithoutMessagesInput>
+  where?: Prisma.ManagementUserWhereInput
+}
+
+export type ManagementUserUpdateToOneWithWhereWithoutMessagesInput = {
+  where?: Prisma.ManagementUserWhereInput
+  data: Prisma.XOR<Prisma.ManagementUserUpdateWithoutMessagesInput, Prisma.ManagementUserUncheckedUpdateWithoutMessagesInput>
+}
+
+export type ManagementUserUpdateWithoutMessagesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  follows?: Prisma.ManagementFollowerUpdateManyWithoutUserNestedInput
+  activitiesAssigned?: Prisma.ManagementActivityUpdateManyWithoutAssignedToNestedInput
+  activitiesCreated?: Prisma.ManagementActivityUpdateManyWithoutCreatedByNestedInput
+}
+
+export type ManagementUserUncheckedUpdateWithoutMessagesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  follows?: Prisma.ManagementFollowerUncheckedUpdateManyWithoutUserNestedInput
+  activitiesAssigned?: Prisma.ManagementActivityUncheckedUpdateManyWithoutAssignedToNestedInput
+  activitiesCreated?: Prisma.ManagementActivityUncheckedUpdateManyWithoutCreatedByNestedInput
+}
+
+export type ManagementUserCreateWithoutFollowsInput = {
+  id?: string
+  email: string
+  password: string
+  name: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  messages?: Prisma.ManagementMessageCreateNestedManyWithoutAuthorInput
+  activitiesAssigned?: Prisma.ManagementActivityCreateNestedManyWithoutAssignedToInput
+  activitiesCreated?: Prisma.ManagementActivityCreateNestedManyWithoutCreatedByInput
+}
+
+export type ManagementUserUncheckedCreateWithoutFollowsInput = {
+  id?: string
+  email: string
+  password: string
+  name: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  messages?: Prisma.ManagementMessageUncheckedCreateNestedManyWithoutAuthorInput
+  activitiesAssigned?: Prisma.ManagementActivityUncheckedCreateNestedManyWithoutAssignedToInput
+  activitiesCreated?: Prisma.ManagementActivityUncheckedCreateNestedManyWithoutCreatedByInput
+}
+
+export type ManagementUserCreateOrConnectWithoutFollowsInput = {
+  where: Prisma.ManagementUserWhereUniqueInput
+  create: Prisma.XOR<Prisma.ManagementUserCreateWithoutFollowsInput, Prisma.ManagementUserUncheckedCreateWithoutFollowsInput>
+}
+
+export type ManagementUserUpsertWithoutFollowsInput = {
+  update: Prisma.XOR<Prisma.ManagementUserUpdateWithoutFollowsInput, Prisma.ManagementUserUncheckedUpdateWithoutFollowsInput>
+  create: Prisma.XOR<Prisma.ManagementUserCreateWithoutFollowsInput, Prisma.ManagementUserUncheckedCreateWithoutFollowsInput>
+  where?: Prisma.ManagementUserWhereInput
+}
+
+export type ManagementUserUpdateToOneWithWhereWithoutFollowsInput = {
+  where?: Prisma.ManagementUserWhereInput
+  data: Prisma.XOR<Prisma.ManagementUserUpdateWithoutFollowsInput, Prisma.ManagementUserUncheckedUpdateWithoutFollowsInput>
+}
+
+export type ManagementUserUpdateWithoutFollowsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  messages?: Prisma.ManagementMessageUpdateManyWithoutAuthorNestedInput
+  activitiesAssigned?: Prisma.ManagementActivityUpdateManyWithoutAssignedToNestedInput
+  activitiesCreated?: Prisma.ManagementActivityUpdateManyWithoutCreatedByNestedInput
+}
+
+export type ManagementUserUncheckedUpdateWithoutFollowsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  messages?: Prisma.ManagementMessageUncheckedUpdateManyWithoutAuthorNestedInput
+  activitiesAssigned?: Prisma.ManagementActivityUncheckedUpdateManyWithoutAssignedToNestedInput
+  activitiesCreated?: Prisma.ManagementActivityUncheckedUpdateManyWithoutCreatedByNestedInput
+}
+
+export type ManagementUserCreateWithoutActivitiesAssignedInput = {
+  id?: string
+  email: string
+  password: string
+  name: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  messages?: Prisma.ManagementMessageCreateNestedManyWithoutAuthorInput
+  follows?: Prisma.ManagementFollowerCreateNestedManyWithoutUserInput
+  activitiesCreated?: Prisma.ManagementActivityCreateNestedManyWithoutCreatedByInput
+}
+
+export type ManagementUserUncheckedCreateWithoutActivitiesAssignedInput = {
+  id?: string
+  email: string
+  password: string
+  name: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  messages?: Prisma.ManagementMessageUncheckedCreateNestedManyWithoutAuthorInput
+  follows?: Prisma.ManagementFollowerUncheckedCreateNestedManyWithoutUserInput
+  activitiesCreated?: Prisma.ManagementActivityUncheckedCreateNestedManyWithoutCreatedByInput
+}
+
+export type ManagementUserCreateOrConnectWithoutActivitiesAssignedInput = {
+  where: Prisma.ManagementUserWhereUniqueInput
+  create: Prisma.XOR<Prisma.ManagementUserCreateWithoutActivitiesAssignedInput, Prisma.ManagementUserUncheckedCreateWithoutActivitiesAssignedInput>
+}
+
+export type ManagementUserCreateWithoutActivitiesCreatedInput = {
+  id?: string
+  email: string
+  password: string
+  name: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  messages?: Prisma.ManagementMessageCreateNestedManyWithoutAuthorInput
+  follows?: Prisma.ManagementFollowerCreateNestedManyWithoutUserInput
+  activitiesAssigned?: Prisma.ManagementActivityCreateNestedManyWithoutAssignedToInput
+}
+
+export type ManagementUserUncheckedCreateWithoutActivitiesCreatedInput = {
+  id?: string
+  email: string
+  password: string
+  name: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  messages?: Prisma.ManagementMessageUncheckedCreateNestedManyWithoutAuthorInput
+  follows?: Prisma.ManagementFollowerUncheckedCreateNestedManyWithoutUserInput
+  activitiesAssigned?: Prisma.ManagementActivityUncheckedCreateNestedManyWithoutAssignedToInput
+}
+
+export type ManagementUserCreateOrConnectWithoutActivitiesCreatedInput = {
+  where: Prisma.ManagementUserWhereUniqueInput
+  create: Prisma.XOR<Prisma.ManagementUserCreateWithoutActivitiesCreatedInput, Prisma.ManagementUserUncheckedCreateWithoutActivitiesCreatedInput>
+}
+
+export type ManagementUserUpsertWithoutActivitiesAssignedInput = {
+  update: Prisma.XOR<Prisma.ManagementUserUpdateWithoutActivitiesAssignedInput, Prisma.ManagementUserUncheckedUpdateWithoutActivitiesAssignedInput>
+  create: Prisma.XOR<Prisma.ManagementUserCreateWithoutActivitiesAssignedInput, Prisma.ManagementUserUncheckedCreateWithoutActivitiesAssignedInput>
+  where?: Prisma.ManagementUserWhereInput
+}
+
+export type ManagementUserUpdateToOneWithWhereWithoutActivitiesAssignedInput = {
+  where?: Prisma.ManagementUserWhereInput
+  data: Prisma.XOR<Prisma.ManagementUserUpdateWithoutActivitiesAssignedInput, Prisma.ManagementUserUncheckedUpdateWithoutActivitiesAssignedInput>
+}
+
+export type ManagementUserUpdateWithoutActivitiesAssignedInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  messages?: Prisma.ManagementMessageUpdateManyWithoutAuthorNestedInput
+  follows?: Prisma.ManagementFollowerUpdateManyWithoutUserNestedInput
+  activitiesCreated?: Prisma.ManagementActivityUpdateManyWithoutCreatedByNestedInput
+}
+
+export type ManagementUserUncheckedUpdateWithoutActivitiesAssignedInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  messages?: Prisma.ManagementMessageUncheckedUpdateManyWithoutAuthorNestedInput
+  follows?: Prisma.ManagementFollowerUncheckedUpdateManyWithoutUserNestedInput
+  activitiesCreated?: Prisma.ManagementActivityUncheckedUpdateManyWithoutCreatedByNestedInput
+}
+
+export type ManagementUserUpsertWithoutActivitiesCreatedInput = {
+  update: Prisma.XOR<Prisma.ManagementUserUpdateWithoutActivitiesCreatedInput, Prisma.ManagementUserUncheckedUpdateWithoutActivitiesCreatedInput>
+  create: Prisma.XOR<Prisma.ManagementUserCreateWithoutActivitiesCreatedInput, Prisma.ManagementUserUncheckedCreateWithoutActivitiesCreatedInput>
+  where?: Prisma.ManagementUserWhereInput
+}
+
+export type ManagementUserUpdateToOneWithWhereWithoutActivitiesCreatedInput = {
+  where?: Prisma.ManagementUserWhereInput
+  data: Prisma.XOR<Prisma.ManagementUserUpdateWithoutActivitiesCreatedInput, Prisma.ManagementUserUncheckedUpdateWithoutActivitiesCreatedInput>
+}
+
+export type ManagementUserUpdateWithoutActivitiesCreatedInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  messages?: Prisma.ManagementMessageUpdateManyWithoutAuthorNestedInput
+  follows?: Prisma.ManagementFollowerUpdateManyWithoutUserNestedInput
+  activitiesAssigned?: Prisma.ManagementActivityUpdateManyWithoutAssignedToNestedInput
+}
+
+export type ManagementUserUncheckedUpdateWithoutActivitiesCreatedInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  messages?: Prisma.ManagementMessageUncheckedUpdateManyWithoutAuthorNestedInput
+  follows?: Prisma.ManagementFollowerUncheckedUpdateManyWithoutUserNestedInput
+  activitiesAssigned?: Prisma.ManagementActivityUncheckedUpdateManyWithoutAssignedToNestedInput
+}
+
+
+/**
+ * Count Type ManagementUserCountOutputType
+ */
+
+export type ManagementUserCountOutputType = {
+  messages: number
+  follows: number
+  activitiesAssigned: number
+  activitiesCreated: number
+}
+
+export type ManagementUserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  messages?: boolean | ManagementUserCountOutputTypeCountMessagesArgs
+  follows?: boolean | ManagementUserCountOutputTypeCountFollowsArgs
+  activitiesAssigned?: boolean | ManagementUserCountOutputTypeCountActivitiesAssignedArgs
+  activitiesCreated?: boolean | ManagementUserCountOutputTypeCountActivitiesCreatedArgs
+}
+
+/**
+ * ManagementUserCountOutputType without action
+ */
+export type ManagementUserCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ManagementUserCountOutputType
+   */
+  select?: Prisma.ManagementUserCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * ManagementUserCountOutputType without action
+ */
+export type ManagementUserCountOutputTypeCountMessagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ManagementMessageWhereInput
+}
+
+/**
+ * ManagementUserCountOutputType without action
+ */
+export type ManagementUserCountOutputTypeCountFollowsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ManagementFollowerWhereInput
+}
+
+/**
+ * ManagementUserCountOutputType without action
+ */
+export type ManagementUserCountOutputTypeCountActivitiesAssignedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ManagementActivityWhereInput
+}
+
+/**
+ * ManagementUserCountOutputType without action
+ */
+export type ManagementUserCountOutputTypeCountActivitiesCreatedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ManagementActivityWhereInput
+}
 
 
 export type ManagementUserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -336,6 +737,11 @@ export type ManagementUserSelect<ExtArgs extends runtime.Types.Extensions.Intern
   name?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  messages?: boolean | Prisma.ManagementUser$messagesArgs<ExtArgs>
+  follows?: boolean | Prisma.ManagementUser$followsArgs<ExtArgs>
+  activitiesAssigned?: boolean | Prisma.ManagementUser$activitiesAssignedArgs<ExtArgs>
+  activitiesCreated?: boolean | Prisma.ManagementUser$activitiesCreatedArgs<ExtArgs>
+  _count?: boolean | Prisma.ManagementUserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["managementUser"]>
 
 export type ManagementUserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -366,10 +772,24 @@ export type ManagementUserSelectScalar = {
 }
 
 export type ManagementUserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "password" | "name" | "createdAt" | "updatedAt", ExtArgs["result"]["managementUser"]>
+export type ManagementUserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  messages?: boolean | Prisma.ManagementUser$messagesArgs<ExtArgs>
+  follows?: boolean | Prisma.ManagementUser$followsArgs<ExtArgs>
+  activitiesAssigned?: boolean | Prisma.ManagementUser$activitiesAssignedArgs<ExtArgs>
+  activitiesCreated?: boolean | Prisma.ManagementUser$activitiesCreatedArgs<ExtArgs>
+  _count?: boolean | Prisma.ManagementUserCountOutputTypeDefaultArgs<ExtArgs>
+}
+export type ManagementUserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
+export type ManagementUserIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
 
 export type $ManagementUserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "ManagementUser"
-  objects: {}
+  objects: {
+    messages: Prisma.$ManagementMessagePayload<ExtArgs>[]
+    follows: Prisma.$ManagementFollowerPayload<ExtArgs>[]
+    activitiesAssigned: Prisma.$ManagementActivityPayload<ExtArgs>[]
+    activitiesCreated: Prisma.$ManagementActivityPayload<ExtArgs>[]
+  }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     email: string
@@ -771,6 +1191,10 @@ readonly fields: ManagementUserFieldRefs;
  */
 export interface Prisma__ManagementUserClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  messages<T extends Prisma.ManagementUser$messagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ManagementUser$messagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ManagementMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  follows<T extends Prisma.ManagementUser$followsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ManagementUser$followsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ManagementFollowerPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  activitiesAssigned<T extends Prisma.ManagementUser$activitiesAssignedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ManagementUser$activitiesAssignedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ManagementActivityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  activitiesCreated<T extends Prisma.ManagementUser$activitiesCreatedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ManagementUser$activitiesCreatedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ManagementActivityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -823,6 +1247,10 @@ export type ManagementUserFindUniqueArgs<ExtArgs extends runtime.Types.Extension
    */
   omit?: Prisma.ManagementUserOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ManagementUserInclude<ExtArgs> | null
+  /**
    * Filter, which ManagementUser to fetch.
    */
   where: Prisma.ManagementUserWhereUniqueInput
@@ -841,6 +1269,10 @@ export type ManagementUserFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Ex
    */
   omit?: Prisma.ManagementUserOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ManagementUserInclude<ExtArgs> | null
+  /**
    * Filter, which ManagementUser to fetch.
    */
   where: Prisma.ManagementUserWhereUniqueInput
@@ -858,6 +1290,10 @@ export type ManagementUserFindFirstArgs<ExtArgs extends runtime.Types.Extensions
    * Omit specific fields from the ManagementUser
    */
   omit?: Prisma.ManagementUserOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ManagementUserInclude<ExtArgs> | null
   /**
    * Filter, which ManagementUser to fetch.
    */
@@ -907,6 +1343,10 @@ export type ManagementUserFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Ext
    */
   omit?: Prisma.ManagementUserOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ManagementUserInclude<ExtArgs> | null
+  /**
    * Filter, which ManagementUser to fetch.
    */
   where?: Prisma.ManagementUserWhereInput
@@ -954,6 +1394,10 @@ export type ManagementUserFindManyArgs<ExtArgs extends runtime.Types.Extensions.
    * Omit specific fields from the ManagementUser
    */
   omit?: Prisma.ManagementUserOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ManagementUserInclude<ExtArgs> | null
   /**
    * Filter, which ManagementUsers to fetch.
    */
@@ -1003,6 +1447,10 @@ export type ManagementUserCreateArgs<ExtArgs extends runtime.Types.Extensions.In
    */
   omit?: Prisma.ManagementUserOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ManagementUserInclude<ExtArgs> | null
+  /**
    * The data needed to create a ManagementUser.
    */
   data: Prisma.XOR<Prisma.ManagementUserCreateInput, Prisma.ManagementUserUncheckedCreateInput>
@@ -1050,6 +1498,10 @@ export type ManagementUserUpdateArgs<ExtArgs extends runtime.Types.Extensions.In
    * Omit specific fields from the ManagementUser
    */
   omit?: Prisma.ManagementUserOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ManagementUserInclude<ExtArgs> | null
   /**
    * The data needed to update a ManagementUser.
    */
@@ -1117,6 +1569,10 @@ export type ManagementUserUpsertArgs<ExtArgs extends runtime.Types.Extensions.In
    */
   omit?: Prisma.ManagementUserOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ManagementUserInclude<ExtArgs> | null
+  /**
    * The filter to search for the ManagementUser to update in case it exists.
    */
   where: Prisma.ManagementUserWhereUniqueInput
@@ -1143,6 +1599,10 @@ export type ManagementUserDeleteArgs<ExtArgs extends runtime.Types.Extensions.In
    */
   omit?: Prisma.ManagementUserOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ManagementUserInclude<ExtArgs> | null
+  /**
    * Filter which ManagementUser to delete.
    */
   where: Prisma.ManagementUserWhereUniqueInput
@@ -1163,6 +1623,102 @@ export type ManagementUserDeleteManyArgs<ExtArgs extends runtime.Types.Extension
 }
 
 /**
+ * ManagementUser.messages
+ */
+export type ManagementUser$messagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ManagementMessage
+   */
+  select?: Prisma.ManagementMessageSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ManagementMessage
+   */
+  omit?: Prisma.ManagementMessageOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ManagementMessageInclude<ExtArgs> | null
+  where?: Prisma.ManagementMessageWhereInput
+  orderBy?: Prisma.ManagementMessageOrderByWithRelationInput | Prisma.ManagementMessageOrderByWithRelationInput[]
+  cursor?: Prisma.ManagementMessageWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ManagementMessageScalarFieldEnum | Prisma.ManagementMessageScalarFieldEnum[]
+}
+
+/**
+ * ManagementUser.follows
+ */
+export type ManagementUser$followsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ManagementFollower
+   */
+  select?: Prisma.ManagementFollowerSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ManagementFollower
+   */
+  omit?: Prisma.ManagementFollowerOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ManagementFollowerInclude<ExtArgs> | null
+  where?: Prisma.ManagementFollowerWhereInput
+  orderBy?: Prisma.ManagementFollowerOrderByWithRelationInput | Prisma.ManagementFollowerOrderByWithRelationInput[]
+  cursor?: Prisma.ManagementFollowerWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ManagementFollowerScalarFieldEnum | Prisma.ManagementFollowerScalarFieldEnum[]
+}
+
+/**
+ * ManagementUser.activitiesAssigned
+ */
+export type ManagementUser$activitiesAssignedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ManagementActivity
+   */
+  select?: Prisma.ManagementActivitySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ManagementActivity
+   */
+  omit?: Prisma.ManagementActivityOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ManagementActivityInclude<ExtArgs> | null
+  where?: Prisma.ManagementActivityWhereInput
+  orderBy?: Prisma.ManagementActivityOrderByWithRelationInput | Prisma.ManagementActivityOrderByWithRelationInput[]
+  cursor?: Prisma.ManagementActivityWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ManagementActivityScalarFieldEnum | Prisma.ManagementActivityScalarFieldEnum[]
+}
+
+/**
+ * ManagementUser.activitiesCreated
+ */
+export type ManagementUser$activitiesCreatedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ManagementActivity
+   */
+  select?: Prisma.ManagementActivitySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ManagementActivity
+   */
+  omit?: Prisma.ManagementActivityOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ManagementActivityInclude<ExtArgs> | null
+  where?: Prisma.ManagementActivityWhereInput
+  orderBy?: Prisma.ManagementActivityOrderByWithRelationInput | Prisma.ManagementActivityOrderByWithRelationInput[]
+  cursor?: Prisma.ManagementActivityWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ManagementActivityScalarFieldEnum | Prisma.ManagementActivityScalarFieldEnum[]
+}
+
+/**
  * ManagementUser without action
  */
 export type ManagementUserDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1174,4 +1730,8 @@ export type ManagementUserDefaultArgs<ExtArgs extends runtime.Types.Extensions.I
    * Omit specific fields from the ManagementUser
    */
   omit?: Prisma.ManagementUserOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ManagementUserInclude<ExtArgs> | null
 }

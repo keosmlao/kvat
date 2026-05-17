@@ -4,31 +4,36 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { logoutAction } from "@/app/(app)/actions";
+import { t, type Locale } from "@/lib/i18n/messages";
 
-type Item = { href: string; label: string; adminOnly?: boolean };
+type Item = { href: string; key: string; adminOnly?: boolean };
 
-type FeatureKey = "dashboard" | "pos" | "reports";
+type FeatureKey = "dashboard" | "pos" | "reports" | "todo";
 type ItemWithFeature = Item & { feature?: FeatureKey };
 
 const menuItems: ItemWithFeature[] = [
-  { href: "/dashboard", label: "ໜ້າຫຼັກ", feature: "dashboard" },
-  { href: "/pos", label: "ໜ້າຂາຍ", feature: "pos" },
-  { href: "/invoices", label: "ບິນອາກອນ" },
-  { href: "/products", label: "ສິນຄ້າ" },
-  { href: "/customers", label: "ລູກຄ້າ" },
-  { href: "/reports", label: "ລາຍງານ", feature: "reports" },
+  { href: "/dashboard",  key: "dashboard",  feature: "dashboard" },
+  { href: "/pos",        key: "pos",        feature: "pos" },
+  { href: "/todo",       key: "todo",       feature: "todo" },
+  { href: "/quotations", key: "quotations" },
+  { href: "/invoices",   key: "invoices" },
+  { href: "/products",   key: "products" },
+  { href: "/customers",  key: "customers" },
+  { href: "/reports",    key: "reports",    feature: "reports" },
 ];
 
 const configItems: Item[] = [
-  { href: "/settings", label: "ຕັ້ງຄ່າ", adminOnly: true },
-  { href: "/users", label: "ຜູ້ໃຊ້", adminOnly: true },
-  { href: "/products/configuration", label: "ໜ່ວຍ / ໝວດໝູ່ / ປະເພດ" },
-  { href: "/addresses", label: "ແຂວງ / ເມືອງ / ບ້ານ", adminOnly: true },
+  { href: "/settings",                key: "settings",      adminOnly: true },
+  { href: "/users",                   key: "users",         adminOnly: true },
+  { href: "/activity",                key: "activity",      adminOnly: true },
+  { href: "/products/configuration",  key: "productConfig" },
+  { href: "/addresses",               key: "addresses",     adminOnly: true },
 ];
 
 export function TopBar({
   user,
   features,
+  locale,
 }: {
   user: { name: string; role: "ADMIN" | "STAFF" };
   features: {
@@ -37,8 +42,11 @@ export function TopBar({
     reports: boolean;
     chatter: boolean;
     creditNotes: boolean;
+    todo: boolean;
   };
+  locale: Locale;
 }) {
+  const tr = (k: string) => t(locale, "nav", k);
   const pathname = usePathname();
   const [appsOpen, setAppsOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
@@ -48,20 +56,20 @@ export function TopBar({
     (i) => !i.adminOnly || user.role === "ADMIN",
   );
 
-  const currentLabel =
-    [...menuItems, ...configItems].find(
-      (i) => pathname === i.href || pathname.startsWith(i.href + "/"),
-    )?.label ?? "SMLAO";
+  const currentItem = [...menuItems, ...configItems].find(
+    (i) => pathname === i.href || pathname.startsWith(i.href + "/"),
+  );
+  const currentLabel = currentItem ? tr(currentItem.key) : "SMLAO";
 
   return (
-    <header className="bg-[#b91c1c] text-white no-print sticky top-0 z-40 shadow-sm">
+    <header className="o-topbar no-print sticky top-0 z-40 shadow-sm">
       <div className="flex items-center h-11 px-2">
         {/* Apps grid (module switcher) */}
         <button
           type="button"
           onClick={() => setAppsOpen((v) => !v)}
           className="w-10 h-11 flex items-center justify-center hover:bg-white/10 transition"
-          title="ແອັບ"
+          title={tr("apps")}
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
             <circle cx="5" cy="5" r="1.6" />
@@ -81,7 +89,7 @@ export function TopBar({
           href="/dashboard"
           className="flex items-center gap-2 px-3 h-11 hover:bg-white/10 transition"
         >
-          <span className="w-6 h-6 rounded bg-white text-[#b91c1c] font-bold text-[11px] flex items-center justify-center">
+          <span className="w-6 h-6 rounded bg-white text-odoo font-bold text-[11px] flex items-center justify-center">
             S
           </span>
           <span className="font-semibold text-[14px] tracking-wide">
@@ -108,7 +116,7 @@ export function TopBar({
                     : "text-white/85 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                {item.label}
+                {tr(item.key)}
                 {active && (
                   <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-white" />
                 )}
@@ -127,7 +135,7 @@ export function TopBar({
                     : "text-white/85 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                ການກຳນົດຄ່າ
+                {tr("config")}
                 <svg
                   className="w-3 h-3 opacity-80"
                   fill="currentColor"
@@ -148,9 +156,9 @@ export function TopBar({
                         key={item.href}
                         href={item.href}
                         onClick={() => setConfigOpen(false)}
-                        className="block px-4 py-2 text-[13px] hover:bg-[#b91c1c]/10 hover:text-[#b91c1c]"
+                        className="block px-4 py-2 text-[13px] hover:bg-odoo/10 hover:text-odoo"
                       >
-                        {item.label}
+                        {tr(item.key)}
                       </Link>
                     ))}
                   </div>
@@ -165,7 +173,7 @@ export function TopBar({
           <button
             type="button"
             className="w-10 h-11 flex items-center justify-center hover:bg-white/10 transition"
-            title="ຄົ້ນຫາ"
+            title={tr("searchTitle")}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
@@ -174,7 +182,7 @@ export function TopBar({
           <button
             type="button"
             className="w-10 h-11 flex items-center justify-center hover:bg-white/10 transition relative"
-            title="ການແຈ້ງເຕືອນ"
+            title={tr("notifications")}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -212,22 +220,22 @@ export function TopBar({
                       {user.name}
                     </div>
                     <div className="text-[11px] text-gray-500">
-                      {user.role === "ADMIN" ? "ຜູ້ດູແລລະບົບ" : "ພະນັກງານ"}
+                      {user.role === "ADMIN" ? tr("admin") : tr("staff")}
                     </div>
                   </div>
                   <Link
                     href="/profile"
                     onClick={() => setUserOpen(false)}
-                    className="block px-4 py-2 text-[13px] hover:bg-[#b91c1c]/10 hover:text-[#b91c1c]"
+                    className="block px-4 py-2 text-[13px] hover:bg-odoo/10 hover:text-odoo"
                   >
-                    ໂປຣໄຟລ໌ຂອງຂ້ອຍ
+                    {tr("profile")}
                   </Link>
                   <Link
                     href="/preferences"
                     onClick={() => setUserOpen(false)}
-                    className="block px-4 py-2 text-[13px] hover:bg-[#b91c1c]/10 hover:text-[#b91c1c]"
+                    className="block px-4 py-2 text-[13px] hover:bg-odoo/10 hover:text-odoo"
                   >
-                    ການຕັ້ງຄ່າຂອງຂ້ອຍ
+                    {tr("preferences")}
                   </Link>
                   <div className="border-t border-gray-100" />
                   <form action={logoutAction}>
@@ -235,7 +243,7 @@ export function TopBar({
                       type="submit"
                       className="w-full text-left px-4 py-2 text-[13px] text-red-600 hover:bg-red-50"
                     >
-                      ອອກຈາກລະບົບ
+                      {tr("logout")}
                     </button>
                   </form>
                 </div>
@@ -259,21 +267,24 @@ export function TopBar({
                   (item) => !item.feature || features[item.feature],
                 ),
                 ...visibleConfig,
-              ].map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setAppsOpen(false)}
-                  className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-[#b91c1c]/5 border border-transparent hover:border-[#b91c1c]/20 transition"
-                >
-                  <div className="w-12 h-12 rounded-lg bg-[#b91c1c]/10 text-[#b91c1c] flex items-center justify-center font-bold text-lg">
-                    {item.label.charAt(0)}
-                  </div>
-                  <span className="text-[13px] text-gray-700 text-center">
-                    {item.label}
-                  </span>
-                </Link>
-              ))}
+              ].map((item) => {
+                const label = tr(item.key);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setAppsOpen(false)}
+                    className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-odoo/5 border border-transparent hover:border-odoo/20 transition"
+                  >
+                    <div className="w-12 h-12 rounded-lg bg-odoo/10 text-odoo flex items-center justify-center font-bold text-lg">
+                      {label.charAt(0)}
+                    </div>
+                    <span className="text-[13px] text-gray-700 text-center">
+                      {label}
+                    </span>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </>

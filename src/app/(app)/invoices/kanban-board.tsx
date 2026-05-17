@@ -116,7 +116,7 @@ export function KanbanBoard({ cards }: { cards: KanbanCard[] }) {
               onDrop={(e) => onDrop(e, col.key)}
               className={`bg-gray-50 border-2 rounded p-2 min-h-[300px] transition ${
                 isOver
-                  ? "border-[#b91c1c] bg-[#b91c1c]/5"
+                  ? "border-odoo bg-odoo/5"
                   : "border-transparent"
               }`}
             >
@@ -149,7 +149,7 @@ export function KanbanBoard({ cards }: { cards: KanbanCard[] }) {
                     className={`border rounded p-2.5 transition cursor-grab active:cursor-grabbing ${
                       card.hasReversal
                         ? "bg-red-50 border-red-200 hover:border-red-400 hover:bg-red-100/60"
-                        : "bg-white border-gray-200 hover:border-[#b91c1c] hover:shadow-sm"
+                        : "bg-white border-gray-200 hover:border-odoo hover:shadow-sm"
                     } ${dragId === card.id ? "opacity-50" : ""} ${
                       pending ? "opacity-60 pointer-events-none" : ""
                     }`}
@@ -162,7 +162,7 @@ export function KanbanBoard({ cards }: { cards: KanbanCard[] }) {
                     <div className="flex justify-between items-start gap-2 mb-1">
                       <Link
                         href={`/invoices/${card.id}`}
-                        className={`font-mono text-[12px] hover:text-[#b91c1c] ${
+                        className={`font-mono text-[12px] hover:text-odoo ${
                           card.hasReversal
                             ? "text-red-700 line-through decoration-red-400/60"
                             : "text-gray-800"

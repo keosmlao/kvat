@@ -1,8 +1,10 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Combobox } from "@/components/combobox";
+import { t } from "@/lib/i18n/messages";
 import {
   createBillingInvoice,
   updateBillingInvoice,
@@ -10,6 +12,8 @@ import {
   deleteBillingInvoice,
   type BillingState,
 } from "./actions";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 export type CustomerOption = {
   id: string;
@@ -35,11 +39,10 @@ type Line = {
   quantity: number;
   priceLak: number;
   discount: number;
+  taxRate: number;
 };
 
 type VatMode = "EXCLUSIVE" | "INCLUSIVE" | "EXEMPT";
-type PaymentMethod = "CASH" | "TRANSFER";
-
 type Initial = {
   number?: string;          // shown in heading on edit; placeholder on create
   customerId: string;
@@ -51,12 +54,14 @@ type Initial = {
   dueDate: string;
   notes: string;
   items: {
-    productId: string;
+    kind?: LineKind;
+    productId?: string | null;
     description: string;
     unit: string;
     quantity: number;
     unitPrice: number;
     discount: number;
+    taxRate?: number;
   }[];
 };
 
@@ -95,13 +100,14 @@ export function BillingInvoiceForm({
   const [lines, setLines] = useState<Line[]>(
     initial.items.length > 0
       ? initial.items.map((it) => ({
-          kind: "product" as const,
-          productId: it.productId,
+          kind: it.kind ?? "product",
+          productId: it.productId ?? "",
           label: it.description,
           unit: it.unit,
           quantity: it.quantity,
           priceLak: it.unitPrice,
           discount: it.discount,
+          taxRate: it.taxRate ?? initial.vatRate,
         }))
       : [],
   );
@@ -123,12 +129,20 @@ export function BillingInvoiceForm({
     0,
   );
   const afterDiscount = Math.max(0, subtotal - discount);
+  const discountRatio = subtotal > 0 ? afterDiscount / subtotal : 0;
   const vatAmount =
     vatMode === "EXEMPT"
       ? 0
-      : vatMode === "INCLUSIVE"
-        ? (afterDiscount * vatRate) / (1 + vatRate)
-        : afterDiscount * vatRate;
+      : productLines.reduce((sum, line) => {
+          const base =
+            Math.max(0, line.quantity * line.priceLak - line.discount) *
+            discountRatio;
+          const tax =
+            vatMode === "INCLUSIVE"
+              ? (base * line.taxRate) / (1 + line.taxRate)
+              : base * line.taxRate;
+          return sum + tax;
+        }, 0);
   const total =
     vatMode === "EXCLUSIVE" ? afterDiscount + vatAmount : afterDiscount;
 
@@ -139,10 +153,11 @@ export function BillingInvoiceForm({
         kind,
         productId: "",
         label: "",
-        unit: "ໜ່ວຍ",
+        unit: tm("qDefaultUnit"),
         quantity: 1,
         priceLak: 0,
         discount: 0,
+        taxRate: vatRate,
       },
     ]);
   }
@@ -166,13 +181,15 @@ export function BillingInvoiceForm({
     });
   }
 
-  const itemsForServer = productLines.map((l) => ({
-    productId: l.productId,
+  const itemsForServer = lines.map((l) => ({
+    kind: l.kind,
+    productId: l.kind === "product" ? l.productId : "",
     description: l.label,
     unit: l.unit,
     quantity: l.quantity,
     unitPrice: l.priceLak,
     discount: l.discount,
+    taxRate: l.kind === "product" ? l.taxRate : 0,
   }));
 
   return (
@@ -185,12 +202,12 @@ export function BillingInvoiceForm({
 
       {/* Breadcrumb */}
       <div className="text-xs text-gray-500 px-1 mb-2">
-        <a href="/manage/billing" className="hover:underline">
-          ໃບເກັບເງິນ
-        </a>
+        <Link href="/manage/billing" className="hover:underline">
+          {tm("bilBreadcrumb")}
+        </Link>
         <span className="mx-1.5 text-gray-400">›</span>
         <span className="text-gray-700">
-          {isEdit ? initial.number ?? "ແກ້ໄຂ" : "ໃໝ່"}
+          {isEdit ? initial.number ?? tm("bilEditWord") : tm("bilNewWord")}
         </span>
       </div>
 
@@ -200,9 +217,9 @@ export function BillingInvoiceForm({
           <button
             type="submit"
             disabled={pending || productLines.length === 0}
-            className="bg-[#b91c1c] text-white px-3 py-1 rounded text-[13px] font-medium hover:bg-[#991b1b] disabled:opacity-50 transition tracking-wide"
+            className="bg-odoo text-white px-3 py-1 rounded text-[13px] font-medium hover:bg-odoo-hover disabled:opacity-50 transition tracking-wide"
           >
-            {pending ? "ກຳລັງບັນທຶກ..." : isEdit ? "ບັນທຶກ" : "ຢືນຢັນ"}
+            {pending ? tm("bilSaving") : isEdit ? tm("bilSave") : tm("bilConfirmBtn")}
           </button>
           {isEdit && id ? (
             <>
@@ -210,10 +227,10 @@ export function BillingInvoiceForm({
                 href={`/api/billing/${id}/pdf`}
                 target="_blank"
                 rel="noreferrer"
-                className="text-[#b91c1c] hover:bg-[#b91c1c]/8 px-2.5 py-1 rounded text-[13px] font-medium"
-                title="ເປີດ PDF ໃນແທັບໃໝ່"
+                className="text-odoo hover:bg-odoo/8 px-2.5 py-1 rounded text-[13px] font-medium"
+                title={tm("bilPdfPreviewTitle")}
               >
-                ສະແດງຕົວຢ່າງ
+                {tm("bilPdfPreview")}
               </a>
               <button
                 type="button"
@@ -222,16 +239,16 @@ export function BillingInvoiceForm({
                     `/api/billing/${id}/pdf`,
                     "_blank",
                   );
-                  if (!win) alert("ກະລຸນາອະນຸຍາດ popup ເພື່ອພິມ");
+                  if (!win) alert(tm("bilAllowPopup"));
                 }}
-                className="text-[#b91c1c] hover:bg-[#b91c1c]/8 px-2.5 py-1 rounded text-[13px] font-medium"
+                className="text-odoo hover:bg-odoo/8 px-2.5 py-1 rounded text-[13px] font-medium"
               >
-                ພິມ
+                {tm("bilPrint")}
               </button>
             </>
           ) : (
             <span className="text-gray-400 text-[12px] italic px-1.5">
-              ບັນທຶກກ່ອນຈຶ່ງສະແດງຕົວຢ່າງ/ພິມໄດ້
+              {tm("bilSaveFirst")}
             </span>
           )}
           <span className="mx-1 text-gray-300">|</span>
@@ -239,25 +256,25 @@ export function BillingInvoiceForm({
             <button
               type="button"
               onClick={async () => {
-                if (!confirm("ຍົກເລີກໃບເກັບເງິນນີ້?")) return;
+                if (!confirm(tm("bilCancelConfirm"))) return;
                 await cancelBillingInvoice(id);
                 router.refresh();
               }}
               className="text-amber-700 hover:bg-amber-50 px-2.5 py-1 rounded text-[13px]"
             >
-              ຍົກເລີກໃບເກັບເງິນ
+              {tm("bilCancelBtn")}
             </button>
           )}
           {isEdit && id && status !== "PAID" && (
             <button
               type="button"
               onClick={async () => {
-                if (!confirm("ລົບໃບເກັບເງິນນີ້ຖາວອນ?")) return;
+                if (!confirm(tm("bilDeleteConfirm"))) return;
                 await deleteBillingInvoice(id);
               }}
               className="text-red-700 hover:bg-red-50 px-2.5 py-1 rounded text-[13px]"
             >
-              ລົບ
+              {tm("bilDeleteBtn")}
             </button>
           )}
           {!isEdit && (
@@ -266,7 +283,7 @@ export function BillingInvoiceForm({
               onClick={() => router.push("/manage/billing")}
               className="text-gray-600 hover:bg-gray-100 px-2.5 py-1 rounded text-[13px]"
             >
-              ຍົກເລີກ
+              {tm("bilCancel")}
             </button>
           )}
         </div>
@@ -281,7 +298,7 @@ export function BillingInvoiceForm({
       <div className="bg-white border-x border-b border-gray-200 rounded-b-md shadow-sm">
         <div className="px-8 pt-6 pb-2">
           <div className="text-[11px] uppercase tracking-widest text-gray-500 font-medium">
-            {isEdit ? "ໃບເກັບເງິນ" : "ບິນຮ່າງ"}
+            {isEdit ? tm("bilHeaderTitle") : tm("bilHeaderDraft")}
           </div>
           <h1 className="text-[28px] leading-tight font-light text-gray-900 mb-6">
             {isEdit ? (
@@ -296,32 +313,32 @@ export function BillingInvoiceForm({
           {/* Header 2-col */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-1 mb-4">
             <div>
-              <Field label="ລູກຄ້າ" required emphasis>
+              <Field label={tm("bilCustomer")} required emphasis>
                 <Combobox
                   name="customerId"
                   required
                   defaultValue={initial.customerId}
-                  placeholder="ເລືອກລູກຄ້າ..."
-                  emptyText="ບໍ່ພົບລູກຄ້າ"
+                  placeholder={tm("bilPickCustomer")}
+                  emptyText={tm("bilNoCustomer")}
                   options={customers.map((c) => ({
                     value: c.id,
                     label: c.name,
                     badge: c.code,
-                    meta: c.type === "TENANT" ? "Tenant" : "ພາຍນອກ",
+                    meta: c.type === "TENANT" ? tm("bilTenantLabel") : tm("bilExternalLabel"),
                     search: `${c.code} ${c.name}`,
                   }))}
                 />
               </Field>
-              <Field label="ຫົວເລື່ອງ">
+              <Field label={tm("bilSubject")}>
                 <input
                   className="o-input"
                   name="description"
                   defaultValue={initial.description}
-                  placeholder="ໃບເກັບເງິນຄ່າບໍລິການ..."
+                  placeholder={tm("bilSubjectPh")}
                   required
                 />
               </Field>
-              <Field label="ກຳນົດຈ່າຍ">
+              <Field label={tm("bilDueDate")}>
                 <input
                   type="date"
                   name="dueDate"
@@ -331,7 +348,7 @@ export function BillingInvoiceForm({
               </Field>
             </div>
             <div>
-              <Field label="ສະກຸນເງິນ">
+              <Field label={tm("bilCurrency")}>
                 <select
                   value={currency}
                   onChange={(e) =>
@@ -344,19 +361,19 @@ export function BillingInvoiceForm({
                   <option value="THB">THB</option>
                 </select>
               </Field>
-              <Field label="ປະເພດ VAT">
+              <Field label={tm("bilVatType")}>
                 <select
                   value={vatMode}
                   onChange={(e) => setVatMode(e.target.value as VatMode)}
                   className="o-input"
                 >
-                  <option value="EXCLUSIVE">ແຍກນອກ (Tax Exclusive)</option>
-                  <option value="INCLUSIVE">ລວມໃນ (Tax Inclusive)</option>
-                  <option value="EXEMPT">ຍົກເວັ້ນ (Tax Exempt)</option>
+                  <option value="EXCLUSIVE">{tm("bilVatExclusive")}</option>
+                  <option value="INCLUSIVE">{tm("bilVatInclusive")}</option>
+                  <option value="EXEMPT">{tm("bilVatExempt")}</option>
                 </select>
               </Field>
               {vatMode !== "EXEMPT" && (
-                <Field label="VAT (ອັດຕາ)">
+                <Field label={tm("bilVatRate")}>
                   <div className="flex items-center gap-2 w-full">
                     <input
                       type="number"
@@ -383,13 +400,13 @@ export function BillingInvoiceForm({
                 active={activeTab === "lines"}
                 onClick={() => setActiveTab("lines")}
               >
-                ລາຍການບິນ
+                {tm("bilTabLines")}
               </TabBtn>
               <TabBtn
                 active={activeTab === "other"}
                 onClick={() => setActiveTab("other")}
               >
-                ຂໍ້ມູນອື່ນ
+                {tm("bilTabOther")}
               </TabBtn>
             </div>
           </div>
@@ -401,24 +418,27 @@ export function BillingInvoiceForm({
                 <thead>
                   <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
                     <th className="px-1 py-2 text-left font-medium w-8"></th>
-                    <th className="px-2 py-2 text-left font-medium">ສິນຄ້າ</th>
+                    <th className="px-2 py-2 text-left font-medium">{tm("bilColProduct")}</th>
                     <th className="px-2 py-2 text-left font-medium">
-                      ລາຍລະອຽດ
+                      {tm("bilColDescription")}
                     </th>
                     <th className="px-2 py-2 text-right font-medium w-20">
-                      ຈຳນວນ
+                      {tm("bilColQty")}
                     </th>
                     <th className="px-2 py-2 text-left font-medium w-16">
-                      ໜ່ວຍ
+                      {tm("bilColUnit")}
                     </th>
                     <th className="px-2 py-2 text-right font-medium w-28">
-                      ລາຄາ
+                      {tm("bilColPrice")}
                     </th>
                     <th className="px-2 py-2 text-right font-medium w-20">
-                      ສ່ວນຫຼຸດ
+                      {tm("bilColDiscount")}
+                    </th>
+                    <th className="px-2 py-2 text-right font-medium w-20">
+                      VAT
                     </th>
                     <th className="px-2 py-2 text-right font-medium w-32">
-                      ມູນຄ່າ
+                      {tm("bilColAmount")}
                     </th>
                     <th className="px-1 py-2 w-6"></th>
                   </tr>
@@ -434,13 +454,13 @@ export function BillingInvoiceForm({
                           <td className="px-1 py-1.5 text-gray-300 cursor-grab text-center">
                             ⋮⋮
                           </td>
-                          <td colSpan={7} className="px-2 py-1.5">
+                          <td colSpan={8} className="px-2 py-1.5">
                             <input
                               value={line.label}
                               onChange={(e) =>
                                 updateLine(idx, { label: e.target.value })
                               }
-                              placeholder="ຫົວຂໍ້..."
+                              placeholder={tm("bilSectionPh")}
                               className="o-cell font-semibold text-gray-800 uppercase tracking-wide w-full"
                             />
                           </td>
@@ -459,13 +479,13 @@ export function BillingInvoiceForm({
                           <td className="px-1 py-1.5 text-gray-300 cursor-grab text-center">
                             ⋮⋮
                           </td>
-                          <td colSpan={7} className="px-2 py-1.5">
+                          <td colSpan={8} className="px-2 py-1.5">
                             <input
                               value={line.label}
                               onChange={(e) =>
                                 updateLine(idx, { label: e.target.value })
                               }
-                              placeholder="ໝາຍເຫດ..."
+                              placeholder={tm("bilNotePh")}
                               className="o-cell italic text-gray-600 w-full"
                             />
                           </td>
@@ -491,9 +511,9 @@ export function BillingInvoiceForm({
                           <Combobox
                             value={line.productId}
                             onChange={(v) => selectProduct(idx, v)}
-                            placeholder="ເລືອກສິນຄ້າ..."
-                            emptyText="ບໍ່ພົບສິນຄ້າ"
-                            triggerClassName="px-2 py-1 border border-transparent rounded text-[13px] hover:bg-white hover:border-gray-200 focus:outline-none focus:bg-white focus:border-[#b91c1c]"
+                            placeholder={tm("bilPickProduct")}
+                            emptyText={tm("bilNoProduct")}
+                            triggerClassName="px-2 py-1 border border-transparent rounded text-[13px] hover:bg-white hover:border-gray-200 focus:outline-none focus:bg-white focus:border-odoo"
                             options={products.map((p) => ({
                               value: p.id,
                               label: p.name,
@@ -509,7 +529,7 @@ export function BillingInvoiceForm({
                             onChange={(e) =>
                               updateLine(idx, { label: e.target.value })
                             }
-                            placeholder="ລາຍລະອຽດ..."
+                            placeholder={tm("bilDescPh")}
                             className="o-cell text-gray-600"
                           />
                         </td>
@@ -558,6 +578,21 @@ export function BillingInvoiceForm({
                             className="o-cell text-right tabular-nums"
                           />
                         </td>
+                        <td className="px-2 py-1.5">
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="1"
+                            value={line.taxRate}
+                            onChange={(e) =>
+                              updateLine(idx, { taxRate: +e.target.value })
+                            }
+                            className="o-cell text-right tabular-nums"
+                            disabled={vatMode === "EXEMPT"}
+                            title={`${(line.taxRate * 100).toFixed(0)}%`}
+                          />
+                        </td>
                         <td className="px-2 py-1.5 text-right tabular-nums text-gray-800">
                           {fmtMoney(lineTotal)}
                         </td>
@@ -575,23 +610,23 @@ export function BillingInvoiceForm({
                 <button
                   type="button"
                   onClick={() => addLine("product")}
-                  className="text-[#b91c1c] hover:text-[#991b1b] font-medium"
+                  className="text-odoo hover:text-odoo-hover font-medium"
                 >
-                  ເພີ່ມລາຍການ
+                  {tm("bilAddLine")}
                 </button>
                 <button
                   type="button"
                   onClick={() => addLine("section")}
-                  className="text-[#b91c1c] hover:text-[#991b1b]"
+                  className="text-odoo hover:text-odoo-hover"
                 >
-                  ເພີ່ມຫົວຂໍ້
+                  {tm("bilAddSection")}
                 </button>
                 <button
                   type="button"
                   onClick={() => addLine("note")}
-                  className="text-[#b91c1c] hover:text-[#991b1b]"
+                  className="text-odoo hover:text-odoo-hover"
                 >
-                  ເພີ່ມໝາຍເຫດ
+                  {tm("bilAddNote")}
                 </button>
               </div>
 
@@ -601,13 +636,13 @@ export function BillingInvoiceForm({
                   <SumRow
                     label={
                       vatMode === "INCLUSIVE"
-                        ? "ມູນຄ່າ (ລວມ VAT)"
-                        : "ມູນຄ່າກ່ອນພາສີ"
+                        ? tm("bilSubtotalInc")
+                        : tm("bilSubtotalEx")
                     }
                     value={fmtMoney(subtotal)}
                   />
                   <div className="flex justify-between items-center py-1">
-                    <span className="text-gray-600">ສ່ວນຫຼຸດທ້າຍບິນ</span>
+                    <span className="text-gray-600">{tm("bilInvoiceDisc")}</span>
                     <input
                       type="number"
                       step="0.01"
@@ -620,19 +655,19 @@ export function BillingInvoiceForm({
                   {vatMode === "EXEMPT" ? (
                     <div className="flex justify-between items-center py-1 text-gray-500 italic">
                       <span>VAT</span>
-                      <span>ຍົກເວັ້ນ</span>
+                      <span>{tm("bilVatExemptShort")}</span>
                     </div>
                   ) : (
                     <SumRow
-                      label={`VAT ${(vatRate * 100).toFixed(0)}%${
-                        vatMode === "INCLUSIVE" ? " (ລວມໃນ)" : ""
+                      label={`${tm("bilVatPerLine")}${
+                        vatMode === "INCLUSIVE" ? tm("bilInclusiveSuf") : ""
                       }`}
                       value={fmtMoney(vatAmount)}
                     />
                   )}
                   <div className="border-t border-gray-300 mt-2 pt-2 flex justify-between items-center">
                     <span className="font-semibold text-gray-900">
-                      ມູນຄ່າທັງໝົດ
+                      {tm("bilGrandTotal")}
                     </span>
                     <span className="font-semibold text-[18px] text-gray-900 tabular-nums">
                       {fmtMoney(total)} {currency}
@@ -647,32 +682,32 @@ export function BillingInvoiceForm({
           {activeTab === "other" && (
             <div className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-x-16">
               <div>
-                <Field label="ບັນຊີລາຍວັນ">
+                <Field label={tm("bilJournal")}>
                   <input
                     className="o-input"
-                    defaultValue="ໃບເກັບເງິນ SMLAO"
+                    defaultValue={tm("bilJournalDefault")}
                     disabled
                   />
                 </Field>
-                <Field label="ສະຖານະ">
+                <Field label={tm("bilStatus")}>
                   <input
                     className="o-input"
                     defaultValue={
                       status === "PAID"
-                        ? "ຈ່າຍແລ້ວ"
+                        ? tm("bilStPaid")
                         : status === "CANCELLED"
-                          ? "ຍົກເລີກ"
-                          : "ຍັງບໍ່ຈ່າຍ"
+                          ? tm("bilStCancelled")
+                          : tm("bilStUnpaid")
                     }
                     disabled
                   />
                 </Field>
               </div>
               <div>
-                <Field label="ສ້າງເມື່ອ">
+                <Field label={tm("bilCreatedAt")}>
                   <input
                     className="o-input"
-                    defaultValue={isEdit ? "—" : "ຍັງບໍ່ໄດ້ບັນທຶກ"}
+                    defaultValue={isEdit ? "—" : tm("bilNotSaved")}
                     disabled
                   />
                 </Field>
@@ -683,14 +718,14 @@ export function BillingInvoiceForm({
           {/* Notes */}
           <div className="border-t border-gray-100 mt-4 pt-4 pb-6">
             <label className="block text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">
-              ໝາຍເຫດ
+              {tm("bilNotesHdr")}
             </label>
             <textarea
               name="notes"
               rows={3}
               defaultValue={initial.notes}
               className="o-input w-full resize-none"
-              placeholder="ໝາຍເຫດສຳລັບ tenant..."
+              placeholder={tm("bilNotesPh")}
             />
           </div>
 
@@ -703,7 +738,7 @@ export function BillingInvoiceForm({
 
         {/* Chatter placeholder */}
         <div className="border-t border-gray-200 bg-gray-50/50 px-8 py-3 rounded-b-md flex gap-4 text-[13px] text-gray-500">
-          <span>ໃບເກັບເງິນສຳລັບລູກຄ້າ SMLAO</span>
+          <span>{tm("bilFooter")}</span>
         </div>
       </div>
 
@@ -724,9 +759,9 @@ export function BillingInvoiceForm({
         .o-input:focus {
           outline: none;
           border-color: transparent;
-          border-bottom-color: #b91c1c;
+          border-bottom-color: var(--odoo-primary);
           background: #fff;
-          box-shadow: 0 1px 0 0 #b91c1c;
+          box-shadow: 0 1px 0 0 var(--odoo-primary);
         }
         .o-input:disabled { color: #9ca3af; cursor: not-allowed; }
         .o-cell {
@@ -742,8 +777,8 @@ export function BillingInvoiceForm({
         .o-cell:focus {
           outline: none;
           background: #fff;
-          border-color: #b91c1c;
-          box-shadow: 0 0 0 2px rgba(185, 28, 28, 0.12);
+          border-color: var(--odoo-primary);
+          box-shadow: 0 0 0 2px rgba(113, 75, 103, 0.14);
         }
       `}</style>
     </form>
@@ -785,9 +820,9 @@ function SumRow({ label, value }: { label: string; value: string }) {
 
 function StatusBar({ current }: { current: "draft" | "posted" | "paid" }) {
   const steps: { key: "draft" | "posted" | "paid"; label: string }[] = [
-    { key: "draft", label: "ຮ່າງ" },
-    { key: "posted", label: "ອອກບິນ" },
-    { key: "paid", label: "ຊຳລະແລ້ວ" },
+    { key: "draft", label: tm("bilStepDraft") },
+    { key: "posted", label: tm("bilStepPosted") },
+    { key: "paid", label: tm("bilStepPaid") },
   ];
   return (
     <div className="flex items-center gap-0">
@@ -798,7 +833,7 @@ function StatusBar({ current }: { current: "draft" | "posted" | "paid" }) {
             <span
               className={`px-3 py-1 text-[12px] uppercase tracking-wider rounded-sm font-medium transition ${
                 active
-                  ? "bg-[#b91c1c] text-white"
+                  ? "bg-odoo text-white"
                   : "text-gray-400 hover:text-gray-600"
               }`}
             >
@@ -829,7 +864,7 @@ function TabBtn({
       onClick={onClick}
       className={`px-3 py-2 border-b-2 -mb-px transition ${
         active
-          ? "border-[#b91c1c] text-[#b91c1c] font-medium"
+          ? "border-odoo text-odoo font-medium"
           : "border-transparent text-gray-500 hover:text-gray-800"
       }`}
     >
@@ -844,7 +879,7 @@ function RowDelete({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       className="text-gray-300 hover:text-red-600 opacity-0 group-hover:opacity-100 transition text-lg leading-none"
-      title="ລົບແຖວ"
+      title={tm("bilRemoveRow")}
     >
       ×
     </button>

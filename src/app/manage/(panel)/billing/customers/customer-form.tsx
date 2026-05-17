@@ -2,12 +2,15 @@
 
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
+import { t } from "@/lib/i18n/messages";
 import {
   createCustomer,
   updateCustomer,
   deleteCustomer,
   type CustState,
 } from "./actions";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 type TenantOption = { id: string; label: string };
 
@@ -53,13 +56,13 @@ export function CustomerForm({
 
   return (
     <form action={action} className="space-y-4">
-      <Field label="ປະເພດລູກຄ້າ">
+      <Field label={tm("custTypeLabel")}>
         <div className="flex gap-2">
-          {(["EXTERNAL", "TENANT"] as const).map((t) => (
+          {(["EXTERNAL", "TENANT"] as const).map((kind) => (
             <label
-              key={t}
+              key={kind}
               className={`flex-1 cursor-pointer border rounded px-3 py-2 text-center text-[13px] ${
-                type === t
+                type === kind
                   ? "border-slate-900 bg-slate-50 text-slate-900 font-medium"
                   : "border-gray-300 text-gray-600 hover:bg-gray-50"
               }`}
@@ -67,12 +70,12 @@ export function CustomerForm({
               <input
                 type="radio"
                 name="type"
-                value={t}
-                checked={type === t}
-                onChange={() => setType(t)}
+                value={kind}
+                checked={type === kind}
+                onChange={() => setType(kind)}
                 className="sr-only"
               />
-              {t === "TENANT" ? "SaaS Tenant" : "ລູກຄ້າພາຍນອກ"}
+              {kind === "TENANT" ? tm("custSaasTenant") : tm("custExternal")}
             </label>
           ))}
         </div>
@@ -86,7 +89,7 @@ export function CustomerForm({
             required
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
           >
-            <option value="">— ເລືອກ tenant —</option>
+            <option value="">{tm("custPickTenant")}</option>
             {tenants.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.label}
@@ -97,7 +100,7 @@ export function CustomerForm({
       )}
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="ຊື່ບໍລິສັດ / ລູກຄ້າ">
+        <Field label={tm("custCompanyName")}>
           <input
             type="text"
             name="name"
@@ -106,7 +109,7 @@ export function CustomerForm({
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
           />
         </Field>
-        <Field label="ຜູ້ຮັບຜິດຊອບ">
+        <Field label={tm("custContact")}>
           <input
             type="text"
             name="contactName"
@@ -126,7 +129,7 @@ export function CustomerForm({
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px] font-mono"
           />
         </Field>
-        <Field label="ໂທ">
+        <Field label={tm("custPhone")}>
           <input
             type="text"
             name="phone"
@@ -144,7 +147,7 @@ export function CustomerForm({
         </Field>
       </div>
 
-      <Field label="ທີ່ຢູ່">
+      <Field label={tm("custAddress")}>
         <textarea
           name="address"
           defaultValue={initial.address}
@@ -153,7 +156,7 @@ export function CustomerForm({
         />
       </Field>
 
-      <Field label="ໝາຍເຫດ">
+      <Field label={tm("custNotes")}>
         <textarea
           name="notes"
           defaultValue={initial.notes}
@@ -168,23 +171,23 @@ export function CustomerForm({
           disabled={pending}
           className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-1.5 rounded text-[13px] font-medium disabled:opacity-50"
         >
-          {pending ? "ກຳລັງ..." : mode === "create" ? "ສ້າງ" : "ບັນທຶກ"}
+          {pending ? tm("working") : mode === "create" ? tm("custCreate") : tm("save")}
         </button>
         {mode === "edit" && id && (invoiceCount ?? 0) === 0 && (
           <button
             type="button"
             onClick={async () => {
-              if (!confirm("ລົບລູກຄ້ານີ້?")) return;
+              if (!confirm(tm("custDeleteConfirm"))) return;
               try {
                 await deleteCustomer(id);
                 router.push("/manage/billing/customers");
               } catch (e) {
-                alert(e instanceof Error ? e.message : "ລົບບໍ່ສຳເລັດ");
+                alert(e instanceof Error ? e.message : tm("custDeleteFailed"));
               }
             }}
             className="border border-red-300 text-red-700 hover:bg-red-50 px-3 py-1.5 rounded text-[13px] font-medium"
           >
-            ລົບ
+            {tm("custDeleteBtn")}
           </button>
         )}
         {state?.error && (

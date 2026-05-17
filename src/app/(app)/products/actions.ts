@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { saveUploadedImage, deleteUploadedImage } from "@/lib/upload";
+import { recordActivity } from "@/lib/activity";
 
 const productSchema = z.object({
   code: z.string().min(1, "ຕ້ອງມີລະຫັດສິນຄ້າ"),
@@ -77,17 +78,21 @@ export async function createProduct(
   _prev: ProductFormState,
   formData: FormData,
 ): Promise<ProductFormState> {
-  await requireUser();
+  const session = await requireUser();
   const data = Object.fromEntries(formData);
   data.active = formData.get("active") === "on" ? "true" : "false";
   const parsed = productSchema.safeParse(data);
   if (!parsed.success) {
     return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
   }
+  let created: { id: string; code: string; name: string } | null = null;
   try {
     const imageUrl = await readImageFromForm(formData, "image", null);
     const resolved = await resolveProductData(parsed.data);
-    await prisma.product.create({ data: { ...resolved, imageUrl } });
+    created = await prisma.product.create({
+      data: { ...resolved, imageUrl },
+      select: { id: true, code: true, name: true },
+    });
   } catch (e) {
     return {
       error:
@@ -96,6 +101,14 @@ export async function createProduct(
           : "ບໍ່ສາມາດສ້າງສິນຄ້າໄດ້ (ລະຫັດອາດຊໍ້າ)",
     };
   }
+  void recordActivity({
+    dbName: session.dbName,
+    userId: session.userId,
+    action: "CREATE",
+    recordType: "Product",
+    recordId: created.id,
+    summary: `ສ້າງສິນຄ້າ ${created.name} (${created.code})`,
+  });
   revalidatePath("/products");
   redirect("/products");
 }
@@ -105,7 +118,7 @@ export async function updateProduct(
   _prev: ProductFormState,
   formData: FormData,
 ): Promise<ProductFormState> {
-  await requireUser();
+  const session = await requireUser();
   const data = Object.fromEntries(formData);
   data.active = formData.get("active") === "on" ? "true" : "false";
   const parsed = productSchema.safeParse(data);
@@ -132,16 +145,42 @@ export async function updateProduct(
       error: e instanceof Error ? e.message : "ບໍ່ສາມາດແກ້ໄຂສິນຄ້າໄດ້",
     };
   }
+  void recordActivity({
+    dbName: session.dbName,
+    userId: session.userId,
+    action: "UPDATE",
+    recordType: "Product",
+    recordId: id,
+    summary: `ແກ້ໄຂສິນຄ້າ ${parsed.data.name} (${parsed.data.code})`,
+  });
   revalidatePath("/products");
   redirect("/products");
 }
 
 export async function deleteProduct(id: string) {
-  await requireUser();
+  const session = await requireUser();
+  const existing = await prisma.product.findUnique({
+    where: { id },
+    select: { code: true, name: true },
+  });
+  let archived = false;
   try {
     await prisma.product.delete({ where: { id } });
   } catch {
     await prisma.product.update({ where: { id }, data: { active: false } });
+    archived = true;
+  }
+  if (existing) {
+    void recordActivity({
+      dbName: session.dbName,
+      userId: session.userId,
+      action: archived ? "UPDATE" : "DELETE",
+      recordType: "Product",
+      recordId: id,
+      summary: archived
+        ? `Archive ສິນຄ້າ ${existing.name} (${existing.code}) — ມີການອ້າງອີງຈາກບິນ`
+        : `ລົບສິນຄ້າ ${existing.name} (${existing.code})`,
+    });
   }
   revalidatePath("/products");
 }

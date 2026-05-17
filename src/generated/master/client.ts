@@ -67,6 +67,16 @@ export type BillingInvoice = Prisma.BillingInvoiceModel
  */
 export type BillingInvoiceItem = Prisma.BillingInvoiceItemModel
 /**
+ * Model BillingQuote
+ * 
+ */
+export type BillingQuote = Prisma.BillingQuoteModel
+/**
+ * Model BillingQuoteItem
+ * 
+ */
+export type BillingQuoteItem = Prisma.BillingQuoteItemModel
+/**
  * Model LedgerCategory
  * 
  */
@@ -102,10 +112,30 @@ export type PasswordResetToken = Prisma.PasswordResetTokenModel
  */
 export type ManagementUser = Prisma.ManagementUserModel
 /**
+ * Model ManagementMessage
+ * 
+ */
+export type ManagementMessage = Prisma.ManagementMessageModel
+/**
+ * Model ManagementFollower
+ * 
+ */
+export type ManagementFollower = Prisma.ManagementFollowerModel
+/**
+ * Model ManagementActivity
+ * 
+ */
+export type ManagementActivity = Prisma.ManagementActivityModel
+/**
  * Model LoginLog
  * 
  */
 export type LoginLog = Prisma.LoginLogModel
+/**
+ * Model AdminAuditLog
+ * 
+ */
+export type AdminAuditLog = Prisma.AdminAuditLogModel
 /**
  * Model EtaxConfig
  * 

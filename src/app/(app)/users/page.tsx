@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/session";
 import { DeleteUserButton } from "./delete-button";
+import { OdooListPage } from "@/components/odoo/sheet";
 
 export default async function UsersPage(props: {
   searchParams: Promise<{ q?: string; role?: string }>;
@@ -21,7 +22,13 @@ export default async function UsersPage(props: {
   const users = await prisma.user.findMany({
     where,
     orderBy: { createdAt: "desc" },
-    include: { _count: { select: { invoices: true } } },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      _count: { select: { invoices: true } },
+    },
   });
 
   const all = await prisma.user.findMany({ select: { role: true } });
@@ -29,25 +36,40 @@ export default async function UsersPage(props: {
   const staffCount = all.filter((u) => u.role === "STAFF").length;
 
   return (
-    <div className="-mx-4 md:-mx-6 -mt-4 md:-mt-6">
-      {/* Control panel */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="px-4 md:px-6 pt-3 pb-1 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-[15px]">
-            <Link href="/settings" className="text-gray-500 hover:underline">
-              ການກຳນົດຄ່າ
-            </Link>
-            <span className="text-gray-300">›</span>
-            <span className="font-medium text-gray-800">ຜູ້ໃຊ້</span>
+    <OdooListPage
+      title="ຜູ້ໃຊ້"
+      subtitle="ບັນຊີຜູ້ໃຊ້ໃນລະບົບຂອງທ່ານ"
+      actions={
+        <Link
+          href="/users/new"
+          className="bg-odoo hover:bg-odoo-hover text-white px-3 py-1.5 rounded text-[13px] font-medium"
+        >
+          + ໃໝ່
+        </Link>
+      }
+      filters={
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <FilterChip label="ທັງໝົດ" href="/users" active={!role} />
+            <FilterChip
+              label={`ຜູ້ດູແລ (${adminCount})`}
+              href="/users?role=ADMIN"
+              active={role === "ADMIN"}
+            />
+            <FilterChip
+              label={`ພະນັກງານ (${staffCount})`}
+              href="/users?role=STAFF"
+              active={role === "STAFF"}
+            />
           </div>
-          <form className="flex items-center">
+          <form className="flex items-center gap-2">
             <div className="relative">
               <input
                 type="search"
                 name="q"
                 defaultValue={q ?? ""}
                 placeholder="ຄົ້ນຫາ..."
-                className="w-72 pl-9 pr-3 py-1.5 text-[13px] border border-gray-300 rounded focus:outline-none focus:border-[#b91c1c] focus:ring-2 focus:ring-[#b91c1c]/15 bg-white"
+                className="w-72 pl-9 pr-3 py-1.5 text-[13px] border border-gray-300 rounded focus:outline-none focus:border-odoo focus:ring-2 focus:ring-odoo/15 bg-white"
               />
               <svg
                 className="absolute left-2.5 top-2 w-4 h-4 text-gray-400"
@@ -64,46 +86,19 @@ export default async function UsersPage(props: {
               </svg>
             </div>
             {role && <input type="hidden" name="role" value={role} />}
+            <span className="text-[12px] text-gray-500 tabular-nums">
+              {users.length}
+            </span>
           </form>
         </div>
-
-        <div className="px-4 md:px-6 py-2 flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-1.5">
-            <Link
-              href="/users/new"
-              className="bg-[#b91c1c] hover:bg-[#991b1b] text-white px-3 py-1 rounded text-[13px] font-medium tracking-wide transition"
-            >
-              ໃໝ່
-            </Link>
-            <span className="text-gray-300 mx-1">|</span>
-            <FilterChip label="ທັງໝົດ" href="/users" active={!role} />
-            <FilterChip
-              label={`ຜູ້ດູແລ (${adminCount})`}
-              href="/users?role=ADMIN"
-              active={role === "ADMIN"}
-            />
-            <FilterChip
-              label={`ພະນັກງານ (${staffCount})`}
-              href="/users?role=STAFF"
-              active={role === "STAFF"}
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[12px] text-gray-500 tabular-nums">
-              1-{users.length} / {users.length}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Tree view */}
-      <div className="bg-white">
+      }
+    >
+      <div className="bg-white border border-gray-200 rounded overflow-hidden">
         <table className="w-full text-[13px]">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200 text-[11px] uppercase tracking-wider text-gray-600">
               <th className="px-3 py-2 w-10 text-left">
-                <input type="checkbox" className="accent-[#b91c1c]" />
+                <input type="checkbox" className="accent-odoo" />
               </th>
               <th className="px-2 py-2 text-left font-semibold">ຊື່</th>
               <th className="px-2 py-2 text-left font-semibold">Email</th>
@@ -123,7 +118,7 @@ export default async function UsersPage(props: {
                   <div className="text-gray-500 text-sm mb-2">ບໍ່ມີຜູ້ໃຊ້</div>
                   <Link
                     href="/users/new"
-                    className="text-[#b91c1c] hover:underline text-sm font-medium"
+                    className="text-odoo hover:underline text-sm font-medium"
                   >
                     ສ້າງຜູ້ໃຊ້ໃໝ່
                   </Link>
@@ -135,27 +130,27 @@ export default async function UsersPage(props: {
               return (
                 <tr
                   key={u.id}
-                  className="border-b border-gray-100 hover:bg-[#b91c1c]/5 group"
+                  className="border-b border-gray-100 hover:bg-odoo/5 group"
                 >
                   <td className="px-3 py-2">
                     <input
                       type="checkbox"
-                      className="accent-[#b91c1c] opacity-0 group-hover:opacity-100 transition"
+                      className="accent-odoo opacity-0 group-hover:opacity-100 transition"
                     />
                   </td>
                   <td className="px-2 py-2">
                     <Link
                       href={`/users/${u.id}/edit`}
-                      className="flex items-center gap-2 hover:text-[#b91c1c]"
+                      className="flex items-center gap-2 hover:text-odoo"
                     >
-                      <span className="w-7 h-7 rounded-full bg-[#b91c1c]/10 text-[#b91c1c] flex items-center justify-center text-[11px] font-semibold flex-shrink-0">
+                      <span className="w-7 h-7 rounded-full bg-odoo/10 text-odoo flex items-center justify-center text-[11px] font-semibold flex-shrink-0">
                         {u.name.charAt(0).toUpperCase()}
                       </span>
                       <span className="text-gray-800 font-medium">
                         {u.name}
                       </span>
                       {isSelf && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-odoo/10 text-odoo border border-odoo/30">
                           ທ່ານ
                         </span>
                       )}
@@ -166,8 +161,8 @@ export default async function UsersPage(props: {
                   </td>
                   <td className="px-2 py-2 text-center">
                     {u.role === "ADMIN" ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#b91c1c]/10 text-[#b91c1c] text-[11px] font-medium border border-[#b91c1c]/30">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#b91c1c]" />
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-odoo/10 text-odoo text-[11px] font-medium border border-odoo/30">
+                        <span className="w-1.5 h-1.5 rounded-full bg-odoo" />
                         ຜູ້ດູແລ
                       </span>
                     ) : (
@@ -183,8 +178,14 @@ export default async function UsersPage(props: {
                   <td className="px-3 py-2 text-right">
                     <div className="flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition">
                       <Link
+                        href={`/users/${u.id}/activity`}
+                        className="text-gray-600 hover:text-gray-900 text-[12px]"
+                      >
+                        ປະຫວັດ
+                      </Link>
+                      <Link
                         href={`/users/${u.id}/edit`}
-                        className="text-[#b91c1c] hover:text-[#991b1b] text-[12px]"
+                        className="text-odoo hover:text-odoo-hover text-[12px]"
                       >
                         ແກ້ໄຂ
                       </Link>
@@ -197,7 +198,7 @@ export default async function UsersPage(props: {
           </tbody>
         </table>
       </div>
-    </div>
+    </OdooListPage>
   );
 }
 
@@ -215,7 +216,7 @@ function FilterChip({
       href={href}
       className={`px-2.5 py-1 rounded text-[12px] font-medium transition ${
         active
-          ? "bg-[#b91c1c]/10 text-[#b91c1c]"
+          ? "bg-odoo/10 text-odoo"
           : "text-gray-600 hover:bg-gray-100"
       }`}
     >

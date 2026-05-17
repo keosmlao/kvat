@@ -1,4 +1,7 @@
+import { t } from "@/lib/i18n/messages";
 import { logoutAction } from "./actions";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 export function LogoutButton() {
   return (
@@ -7,7 +10,7 @@ export function LogoutButton() {
         type="submit"
         className="ml-2 px-2 py-1 rounded text-slate-300 hover:bg-white/10 hover:text-white transition text-[12px]"
       >
-        ອອກ
+        {tm("logoutBtn")}
       </button>
     </form>
   );

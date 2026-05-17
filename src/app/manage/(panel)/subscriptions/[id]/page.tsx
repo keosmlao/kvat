@@ -4,6 +4,10 @@ import { masterPrisma } from "@/lib/master-prisma";
 import { SubForm } from "../sub-form";
 import { RecordPaymentForm } from "./record-payment";
 import { cycleLabel, daysUntil } from "@/lib/ledger";
+import { OdooListPage } from "@/components/odoo/sheet";
+import { t } from "@/lib/i18n/messages";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 const DATE_FMT = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Asia/Vientiane",
@@ -60,35 +64,29 @@ export default async function SubDetailPage({
   const urgent = days >= 0 && days <= 7;
 
   return (
-    <div>
-      <div className="mb-4">
+    <OdooListPage
+      title={sub.name}
+      subtitle={`${sub.vendor} · ${cycleLabel(sub.billingCycle)} · ${fmtMoney(sub.amount, sub.currency)}`}
+      actions={
+        sub.status === "ACTIVE" ? (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-emerald-50 text-emerald-700 border-emerald-200">
+            {tm("subActive")}
+          </span>
+        ) : (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-gray-100 text-gray-700 border-gray-200">
+            {tm("subCancelled")}
+          </span>
+        )
+      }
+    >
+      <>
+      <div className="mb-3">
         <Link
           href="/manage/subscriptions"
           className="text-[12px] text-gray-500 hover:text-gray-800"
         >
-          ← Subscriptions
+          {tm("subBackLink")}
         </Link>
-      </div>
-
-      <div className="flex items-start justify-between mb-5 flex-wrap gap-3">
-        <div>
-          <h1 className="text-[22px] font-medium text-gray-900">{sub.name}</h1>
-          <div className="text-[13px] text-gray-600 mt-0.5">
-            {sub.vendor} · {cycleLabel(sub.billingCycle)} ·{" "}
-            {fmtMoney(sub.amount, sub.currency)}
-          </div>
-        </div>
-        <div>
-          {sub.status === "ACTIVE" ? (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-emerald-50 text-emerald-700 border-emerald-200">
-              ໃຊ້ງານຢູ່
-            </span>
-          ) : (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-gray-100 text-gray-700 border-gray-200">
-              ຍົກເລີກແລ້ວ
-            </span>
-          )}
-        </div>
       </div>
 
       {/* Renewal status banner */}
@@ -104,7 +102,7 @@ export default async function SubDetailPage({
         >
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="text-[13px]">
-              <span className="text-gray-700">ຄັ້ງຕໍ່ໄປ: </span>
+              <span className="text-gray-700">{tm("subNextRenewalLbl")} </span>
               <span className="font-medium">
                 {DATE_FMT.format(sub.nextRenewalDate)}
               </span>
@@ -118,10 +116,10 @@ export default async function SubDetailPage({
                 }`}
               >
                 ({overdue
-                  ? `ເກີນກຳນົດ ${-days} ວັນ`
+                  ? `${tm("overdueDaysPrefix")} ${-days} ${tm("daysSuffix")}`
                   : days === 0
-                    ? "ມື້ນີ້"
-                    : `ເຫຼືອ ${days} ວັນ`})
+                    ? tm("today")
+                    : `${tm("remainingDays")} ${days} ${tm("daysSuffix")}`})
               </span>
             </div>
           </div>
@@ -132,7 +130,7 @@ export default async function SubDetailPage({
         {sub.status === "ACTIVE" && (
           <div className="bg-white border border-gray-200 rounded p-4 md:col-span-2">
             <h2 className="text-[12px] uppercase tracking-widest text-gray-500 font-medium mb-3">
-              ບັນທຶກການຈ່າຍ (ຕໍ່ໃໝ່)
+              {tm("subRecordPay")}
             </h2>
             <RecordPaymentForm
               id={sub.id}
@@ -144,18 +142,18 @@ export default async function SubDetailPage({
 
         <div className="bg-white border border-gray-200 rounded p-4 md:col-span-2">
           <h2 className="text-[12px] uppercase tracking-widest text-gray-500 font-medium mb-3">
-            ປະຫວັດການຈ່າຍ ({sub.entries.length})
+            {tm("subPayHistory")} ({sub.entries.length})
           </h2>
           {sub.entries.length === 0 ? (
-            <p className="text-[12px] text-gray-400 italic">ຍັງບໍ່ມີ</p>
+            <p className="text-[12px] text-gray-400 italic">{tm("nothingYet")}</p>
           ) : (
             <table className="w-full text-[13px]">
               <thead className="text-[11px] uppercase text-gray-500">
                 <tr>
-                  <th className="text-left py-1">ວັນທີ</th>
-                  <th className="text-left py-1">ວິທີຈ່າຍ</th>
-                  <th className="text-left py-1">Ref</th>
-                  <th className="text-right py-1">ຈໍານວນ</th>
+                  <th className="text-left py-1">{tm("subColDate")}</th>
+                  <th className="text-left py-1">{tm("subColPayMethod")}</th>
+                  <th className="text-left py-1">{tm("subColRef")}</th>
+                  <th className="text-right py-1">{tm("subColAmount")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -166,9 +164,9 @@ export default async function SubDetailPage({
                     </td>
                     <td className="py-1">
                       {e.paymentMethod === "CASH"
-                        ? "ເງິນສົດ"
+                        ? tm("ledCash")
                         : e.paymentMethod === "TRANSFER"
-                          ? "ໂອນ"
+                          ? tm("ledTransfer")
                           : "—"}
                     </td>
                     <td className="py-1 text-gray-600 font-mono text-[11px]">
@@ -186,7 +184,7 @@ export default async function SubDetailPage({
 
         <div className="bg-white border border-gray-200 rounded p-4 md:col-span-2">
           <h2 className="text-[12px] uppercase tracking-widest text-gray-500 font-medium mb-3">
-            ແກ້ໄຂສັນຍາ
+            {tm("subEditTitle")}
           </h2>
           <SubForm
             mode="edit"
@@ -208,6 +206,7 @@ export default async function SubDetailPage({
           />
         </div>
       </div>
-    </div>
+      </>
+    </OdooListPage>
   );
 }

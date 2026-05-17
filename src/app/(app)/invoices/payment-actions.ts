@@ -122,6 +122,7 @@ export async function resetToDraft(id: string) {
   await prisma.$transaction(async (tx) => {
     // restore stock
     for (const it of inv.items) {
+      if (it.lineType !== "PRODUCT" || !it.productId) continue;
       await tx.product.update({
         where: { id: it.productId },
         data: { stock: { increment: it.quantity } },
@@ -157,6 +158,7 @@ export async function postInvoice(id: string) {
 
   await prisma.$transaction(async (tx) => {
     for (const it of inv.items) {
+      if (it.lineType !== "PRODUCT" || !it.productId) continue;
       await tx.product.update({
         where: { id: it.productId },
         data: { stock: { decrement: it.quantity } },
@@ -215,12 +217,15 @@ export async function createCreditNote(originalId: string) {
         note: `ໃບລົດໜີ້ຂອງ ${original.number}`,
         items: {
           create: original.items.map((it) => ({
+            lineType: it.lineType,
             productId: it.productId,
             productName: it.productName,
             unit: it.unit,
             quantity: it.quantity,
             priceLak: it.priceLak,
             discount: it.discount,
+            taxRate: it.taxRate,
+            taxAmount: it.taxAmount,
             total: it.total,
           })),
         },
@@ -228,6 +233,7 @@ export async function createCreditNote(originalId: string) {
     });
     // Return items to stock
     for (const it of original.items) {
+      if (it.lineType !== "PRODUCT" || !it.productId) continue;
       await tx.product.update({
         where: { id: it.productId },
         data: { stock: { increment: it.quantity } },

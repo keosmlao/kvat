@@ -2,6 +2,10 @@ import Link from "next/link";
 import { masterPrisma } from "@/lib/master-prisma";
 import { LedgerType } from "@/generated/master/client";
 import { aggregatePnL } from "@/lib/ledger";
+import { OdooListPage } from "@/components/odoo/sheet";
+import { t } from "@/lib/i18n/messages";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 const DATE_FMT = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Asia/Vientiane",
@@ -128,17 +132,11 @@ export default async function LedgerPage({
   const exportHref = `/api/manage/ledger/export${queryString({}) ? `?${queryString({})}` : ""}`;
 
   return (
-    <div>
-      <div className="flex items-start justify-between mb-5 flex-wrap gap-3">
-        <div>
-          <h1 className="text-[22px] font-medium text-gray-900">
-            ລາຍຮັບ - ລາຍຈ່າຍ
-          </h1>
-          <p className="text-[12px] text-gray-500 mt-1">
-            ບັນທຶກລາຍຮັບ/ລາຍຈ່າຍຂອງລະບົບ (ບໍ່ລວມ BillingInvoice)
-          </p>
-        </div>
-        <div className="flex gap-2">
+    <OdooListPage
+      title={tm("ledgerTitle")}
+      subtitle="ບັນທຶກລາຍຮັບ/ລາຍຈ່າຍຂອງລະບົບ (ບໍ່ລວມ BillingInvoice)"
+      actions={
+        <>
           <Link
             href="/manage/ledger/categories"
             className="border border-gray-300 text-gray-700 px-3 py-1.5 rounded text-[13px] font-medium hover:bg-gray-50"
@@ -163,9 +161,9 @@ export default async function LedgerPage({
           >
             + ລາຍຮັບ
           </Link>
-        </div>
-      </div>
-
+        </>
+      }
+    >
       {/* P&L summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <Kpi
@@ -294,7 +292,7 @@ export default async function LedgerPage({
                   <td className="py-2 px-3 text-gray-800">
                     {e.description}
                     {e.subscription && (
-                      <span className="ml-1 text-[10px] text-blue-600">
+                      <span className="ml-1 text-[10px] text-odoo">
                         🔄 {e.subscription.name}
                       </span>
                     )}
@@ -349,7 +347,7 @@ export default async function LedgerPage({
           </div>
         </div>
       )}
-    </div>
+    </OdooListPage>
   );
 }
 

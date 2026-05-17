@@ -9,27 +9,25 @@ import {
   NotesForm,
   ResetPasswordForm,
 } from "./tenant-actions";
+import { OdooListPage } from "@/components/odoo/sheet";
+import { ManagementChatter } from "@/components/management-chatter";
+import { getManagementChatterData } from "@/lib/management-chatter";
+import { t } from "@/lib/i18n/messages";
+
+const LOCALE = "lo";
+const tm = (k: string) => t(LOCALE, "manage", k);
 
 const STATUS_LABEL: Record<TenantStatus, { label: string; cls: string }> = {
-  TRIAL: { label: "ທົດລອງ", cls: "bg-blue-50 text-blue-700 border-blue-200" },
-  ACTIVE: {
-    label: "ໃຊ້ງານ",
-    cls: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  },
-  SUSPENDED: {
-    label: "ໂມດສ",
-    cls: "bg-amber-50 text-amber-700 border-amber-200",
-  },
-  CANCELLED: {
-    label: "ຍົກເລີກ",
-    cls: "bg-gray-100 text-gray-700 border-gray-200",
-  },
+  TRIAL:     { label: tm("filterTrial"),     cls: "bg-odoo/10 text-odoo border-odoo/30" },
+  ACTIVE:    { label: tm("filterActive"),    cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  SUSPENDED: { label: tm("filterSuspended"), cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  CANCELLED: { label: tm("filterCancelled"), cls: "bg-gray-100 text-gray-700 border-gray-200" },
 };
 
 const PLAN_LABEL: Record<TenantPlan, string> = {
-  TRIAL: "ທົດລອງ 30 ວັນ",
-  YEARLY: "ລາຍປີ",
-  LIFETIME: "ຕະຫຼອດຊີບ",
+  TRIAL:    tm("planTrial30"),
+  YEARLY:   tm("planYearly"),
+  LIFETIME: tm("planLifetime"),
 };
 
 const DATETIME_FMT = new Intl.DateTimeFormat("en-GB", {
@@ -76,7 +74,7 @@ export default async function TenantDetailPage({
   });
   if (!tenant) notFound();
   const tenantDb = getTenantPrisma(tenant.dbName);
-  const [tenantUsers, billingCfg, billingProducts] = await Promise.all([
+  const [tenantUsers, billingCfg, billingProducts, chatter] = await Promise.all([
     tenantDb.user.findMany({
       select: {
         email: true,
@@ -103,24 +101,36 @@ export default async function TenantDetailPage({
       orderBy: { code: "asc" },
       select: { id: true, code: true, name: true, unit: true, priceLak: true },
     }),
+    getManagementChatterData("Tenant", id),
   ]);
   const totalLogins = tenant._count.logins;
   // "Online" = activity in the last 5 minutes. The session.ts throttle writes
   // lastSeenAt at most every 60s, so a 5-min window covers active users
   // without false negatives during quiet stretches.
   const ONLINE_WINDOW_MS = 5 * 60_000;
-  const nowMs = Date.now();
+  const nowMs = new Date().getTime();
   const totalPages = Math.max(1, Math.ceil(totalLogins / PAGE_SIZE));
 
   const statusInfo = STATUS_LABEL[tenant.status];
   const days = Math.ceil(
-    (tenant.trialEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+    (tenant.trialEndsAt.getTime() - nowMs) / (1000 * 60 * 60 * 24),
   );
   const isPending = tenant.status === "TRIAL";
 
   return (
-    <div>
-      <div className="mb-4">
+    <OdooListPage
+      title={tenant.name}
+      subtitle={`/t/${tenant.slug} · ${statusInfo.label} · ${PLAN_LABEL[tenant.plan]}${tenant.isTemplate ? " · template" : ""}`}
+      actions={
+        <StatusActions
+          id={tenant.id}
+          status={tenant.status}
+          canHardDelete={!tenant.isTemplate && tenant.status === "CANCELLED"}
+        />
+      }
+    >
+      <>
+      <div className="mb-3">
         <Link
           href="/manage/tenants"
           className="text-[12px] text-gray-500 hover:text-gray-800"
@@ -129,47 +139,20 @@ export default async function TenantDetailPage({
         </Link>
       </div>
 
-      <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
-        <div>
-          <h1 className="text-[22px] font-medium text-gray-900">
-            {tenant.name}
-          </h1>
-          <div className="flex items-center gap-2 mt-1 text-[12px]">
-            <span className="font-mono text-gray-600">/t/{tenant.slug}</span>
-            <span
-              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${statusInfo.cls}`}
-            >
-              {statusInfo.label}
-            </span>
-            <span className="text-gray-500">{PLAN_LABEL[tenant.plan]}</span>
-            {tenant.isTemplate && (
-              <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-700 text-[11px] uppercase tracking-wider">
-                template
-              </span>
-            )}
-          </div>
-        </div>
-        <StatusActions
-          id={tenant.id}
-          status={tenant.status}
-          canHardDelete={!tenant.isTemplate && tenant.status === "CANCELLED"}
-        />
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card title="ຂໍ້ມູນ tenant">
+        <Card title={tm("tenantInfo")}>
           <Row label="DB">
             <span className="font-mono">{tenant.dbName}</span>
           </Row>
-          <Row label="ເຈົ້າຂອງ">{tenant.ownerName}</Row>
+          <Row label={tm("tenantOwner")}>{tenant.ownerName}</Row>
           <Row label="Email">{tenant.email}</Row>
-          {tenant.phone && <Row label="ໂທ">{tenant.phone}</Row>}
-          <Row label="ສ້າງເມື່ອ">{fmt(tenant.createdAt)}</Row>
+          {tenant.phone && <Row label={tm("tenantPhone")}>{tenant.phone}</Row>}
+          <Row label={tm("tenantCreatedAt")}>{fmt(tenant.createdAt)}</Row>
         </Card>
 
-        <Card title="Plan + ສະຖານະ">
+        <Card title={tm("tenantPlanStatus")}>
           <Row label="Plan">{PLAN_LABEL[tenant.plan]}</Row>
-          <Row label="Trial ໝົດ">
+          <Row label={tm("tenantTrialEnd")}>
             {fmt(tenant.trialEndsAt)}
             {tenant.status === "TRIAL" && (
               <span
@@ -177,11 +160,11 @@ export default async function TenantDetailPage({
                   days < 0 ? "text-red-600" : "text-gray-500"
                 }`}
               >
-                ({days < 0 ? `ເກີນ ${-days}d` : `ເຫຼືອ ${days}d`})
+                ({days < 0 ? `${tm("tenantOverdue")} ${-days}d` : `${tm("tenantRemaining")} ${days}d`})
               </span>
             )}
           </Row>
-          <Row label="ຈ່າຍຮອດ">
+          <Row label={tm("tenantPaidUntil")}>
             {tenant.plan === "LIFETIME" ? "∞" : fmt(tenant.paidUntil)}
           </Row>
           <Row label="Approved">
@@ -197,7 +180,7 @@ export default async function TenantDetailPage({
         {isPending && (
           <Card title="✓ Approve plan">
             <p className="text-[12px] text-gray-600 mb-3">
-              ຍ້າຍ tenant ນີ້ຈາກ TRIAL ໄປ ACTIVE ດ້ວຍ plan ທີ່ເລືອກ.
+              {tm("tenantPlanMove")}
             </p>
             <ApproveForm
               id={tenant.id}
@@ -210,22 +193,22 @@ export default async function TenantDetailPage({
           </Card>
         )}
 
-        <Card title="ບັນທຶກພາຍໃນ">
+        <Card title={tm("tenantInternalNote")}>
           <NotesForm id={tenant.id} initialNotes={tenant.notes ?? ""} />
         </Card>
 
         <Card title={`Users (${tenantUsers.length})`} className="md:col-span-2">
           {tenantUsers.length === 0 ? (
-            <p className="text-[12px] text-gray-400 italic">ບໍ່ມີ user</p>
+            <p className="text-[12px] text-gray-400 italic">{tm("tenantNoUser")}</p>
           ) : (
             <table className="w-full text-[13px]">
               <thead className="text-[11px] uppercase text-gray-500">
                 <tr>
-                  <th className="text-left py-1">ສະຖານະ</th>
-                  <th className="text-left py-1">ຊື່</th>
+                  <th className="text-left py-1">{tm("tenantUserStatus")}</th>
+                  <th className="text-left py-1">{tm("tenantUserName")}</th>
                   <th className="text-left py-1">Email</th>
                   <th className="text-left py-1">Role</th>
-                  <th className="text-left py-1">ເຫັນລ່າສຸດ</th>
+                  <th className="text-left py-1">{tm("tenantLastSeen")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -264,25 +247,24 @@ export default async function TenantDetailPage({
           )}
         </Card>
 
-        <Card title="🔐 Reset ລະຫັດຜ່ານ user">
+        <Card title={tm("tenantResetTitle")}>
           <p className="text-[12px] text-gray-600 mb-3">
-            ຕັ້ງລະຫັດຜ່ານໃໝ່ໃຫ້ user ໃນ tenant ນີ້. ໃຊ້ສຳລັບກໍລະນີ user ລືມລະຫັດ
-            ແລະ ບໍ່ສາມາດ reset ດ້ວຍຕົນເອງໄດ້.
+            {tm("tenantResetDesc")}
           </p>
           <ResetPasswordForm id={tenant.id} users={tenantUsers} />
         </Card>
 
         <Card title="Approval requests" className="md:col-span-2">
           {tenant.requests.length === 0 ? (
-            <p className="text-[12px] text-gray-400 italic">ບໍ່ມີ</p>
+            <p className="text-[12px] text-gray-400 italic">{tm("tenantResetNone")}</p>
           ) : (
             <table className="w-full text-[13px]">
               <thead className="text-[11px] uppercase text-gray-500">
                 <tr>
-                  <th className="text-left py-1">ວັນທີ</th>
+                  <th className="text-left py-1">{tm("tenantDate")}</th>
                   <th className="text-left py-1">Plan</th>
-                  <th className="text-left py-1">ສະຖານະ</th>
-                  <th className="text-left py-1">ເຫດຜົນ</th>
+                  <th className="text-left py-1">{tm("tenantUserStatus")}</th>
+                  <th className="text-left py-1">{tm("tenantReason")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -305,14 +287,14 @@ export default async function TenantDetailPage({
         >
           {tenant.logins.length === 0 ? (
             <p className="text-[12px] text-gray-400 italic">
-              ຍັງບໍ່ມີການ login
+              {tm("tenantNoLogin")}
             </p>
           ) : (
             <>
               <table className="w-full text-[13px]">
                 <thead className="text-[11px] uppercase text-gray-500">
                   <tr>
-                    <th className="text-left py-1">ເວລາ</th>
+                    <th className="text-left py-1">{tm("tenantTime")}</th>
                     <th className="text-left py-1">User</th>
                     <th className="text-left py-1">IP</th>
                     <th className="text-left py-1">User Agent</th>
@@ -336,7 +318,7 @@ export default async function TenantDetailPage({
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-3 text-[12px]">
                   <span className="text-gray-500">
-                    ໜ້າ {page} / {totalPages}
+                    {tm("page")} {page} / {totalPages}
                   </span>
                   <div className="flex gap-2">
                     {page > 1 && (
@@ -344,7 +326,7 @@ export default async function TenantDetailPage({
                         href={`/manage/tenants/${tenant.id}?logins=${page - 1}`}
                         className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
                       >
-                        ← ກ່ອນ
+                        {tm("prev")}
                       </Link>
                     )}
                     {page < totalPages && (
@@ -352,7 +334,7 @@ export default async function TenantDetailPage({
                         href={`/manage/tenants/${tenant.id}?logins=${page + 1}`}
                         className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
                       >
-                        ຕໍ່ →
+                        {tm("next")}
                       </Link>
                     )}
                   </div>
@@ -362,7 +344,21 @@ export default async function TenantDetailPage({
           )}
         </Card>
       </div>
-    </div>
+      <div className="mt-4 bg-white border border-gray-200 rounded overflow-hidden">
+        <ManagementChatter
+          recordType="Tenant"
+          recordId={id}
+          revalidate={`/manage/tenants/${id}`}
+          messages={chatter.messages}
+          followers={chatter.followers}
+          activities={chatter.activities}
+          users={chatter.users}
+          isFollowing={chatter.isFollowing}
+          currentUserId={chatter.currentUserId}
+        />
+      </div>
+      </>
+    </OdooListPage>
   );
 }
 

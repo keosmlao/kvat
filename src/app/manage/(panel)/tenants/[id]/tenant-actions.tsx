@@ -13,6 +13,9 @@ import {
   type ActionState,
 } from "./actions";
 import type { TenantStatus } from "@/generated/master/client";
+import { t } from "@/lib/i18n/messages";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 export type PlanDefaults = {
   yearly?: { id: string; code: string; name: string; priceLak: number } | null;
@@ -68,7 +71,7 @@ export function ApproveForm({
           override which product gets billed. */}
       <div className="space-y-1">
         <label className="block text-[11px] uppercase tracking-wider text-gray-500 font-medium">
-          Plan (ໄລຍະຈ່າຍ)
+          {tm("planRange")}
         </label>
         <div className="flex gap-2">
           {(["YEARLY", "LIFETIME"] as const).map((p) => (
@@ -88,7 +91,7 @@ export function ApproveForm({
                 onChange={() => setPlan(p)}
                 className="sr-only"
               />
-              {p === "YEARLY" ? "ລາຍປີ (1 ປີ)" : "ຕະຫຼອດຊີບ"}
+              {p === "YEARLY" ? tm("planYearlyOpt") : tm("planLifetimeOpt")}
             </label>
           ))}
         </div>
@@ -96,7 +99,7 @@ export function ApproveForm({
 
       <div className="space-y-1">
         <label className="block text-[11px] uppercase tracking-wider text-gray-500 font-medium">
-          ສິນຄ້າ/ບໍລິການ (ໃບເກັບເງິນອັດຕະໂນມັດ)
+          {tm("prodAutoInvoice")}
         </label>
         <select
           name="productId"
@@ -105,26 +108,26 @@ export function ApproveForm({
           className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
         >
           <option value="">
-            — ໃຊ້ default ຂອງ plan {plan}
+            — {tm("useDefaultPlan")} {plan}
             {planDefault
-              ? ` (${planDefault.name} — ${fmtMoney(planDefault.priceLak)} ກີບ)`
-              : " (ຍັງບໍ່ໄດ້ກຳນົດ)"}
+              ? ` (${planDefault.name} — ${fmtMoney(planDefault.priceLak)} ${tm("reportsKipSuffix")})`
+              : ` (${tm("notDefined")})`}
             —
           </option>
           {products.map((p) => (
             <option key={p.id} value={p.id}>
-              [{p.code}] {p.name} — {fmtMoney(p.priceLak)} ກີບ / {p.unit}
+              [{p.code}] {p.name} — {fmtMoney(p.priceLak)} {tm("reportsKipSuffix")} / {p.unit}
             </option>
           ))}
         </select>
         {!effective && (
           <p className="text-[11px] text-amber-700">
-            ⚠ ບໍ່ມີ product — ຈະ approve ໄດ້ ແຕ່ບໍ່ສ້າງ invoice ອັດຕະໂນມັດ
+            {tm("noProductWarn")}
           </p>
         )}
         {effective && (
           <p className="text-[11px] text-emerald-700">
-            ✓ ຈະອອກໃບເກັບເງິນ: {fmtMoney(effective.priceLak)} ກີບ (
+            {tm("willIssueInvoice")} {fmtMoney(effective.priceLak)} {tm("reportsKipSuffix")} (
             {effective.name})
           </p>
         )}
@@ -136,7 +139,7 @@ export function ApproveForm({
           disabled={pending}
           className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded text-[13px] font-medium disabled:opacity-50"
         >
-          {pending ? "ກຳລັງ..." : "✓ Approve"}
+          {pending ? tm("working") : tm("approveBtn")}
         </button>
         {state?.error && (
           <span className="text-[12px] text-red-600">{state.error}</span>
@@ -162,14 +165,14 @@ export function StatusActions({
   const router = useRouter();
 
   const onSuspend = () => {
-    if (!confirm("ໂມດສ tenant ນີ້? ບໍ່ສາມາດເຂົ້າໃຊ້ໄດ້ຈົນກວ່າຈະ reactivate")) return;
+    if (!confirm(tm("suspendConfirm"))) return;
     start(() => suspendTenant(id));
   };
   const onReactivate = () => {
     start(() => reactivateTenant(id));
   };
   const onCancel = () => {
-    if (!confirm("ຍົກເລີກ tenant ນີ້? ປະຕິບັດການນີ້ບໍ່ສາມາດກັບໄດ້")) return;
+    if (!confirm(tm("cancelTenantConfirm"))) return;
     start(() => cancelTenant(id));
   };
 
@@ -182,7 +185,7 @@ export function StatusActions({
           disabled={pending}
           className="border border-amber-300 text-amber-700 hover:bg-amber-50 px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
         >
-          ໂມດສ
+          {tm("suspend")}
         </button>
       )}
       {status === "SUSPENDED" && (
@@ -192,7 +195,7 @@ export function StatusActions({
           disabled={pending}
           className="border border-emerald-300 text-emerald-700 hover:bg-emerald-50 px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
         >
-          Reactivate
+          {tm("reactivateBtn")}
         </button>
       )}
       {status !== "CANCELLED" && (
@@ -202,23 +205,18 @@ export function StatusActions({
           disabled={pending}
           className="border border-red-300 text-red-700 hover:bg-red-50 px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
         >
-          ຍົກເລີກ
+          {tm("cancel")}
         </button>
       )}
       {canHardDelete && (
         <button
           type="button"
           onClick={() => {
-            if (
-              !confirm(
-                "⚠ ລົບ tenant + drop DB ຖາວອນ — ບໍ່ສາມາດກັບໄດ້. ສືບຕໍ່?",
-              )
-            )
-              return;
+            if (!confirm(tm("hardDeleteConfirm"))) return;
             start(async () => {
               const r = await deleteTenantHard(id);
               if (!r.ok) {
-                alert(`ລົບບໍ່ໄດ້: ${r.error}`);
+                alert(`${tm("deleteFailedPrefix")} ${r.error}`);
                 return;
               }
               router.push("/manage/tenants");
@@ -227,7 +225,7 @@ export function StatusActions({
           disabled={pending}
           className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
         >
-          {pending ? "ກຳລັງ..." : "ລົບ + drop DB"}
+          {pending ? tm("working") : tm("hardDeleteBtn")}
         </button>
       )}
     </div>
@@ -248,7 +246,7 @@ export function ResetPasswordForm({
   if (users.length === 0) {
     return (
       <p className="text-[12px] text-gray-400 italic">
-        ບໍ່ມີ user ໃນ tenant ນີ້
+        {tm("noUsersInTenant")}
       </p>
     );
   }
@@ -256,7 +254,7 @@ export function ResetPasswordForm({
     <form action={action} className="space-y-2">
       <div className="space-y-1.5">
         <label className="text-[11px] uppercase tracking-wider text-gray-500">
-          ເລືອກ user
+          {tm("selectUser")}
         </label>
         <select
           name="email"
@@ -272,7 +270,7 @@ export function ResetPasswordForm({
       </div>
       <div className="space-y-1.5">
         <label className="text-[11px] uppercase tracking-wider text-gray-500">
-          ລະຫັດໃໝ່ (≥ 8 ຕົວ)
+          {tm("newPasswordLabel")}
         </label>
         <input
           type="text"
@@ -280,7 +278,7 @@ export function ResetPasswordForm({
           autoComplete="off"
           minLength={8}
           required
-          placeholder="ລະຫັດໃໝ່"
+          placeholder={tm("newPasswordPh")}
           className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px] font-mono"
         />
       </div>
@@ -289,13 +287,13 @@ export function ResetPasswordForm({
           type="submit"
           disabled={pending}
           onClick={(e) => {
-            if (!confirm("ຢືນຢັນປ່ຽນລະຫັດໃຫ້ user ນີ້?")) {
+            if (!confirm(tm("resetConfirm"))) {
               e.preventDefault();
             }
           }}
           className="bg-red-700 hover:bg-red-800 text-white px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
         >
-          {pending ? "ກຳລັງ..." : "ປ່ຽນລະຫັດ"}
+          {pending ? tm("working") : tm("changePasswordBtn")}
         </button>
         {state?.error && (
           <span className="text-[12px] text-red-600">{state.error}</span>
@@ -325,7 +323,7 @@ export function NotesForm({
         name="notes"
         defaultValue={initialNotes}
         rows={4}
-        placeholder="ບັນທຶກພາຍໃນ ສຳລັບ team management…"
+        placeholder={tm("notesPh")}
         className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-slate-700"
       />
       <div className="flex items-center gap-2">
@@ -334,7 +332,7 @@ export function NotesForm({
           disabled={pending}
           className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
         >
-          {pending ? "ກຳລັງບັນທຶກ..." : "ບັນທຶກ notes"}
+          {pending ? tm("saving") : tm("saveNotesBtn")}
         </button>
         {state?.error && (
           <span className="text-[12px] text-red-600">{state.error}</span>

@@ -4,13 +4,14 @@ import { CustomerForm } from "../../customer-form";
 import { updateCustomer, type CustomerFormState } from "../../actions";
 import { Chatter } from "@/components/chatter";
 import { getChatterData } from "@/lib/chatter";
+import { getLocale } from "@/lib/i18n/server";
 
 export default async function EditCustomerPage(props: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await props.params;
-  const [customer, chatter, provinces, districts, villages] = await Promise.all(
-    [
+  const [customer, chatter, provinces, districts, villages, locale] =
+    await Promise.all([
       prisma.customer.findUnique({ where: { id } }),
       getChatterData("customer", id),
       prisma.province.findMany({
@@ -28,8 +29,8 @@ export default async function EditCustomerPage(props: {
         orderBy: { name: "asc" },
         select: { id: true, name: true, districtId: true },
       }),
-    ],
-  );
+      getLocale(),
+    ]);
   if (!customer) notFound();
 
   const action = async (prev: CustomerFormState, fd: FormData) => {
@@ -40,6 +41,7 @@ export default async function EditCustomerPage(props: {
   return (
     <CustomerForm
       action={action}
+      locale={locale}
       initial={customer}
       provinces={provinces}
       districts={districts}
@@ -55,6 +57,7 @@ export default async function EditCustomerPage(props: {
           users={chatter.users}
           isFollowing={chatter.isFollowing}
           currentUserId={chatter.currentUserId}
+          locale={locale}
         />
       }
     />

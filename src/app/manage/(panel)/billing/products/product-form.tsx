@@ -2,12 +2,15 @@
 
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
+import { t } from "@/lib/i18n/messages";
 import {
   createProduct,
   updateProduct,
   deleteProduct,
   type ProdState,
 } from "./actions";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 export type ProductInitial = {
   name: string;
@@ -40,12 +43,12 @@ export function ProductForm({
 
   return (
     <form action={action} className="space-y-4">
-      <Field label="ປະເພດ">
+      <Field label={tm("prodType")}>
         <div className="flex gap-2">
           {(
             [
-              { value: "PRODUCT", label: "📦 ສິນຄ້າ", hint: "ຂາຍເປັນຊິ້ນ" },
-              { value: "SERVICE", label: "🛠 ບໍລິການ", hint: "ບໍລິການ / subscription" },
+              { value: "PRODUCT", label: tm("prodProduct"), hint: tm("prodHintProduct") },
+              { value: "SERVICE", label: tm("prodService"), hint: tm("prodHintService") },
             ] as const
           ).map((opt) => (
             <label
@@ -71,7 +74,7 @@ export function ProductForm({
         </div>
       </Field>
 
-      <Field label={kind === "PRODUCT" ? "ຊື່ສິນຄ້າ" : "ຊື່ບໍລິການ"}>
+      <Field label={kind === "PRODUCT" ? tm("prodNameProduct") : tm("prodNameService")}>
         <input
           type="text"
           name="name"
@@ -81,7 +84,7 @@ export function ProductForm({
         />
       </Field>
 
-      <Field label="ລາຍລະອຽດ (ບໍ່ບັງຄັບ)">
+      <Field label={tm("prodDescOpt")}>
         <textarea
           name="description"
           defaultValue={initial.description}
@@ -91,17 +94,17 @@ export function ProductForm({
       </Field>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="ຫົວໜ່ວຍ">
+        <Field label={tm("prodUnit")}>
           <input
             type="text"
             name="unit"
             defaultValue={initial.unit}
             required
-            placeholder="ໜ່ວຍ / ປີ / ເດືອນ ..."
+            placeholder={tm("prodUnitPh")}
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
           />
         </Field>
-        <Field label="ລາຄາ (ກີບ)">
+        <Field label={tm("prodPriceLak")}>
           <input
             type="number"
             name="priceLak"
@@ -121,7 +124,7 @@ export function ProductForm({
           defaultChecked={initial.active}
           className="w-4 h-4"
         />
-        <span>Active — ປະກົດໃນ dropdown ຕອນສ້າງໃບເກັບເງິນ</span>
+        <span>{tm("prodActiveHint")}</span>
       </label>
 
       <div className="flex items-center gap-3 pt-2 border-t border-gray-200 flex-wrap">
@@ -130,19 +133,19 @@ export function ProductForm({
           disabled={pending}
           className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-1.5 rounded text-[13px] font-medium disabled:opacity-50"
         >
-          {pending ? "ກຳລັງ..." : mode === "create" ? "ສ້າງ" : "ບັນທຶກ"}
+          {pending ? tm("working") : mode === "create" ? tm("prodCreate") : tm("save")}
         </button>
         {mode === "edit" && id && (
           <button
             type="button"
             onClick={async () => {
-              if (!confirm("ລົບສິນຄ້ານີ້? (ໃບເກັບເງິນເກົ່າຍັງເຫຼືອ)")) return;
+              if (!confirm(tm("prodDeleteConfirm"))) return;
               await deleteProduct(id);
               router.push("/manage/billing/products");
             }}
             className="border border-red-300 text-red-700 hover:bg-red-50 px-3 py-1.5 rounded text-[13px] font-medium"
           >
-            ລົບ
+            {tm("prodDeleteBtn")}
           </button>
         )}
         {state?.error && (

@@ -37,6 +37,17 @@ export const BillingStatus = {
 export type BillingStatus = (typeof BillingStatus)[keyof typeof BillingStatus]
 
 
+export const BillingQuoteStatus = {
+  DRAFT: 'DRAFT',
+  SENT: 'SENT',
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type BillingQuoteStatus = (typeof BillingQuoteStatus)[keyof typeof BillingQuoteStatus]
+
+
 export const BillingCustomerType = {
   TENANT: 'TENANT',
   EXTERNAL: 'EXTERNAL'

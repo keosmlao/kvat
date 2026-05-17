@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { masterPrisma } from "@/lib/master-prisma";
 import { BillingStatus } from "@/generated/master/client";
+import { OdooListPage, OdooPager } from "@/components/odoo/sheet";
+import { OdooSearch, type SearchFacet } from "@/components/odoo-search";
+import { t } from "@/lib/i18n/messages";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 const DATE_FMT = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Asia/Vientiane",
@@ -37,16 +42,32 @@ const PAGE_SIZE = 30;
 export default async function BillingListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
 }) {
   const sp = await searchParams;
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
+  const query = sp.q?.trim();
   const filter =
     sp.status && ["UNPAID", "PAID", "CANCELLED"].includes(sp.status)
       ? (sp.status as BillingStatus)
       : undefined;
 
-  const where = filter ? { status: filter } : {};
+  const where = {
+    ...(filter ? { status: filter } : {}),
+    ...(query
+      ? {
+          OR: [
+            { number: { contains: query, mode: "insensitive" as const } },
+            { description: { contains: query, mode: "insensitive" as const } },
+            {
+              customer: {
+                name: { contains: query, mode: "insensitive" as const },
+              },
+            },
+          ],
+        }
+      : {}),
+  };
 
   const [invoices, totalCount, summary] = await Promise.all([
     masterPrisma.billingInvoice.findMany({
@@ -73,19 +94,21 @@ export default async function BillingListPage({
       { count: s._count, amount: s._sum.amount ?? 0 },
     ]),
   ) as Record<BillingStatus, { count: number; amount: number }>;
+  const hrefForPage = (nextPage: number) => {
+    const params = new URLSearchParams();
+    if (filter) params.set("status", filter);
+    if (query) params.set("q", query);
+    if (nextPage > 1) params.set("page", String(nextPage));
+    const qs = params.toString();
+    return qs ? `/manage/billing?${qs}` : "/manage/billing";
+  };
 
   return (
-    <div>
-      <div className="flex items-start justify-between mb-5 flex-wrap gap-3">
-        <div>
-          <h1 className="text-[22px] font-medium text-gray-900">
-            ໃບເກັບເງິນ
-          </h1>
-          <p className="text-[12px] text-gray-500 mt-1">
-            ໃບເກັບເງິນສຳລັບລູກຄ້າ — SaaS tenant + ລູກຄ້າພາຍນອກ
-          </p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
+    <OdooListPage
+      title={tm("billingTitle")}
+      subtitle={tm("billingSubtitle")}
+      actions={
+        <>
           <Link
             href="/manage/billing/customers"
             className="border border-gray-300 text-gray-700 px-3 py-1.5 rounded text-[13px] font-medium hover:bg-gray-50"
@@ -110,9 +133,32 @@ export default async function BillingListPage({
           >
             + ສ້າງໃບເກັບເງິນ
           </Link>
-        </div>
-      </div>
-
+          <OdooSearch
+            facets={
+              [
+                query && { key: "q", label: `ຄົ້ນຫາ: ${query}`, value: query },
+                filter && {
+                  key: "status",
+                  label: `ສະຖານະ: ${STATUS_LABEL[filter].label}`,
+                  value: filter,
+                },
+              ].filter(Boolean) as SearchFacet[]
+            }
+            options={[
+              { key: "q", label: "ຄົ້ນຫາເລກ / ລູກຄ້າ / ລາຍລະອຽດ" },
+              {
+                key: "status",
+                label: "ສະຖານະ",
+                values: Object.entries(STATUS_LABEL).map(([value, meta]) => ({
+                  value,
+                  label: meta.label,
+                })),
+              },
+            ]}
+          />
+        </>
+      }
+    >
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
         <SummaryCard
@@ -227,27 +273,15 @@ export default async function BillingListPage({
           <span className="text-gray-500">
             ໜ້າ {page} / {totalPages} ({totalCount} ໃບ)
           </span>
-          <div className="flex gap-2">
-            {page > 1 && (
-              <Link
-                href={`/manage/billing?${filter ? `status=${filter}&` : ""}page=${page - 1}`}
-                className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
-              >
-                ← ກ່ອນ
-              </Link>
-            )}
-            {page < totalPages && (
-              <Link
-                href={`/manage/billing?${filter ? `status=${filter}&` : ""}page=${page + 1}`}
-                className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
-              >
-                ຕໍ່ →
-              </Link>
-            )}
-          </div>
+          <OdooPager
+            page={page}
+            pageSize={PAGE_SIZE}
+            total={totalCount}
+            hrefForPage={hrefForPage}
+          />
         </div>
       )}
-    </div>
+    </OdooListPage>
   );
 }
 

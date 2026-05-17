@@ -2,12 +2,15 @@
 
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
+import { t } from "@/lib/i18n/messages";
 import {
   createEntry,
   updateEntry,
   deleteEntry,
   type LedgerState,
 } from "./actions";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 type Category = { id: string; name: string; type: "INCOME" | "EXPENSE" };
 
@@ -53,14 +56,14 @@ export function EntryForm({
 
   return (
     <form action={action} className="space-y-4">
-      <Field label="ປະເພດ">
+      <Field label={tm("ledType")}>
         <div className="flex gap-2">
-          {(["EXPENSE", "INCOME"] as const).map((t) => (
+          {(["EXPENSE", "INCOME"] as const).map((kind) => (
             <label
-              key={t}
+              key={kind}
               className={`flex-1 cursor-pointer border rounded px-3 py-2 text-center text-[13px] ${
-                type === t
-                  ? t === "INCOME"
+                type === kind
+                  ? kind === "INCOME"
                     ? "border-emerald-500 bg-emerald-50 text-emerald-800 font-medium"
                     : "border-rose-500 bg-rose-50 text-rose-800 font-medium"
                   : "border-gray-300 text-gray-600 hover:bg-gray-50"
@@ -69,25 +72,25 @@ export function EntryForm({
               <input
                 type="radio"
                 name="type"
-                value={t}
-                checked={type === t}
-                onChange={() => setType(t)}
+                value={kind}
+                checked={type === kind}
+                onChange={() => setType(kind)}
                 className="sr-only"
               />
-              {t === "INCOME" ? "ລາຍຮັບ" : "ລາຍຈ່າຍ"}
+              {kind === "INCOME" ? tm("ledIncome") : tm("ledExpense")}
             </label>
           ))}
         </div>
       </Field>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="ໝວດ">
+        <Field label={tm("ledCategory")}>
           <select
             name="categoryId"
             defaultValue={initial.categoryId}
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
           >
-            <option value="">— ບໍ່ໄດ້ຈັດໝວດ —</option>
+            <option value="">{tm("ledNoCategory")}</option>
             {filteredCats.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -95,7 +98,7 @@ export function EntryForm({
             ))}
           </select>
         </Field>
-        <Field label="ວັນທີ">
+        <Field label={tm("ledDate")}>
           <input
             type="date"
             name="date"
@@ -106,29 +109,29 @@ export function EntryForm({
         </Field>
       </div>
 
-      <Field label="ລາຍລະອຽດ">
+      <Field label={tm("ledDescription")}>
         <input
           type="text"
           name="description"
           defaultValue={initial.description}
           required
-          placeholder={type === "INCOME" ? "ໄດ້ຮັບເງິນຈາກ..." : "ຈ່າຍຄ່າ..."}
+          placeholder={type === "INCOME" ? tm("ledDescPhInc") : tm("ledDescPhExp")}
           className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
         />
       </Field>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Vendor (ບໍ່ບັງຄັບ)">
+        <Field label={tm("ledVendor")}>
           <input
             type="text"
             name="vendor"
             defaultValue={initial.vendor}
-            placeholder={type === "INCOME" ? "ຜູ້ຈ່າຍ" : "ຜູ້ຮັບເງິນ"}
+            placeholder={type === "INCOME" ? tm("ledVendorPhInc") : tm("ledVendorPhExp")}
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
           />
         </Field>
         <div className="grid grid-cols-[1fr_80px] gap-2 items-end">
-          <Field label="ຈໍານວນ">
+          <Field label={tm("ledAmount")}>
             <input
               type="number"
               name="amount"
@@ -152,29 +155,29 @@ export function EntryForm({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="ວິທີຈ່າຍ (ບໍ່ບັງຄັບ)">
+        <Field label={tm("ledPayMethod")}>
           <select
             name="paymentMethod"
             defaultValue={initial.paymentMethod}
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
           >
             <option value="">—</option>
-            <option value="CASH">ເງິນສົດ</option>
-            <option value="TRANSFER">ໂອນ</option>
+            <option value="CASH">{tm("ledCash")}</option>
+            <option value="TRANSFER">{tm("ledTransfer")}</option>
           </select>
         </Field>
-        <Field label="Reference (ບໍ່ບັງຄັບ)">
+        <Field label={tm("ledRef")}>
           <input
             type="text"
             name="paymentRef"
             defaultValue={initial.paymentRef}
-            placeholder="slip / transaction id"
+            placeholder={tm("ledRefPh")}
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
           />
         </Field>
       </div>
 
-      <Field label="ໝາຍເຫດ (ບໍ່ບັງຄັບ)">
+      <Field label={tm("ledNotes")}>
         <textarea
           name="notes"
           defaultValue={initial.notes}
@@ -189,19 +192,19 @@ export function EntryForm({
           disabled={pending}
           className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-1.5 rounded text-[13px] font-medium disabled:opacity-50"
         >
-          {pending ? "ກຳລັງ..." : mode === "create" ? "ບັນທຶກ" : "ບັນທຶກການແກ້ໄຂ"}
+          {pending ? tm("working") : mode === "create" ? tm("save") : tm("ledSaveEdit")}
         </button>
         {mode === "edit" && id && (
           <button
             type="button"
             onClick={async () => {
-              if (!confirm("ລົບລາຍການນີ້?")) return;
+              if (!confirm(tm("ledDeleteConfirm"))) return;
               await deleteEntry(id);
               router.push("/manage/ledger");
             }}
             className="border border-red-300 text-red-700 hover:bg-red-50 px-3 py-1.5 rounded text-[13px] font-medium"
           >
-            ລົບ
+            {tm("delete")}
           </button>
         )}
         {state?.error && (

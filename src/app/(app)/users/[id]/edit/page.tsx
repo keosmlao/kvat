@@ -9,7 +9,10 @@ export default async function EditUserPage(props: {
 }) {
   await requireAdmin();
   const { id } = await props.params;
-  const user = await prisma.user.findUnique({ where: { id } });
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { email: true, name: true, role: true },
+  });
   if (!user) notFound();
 
   const action = async (prev: UserFormState, fd: FormData) => {

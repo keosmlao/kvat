@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { masterPrisma } from "@/lib/master-prisma";
 import { BillingInvoiceForm } from "../invoice-form";
+import { OdooListPage } from "@/components/odoo/sheet";
 
 export default async function NewBillingPage({
   searchParams,
@@ -22,8 +23,12 @@ export default async function NewBillingPage({
   ]);
 
   return (
-    <div>
-      <div className="mb-4">
+    <OdooListPage
+      title="ສ້າງໃບເກັບເງິນໃໝ່"
+      subtitle="ໃບເກັບເງິນຄ່າບໍລິການ — ມີ line items + VAT"
+    >
+      <>
+      <div className="mb-3">
         <Link
           href="/manage/billing"
           className="text-[12px] text-gray-500 hover:text-gray-800"
@@ -31,12 +36,6 @@ export default async function NewBillingPage({
           ← Billing
         </Link>
       </div>
-      <h1 className="text-[22px] font-medium text-gray-900 mb-1">
-        ສ້າງໃບເກັບເງິນໃໝ່
-      </h1>
-      <p className="text-[12px] text-gray-500 mb-5">
-        ໃບເກັບເງິນຄ່າບໍລິການ — ມີ line items + VAT
-      </p>
 
       <div className="bg-white border border-gray-200 rounded p-5">
         <BillingInvoiceForm
@@ -56,6 +55,7 @@ export default async function NewBillingPage({
           }}
         />
       </div>
-    </div>
+      </>
+    </OdooListPage>
   );
 }

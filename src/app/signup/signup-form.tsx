@@ -2,47 +2,67 @@
 
 import { useActionState } from "react";
 import { signupAction, type SignupState } from "./actions";
+import { t, type Locale } from "@/lib/i18n/messages";
 
-export function SignupForm() {
+export function SignupForm({ locale }: { locale: Locale }) {
+  const ta = (k: string) => t(locale, "auth", k);
   const [state, action, pending] = useActionState<SignupState, FormData>(
     signupAction,
     undefined,
   );
 
   const fe = state?.fieldErrors ?? {};
+  const v = state?.values;
 
   return (
     <form action={action} className="space-y-3">
-      <Field label="ຊື່ຮ້ານ *" error={fe.shopName?.[0]}>
-        <input name="shopName" required className={inputCls} />
+      <Field label={`${ta("shopName")} *`} error={fe.shopName?.[0]}>
+        <input
+          name="shopName"
+          required
+          defaultValue={v?.shopName ?? ""}
+          className={inputCls}
+        />
       </Field>
 
-      <Field label="ຊື່ເຈົ້າຂອງ *" error={fe.ownerName?.[0]}>
-        <input name="ownerName" required className={inputCls} />
+      <Field label={`${ta("ownerName")} *`} error={fe.ownerName?.[0]}>
+        <input
+          name="ownerName"
+          required
+          defaultValue={v?.ownerName ?? ""}
+          className={inputCls}
+        />
       </Field>
 
-      <Field label="Email *" error={fe.email?.[0]}>
-        <input name="email" type="email" required className={inputCls} />
+      <Field label={`${ta("email")} *`} error={fe.email?.[0]}>
+        <input
+          name="email"
+          type="email"
+          required
+          defaultValue={v?.email ?? ""}
+          className={inputCls}
+        />
       </Field>
 
       <Field
-        label="ໂທ *"
+        label={`${ta("phone")} *`}
         error={fe.phone?.[0]}
-        hint="ໃຊ້ສຳລັບຕິດຕໍ່ກັບທີມ"
+        hint={ta("phoneHint")}
       >
         <input
           name="phone"
           type="tel"
           required
           inputMode="tel"
+          defaultValue={v?.phone ?? ""}
           className={inputCls}
         />
       </Field>
 
       <Field
-        label="ລະຫັດຜ່ານ *"
+        label={`${ta("password")} *`}
         error={fe.password?.[0]}
-        hint="ຢ່າງໜ້ອຍ 8 ຕົວ"
+        hint={ta("passwordHint")}
       >
         <input
           name="password"
@@ -53,8 +73,12 @@ export function SignupForm() {
         />
       </Field>
 
-      <Field label="ເລກປະຈຳຕົວເສຍພາສີ" error={fe.taxId?.[0]}>
-        <input name="taxId" className={inputCls} />
+      <Field label={ta("taxIdLabel")} error={fe.taxId?.[0]}>
+        <input
+          name="taxId"
+          defaultValue={v?.taxId ?? ""}
+          className={inputCls}
+        />
       </Field>
 
       {state?.error && !state.fieldErrors && (
@@ -66,21 +90,20 @@ export function SignupForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full bg-[#b91c1c] text-white py-2 rounded text-[13px] font-medium hover:bg-[#991b1b] disabled:opacity-50 disabled:cursor-not-allowed transition tracking-wide mt-2"
+        className="w-full bg-odoo text-white py-2 rounded text-[13px] font-medium hover:bg-odoo-hover disabled:opacity-50 disabled:cursor-not-allowed transition tracking-wide mt-2"
       >
-        {pending ? "ກຳລັງສ້າງບັນຊີ..." : "ສະໝັກ ແລະ ເລີ່ມໃຊ້ 30 ວັນຟຣີ"}
+        {pending ? ta("signupCreating") : ta("signupCta")}
       </button>
 
       <p className="text-[11px] text-gray-500 text-center mt-2">
-        ການລົງທະບຽນ = ຍອມຮັບເງື່ອນໄຂການໃຊ້ງານ. ບັນຊີຈະທົດລອງ 30 ວັນ ກ່ອນຕ້ອງ
-        approve ໂດຍທີມ.
+        {ta("signupTerms")}
       </p>
     </form>
   );
 }
 
 const inputCls =
-  "w-full px-3 py-2 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-[#b91c1c] focus:ring-2 focus:ring-[#b91c1c]/15 transition";
+  "w-full px-3 py-2 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-odoo focus:ring-2 focus:ring-odoo/15 transition";
 
 function Field({
   label,

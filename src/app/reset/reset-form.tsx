@@ -2,8 +2,10 @@
 
 import { useActionState } from "react";
 import { performPasswordReset, type ResetState } from "./actions";
+import { t, type Locale } from "@/lib/i18n/messages";
 
-export function ResetForm({ token }: { token: string }) {
+export function ResetForm({ token, locale }: { token: string; locale: Locale }) {
+  const ta = (k: string) => t(locale, "auth", k);
   const [state, action, pending] = useActionState<ResetState, FormData>(
     performPasswordReset,
     undefined,
@@ -13,7 +15,7 @@ export function ResetForm({ token }: { token: string }) {
       <input type="hidden" name="token" value={token} />
       <div>
         <label className="block text-[12px] font-medium text-gray-600 mb-1">
-          ລະຫັດຜ່ານໃໝ່ (≥ 8 ຕົວ)
+          {ta("newPassword")} ({ta("passwordHint")})
         </label>
         <input
           name="password"
@@ -21,7 +23,7 @@ export function ResetForm({ token }: { token: string }) {
           required
           minLength={8}
           autoComplete="new-password"
-          className="w-full px-3 py-2 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-[#b91c1c] focus:ring-2 focus:ring-[#b91c1c]/15 transition"
+          className="w-full px-3 py-2 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-odoo focus:ring-2 focus:ring-odoo/15 transition"
         />
       </div>
       {state?.error && (
@@ -32,9 +34,9 @@ export function ResetForm({ token }: { token: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full bg-[#b91c1c] text-white py-2 rounded text-[13px] font-medium hover:bg-[#991b1b] disabled:opacity-50 disabled:cursor-not-allowed transition tracking-wide"
+        className="w-full bg-odoo text-white py-2 rounded text-[13px] font-medium hover:bg-odoo-hover disabled:opacity-50 disabled:cursor-not-allowed transition tracking-wide"
       >
-        {pending ? "ກຳລັງປ່ຽນ..." : "ປ່ຽນລະຫັດຜ່ານ"}
+        {pending ? ta("resetting") : ta("resetBtn")}
       </button>
     </form>
   );

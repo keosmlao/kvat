@@ -2,6 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { masterPrisma } from "@/lib/master-prisma";
 import { CustomerForm } from "../customer-form";
+import { OdooListPage } from "@/components/odoo/sheet";
+import { ManagementChatter } from "@/components/management-chatter";
+import { getManagementChatterData } from "@/lib/management-chatter";
 
 const DATE_FMT = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Asia/Vientiane",
@@ -24,7 +27,7 @@ export default async function CustomerDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [customer, tenants] = await Promise.all([
+  const [customer, tenants, chatter] = await Promise.all([
     masterPrisma.billingCustomer.findUnique({
       where: { id },
       include: {
@@ -48,35 +51,30 @@ export default async function CustomerDetailPage({
       select: { id: true, name: true, slug: true },
       orderBy: { name: "asc" },
     }),
+    getManagementChatterData("BillingCustomer", id),
   ]);
   if (!customer) notFound();
 
   return (
-    <div>
-      <div className="mb-4">
-        <Link
-          href="/manage/billing/customers"
-          className="text-[12px] text-gray-500 hover:text-gray-800"
-        >
-          ← Customers
-        </Link>
-      </div>
-
-      <div className="flex items-start justify-between mb-5 flex-wrap gap-3">
-        <div>
-          <h1 className="text-[22px] font-medium text-gray-900">
-            {customer.name}
-          </h1>
-          <div className="text-[12px] text-gray-500 mt-0.5">
-            <span className="font-mono">{customer.code}</span> ·{" "}
-            {customer.type === "TENANT" ? "SaaS Tenant" : "ລູກຄ້າພາຍນອກ"}
-          </div>
-        </div>
+    <OdooListPage
+      title={customer.name}
+      subtitle={`${customer.code} · ${customer.type === "TENANT" ? "SaaS Tenant" : "ລູກຄ້າພາຍນອກ"}`}
+      actions={
         <Link
           href={`/manage/billing/new?customerId=${customer.id}`}
           className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded text-[13px] font-medium"
         >
           + ສ້າງໃບເກັບເງິນ
+        </Link>
+      }
+    >
+      <>
+      <div className="mb-3">
+        <Link
+          href="/manage/billing/customers"
+          className="text-[12px] text-gray-500 hover:text-gray-800"
+        >
+          ← Customers
         </Link>
       </div>
 
@@ -151,6 +149,20 @@ export default async function CustomerDetailPage({
           )}
         </div>
       </div>
-    </div>
+      <div className="mt-4 bg-white border border-gray-200 rounded overflow-hidden">
+        <ManagementChatter
+          recordType="BillingCustomer"
+          recordId={id}
+          revalidate={`/manage/billing/customers/${id}`}
+          messages={chatter.messages}
+          followers={chatter.followers}
+          activities={chatter.activities}
+          users={chatter.users}
+          isFollowing={chatter.isFollowing}
+          currentUserId={chatter.currentUserId}
+        />
+      </div>
+      </>
+    </OdooListPage>
   );
 }

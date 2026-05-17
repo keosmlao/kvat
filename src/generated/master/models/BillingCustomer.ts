@@ -248,6 +248,7 @@ export type BillingCustomerWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"BillingCustomer"> | Date | string
   tenant?: Prisma.XOR<Prisma.TenantNullableScalarRelationFilter, Prisma.TenantWhereInput> | null
   invoices?: Prisma.BillingInvoiceListRelationFilter
+  quotes?: Prisma.BillingQuoteListRelationFilter
 }
 
 export type BillingCustomerOrderByWithRelationInput = {
@@ -266,6 +267,7 @@ export type BillingCustomerOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   tenant?: Prisma.TenantOrderByWithRelationInput
   invoices?: Prisma.BillingInvoiceOrderByRelationAggregateInput
+  quotes?: Prisma.BillingQuoteOrderByRelationAggregateInput
 }
 
 export type BillingCustomerWhereUniqueInput = Prisma.AtLeast<{
@@ -287,6 +289,7 @@ export type BillingCustomerWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"BillingCustomer"> | Date | string
   tenant?: Prisma.XOR<Prisma.TenantNullableScalarRelationFilter, Prisma.TenantWhereInput> | null
   invoices?: Prisma.BillingInvoiceListRelationFilter
+  quotes?: Prisma.BillingQuoteListRelationFilter
 }, "id" | "code" | "tenantId">
 
 export type BillingCustomerOrderByWithAggregationInput = {
@@ -342,6 +345,7 @@ export type BillingCustomerCreateInput = {
   updatedAt?: Date | string
   tenant?: Prisma.TenantCreateNestedOneWithoutCustomersInput
   invoices?: Prisma.BillingInvoiceCreateNestedManyWithoutCustomerInput
+  quotes?: Prisma.BillingQuoteCreateNestedManyWithoutCustomerInput
 }
 
 export type BillingCustomerUncheckedCreateInput = {
@@ -359,6 +363,7 @@ export type BillingCustomerUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   invoices?: Prisma.BillingInvoiceUncheckedCreateNestedManyWithoutCustomerInput
+  quotes?: Prisma.BillingQuoteUncheckedCreateNestedManyWithoutCustomerInput
 }
 
 export type BillingCustomerUpdateInput = {
@@ -376,6 +381,7 @@ export type BillingCustomerUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tenant?: Prisma.TenantUpdateOneWithoutCustomersNestedInput
   invoices?: Prisma.BillingInvoiceUpdateManyWithoutCustomerNestedInput
+  quotes?: Prisma.BillingQuoteUpdateManyWithoutCustomerNestedInput
 }
 
 export type BillingCustomerUncheckedUpdateInput = {
@@ -393,6 +399,7 @@ export type BillingCustomerUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   invoices?: Prisma.BillingInvoiceUncheckedUpdateManyWithoutCustomerNestedInput
+  quotes?: Prisma.BillingQuoteUncheckedUpdateManyWithoutCustomerNestedInput
 }
 
 export type BillingCustomerCreateManyInput = {
@@ -565,6 +572,20 @@ export type BillingCustomerUpdateOneRequiredWithoutInvoicesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.BillingCustomerUpdateToOneWithWhereWithoutInvoicesInput, Prisma.BillingCustomerUpdateWithoutInvoicesInput>, Prisma.BillingCustomerUncheckedUpdateWithoutInvoicesInput>
 }
 
+export type BillingCustomerCreateNestedOneWithoutQuotesInput = {
+  create?: Prisma.XOR<Prisma.BillingCustomerCreateWithoutQuotesInput, Prisma.BillingCustomerUncheckedCreateWithoutQuotesInput>
+  connectOrCreate?: Prisma.BillingCustomerCreateOrConnectWithoutQuotesInput
+  connect?: Prisma.BillingCustomerWhereUniqueInput
+}
+
+export type BillingCustomerUpdateOneRequiredWithoutQuotesNestedInput = {
+  create?: Prisma.XOR<Prisma.BillingCustomerCreateWithoutQuotesInput, Prisma.BillingCustomerUncheckedCreateWithoutQuotesInput>
+  connectOrCreate?: Prisma.BillingCustomerCreateOrConnectWithoutQuotesInput
+  upsert?: Prisma.BillingCustomerUpsertWithoutQuotesInput
+  connect?: Prisma.BillingCustomerWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.BillingCustomerUpdateToOneWithWhereWithoutQuotesInput, Prisma.BillingCustomerUpdateWithoutQuotesInput>, Prisma.BillingCustomerUncheckedUpdateWithoutQuotesInput>
+}
+
 export type BillingCustomerCreateWithoutTenantInput = {
   id?: string
   code: string
@@ -579,6 +600,7 @@ export type BillingCustomerCreateWithoutTenantInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   invoices?: Prisma.BillingInvoiceCreateNestedManyWithoutCustomerInput
+  quotes?: Prisma.BillingQuoteCreateNestedManyWithoutCustomerInput
 }
 
 export type BillingCustomerUncheckedCreateWithoutTenantInput = {
@@ -595,6 +617,7 @@ export type BillingCustomerUncheckedCreateWithoutTenantInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   invoices?: Prisma.BillingInvoiceUncheckedCreateNestedManyWithoutCustomerInput
+  quotes?: Prisma.BillingQuoteUncheckedCreateNestedManyWithoutCustomerInput
 }
 
 export type BillingCustomerCreateOrConnectWithoutTenantInput = {
@@ -656,6 +679,7 @@ export type BillingCustomerCreateWithoutInvoicesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   tenant?: Prisma.TenantCreateNestedOneWithoutCustomersInput
+  quotes?: Prisma.BillingQuoteCreateNestedManyWithoutCustomerInput
 }
 
 export type BillingCustomerUncheckedCreateWithoutInvoicesInput = {
@@ -672,6 +696,7 @@ export type BillingCustomerUncheckedCreateWithoutInvoicesInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  quotes?: Prisma.BillingQuoteUncheckedCreateNestedManyWithoutCustomerInput
 }
 
 export type BillingCustomerCreateOrConnectWithoutInvoicesInput = {
@@ -704,6 +729,7 @@ export type BillingCustomerUpdateWithoutInvoicesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tenant?: Prisma.TenantUpdateOneWithoutCustomersNestedInput
+  quotes?: Prisma.BillingQuoteUpdateManyWithoutCustomerNestedInput
 }
 
 export type BillingCustomerUncheckedUpdateWithoutInvoicesInput = {
@@ -720,6 +746,91 @@ export type BillingCustomerUncheckedUpdateWithoutInvoicesInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  quotes?: Prisma.BillingQuoteUncheckedUpdateManyWithoutCustomerNestedInput
+}
+
+export type BillingCustomerCreateWithoutQuotesInput = {
+  id?: string
+  code: string
+  name: string
+  type?: $Enums.BillingCustomerType
+  taxId?: string | null
+  phone?: string | null
+  email?: string | null
+  address?: string | null
+  contactName?: string | null
+  notes?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  tenant?: Prisma.TenantCreateNestedOneWithoutCustomersInput
+  invoices?: Prisma.BillingInvoiceCreateNestedManyWithoutCustomerInput
+}
+
+export type BillingCustomerUncheckedCreateWithoutQuotesInput = {
+  id?: string
+  code: string
+  name: string
+  type?: $Enums.BillingCustomerType
+  tenantId?: string | null
+  taxId?: string | null
+  phone?: string | null
+  email?: string | null
+  address?: string | null
+  contactName?: string | null
+  notes?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  invoices?: Prisma.BillingInvoiceUncheckedCreateNestedManyWithoutCustomerInput
+}
+
+export type BillingCustomerCreateOrConnectWithoutQuotesInput = {
+  where: Prisma.BillingCustomerWhereUniqueInput
+  create: Prisma.XOR<Prisma.BillingCustomerCreateWithoutQuotesInput, Prisma.BillingCustomerUncheckedCreateWithoutQuotesInput>
+}
+
+export type BillingCustomerUpsertWithoutQuotesInput = {
+  update: Prisma.XOR<Prisma.BillingCustomerUpdateWithoutQuotesInput, Prisma.BillingCustomerUncheckedUpdateWithoutQuotesInput>
+  create: Prisma.XOR<Prisma.BillingCustomerCreateWithoutQuotesInput, Prisma.BillingCustomerUncheckedCreateWithoutQuotesInput>
+  where?: Prisma.BillingCustomerWhereInput
+}
+
+export type BillingCustomerUpdateToOneWithWhereWithoutQuotesInput = {
+  where?: Prisma.BillingCustomerWhereInput
+  data: Prisma.XOR<Prisma.BillingCustomerUpdateWithoutQuotesInput, Prisma.BillingCustomerUncheckedUpdateWithoutQuotesInput>
+}
+
+export type BillingCustomerUpdateWithoutQuotesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumBillingCustomerTypeFieldUpdateOperationsInput | $Enums.BillingCustomerType
+  taxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  tenant?: Prisma.TenantUpdateOneWithoutCustomersNestedInput
+  invoices?: Prisma.BillingInvoiceUpdateManyWithoutCustomerNestedInput
+}
+
+export type BillingCustomerUncheckedUpdateWithoutQuotesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumBillingCustomerTypeFieldUpdateOperationsInput | $Enums.BillingCustomerType
+  tenantId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  taxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  invoices?: Prisma.BillingInvoiceUncheckedUpdateManyWithoutCustomerNestedInput
 }
 
 export type BillingCustomerCreateManyTenantInput = {
@@ -751,6 +862,7 @@ export type BillingCustomerUpdateWithoutTenantInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   invoices?: Prisma.BillingInvoiceUpdateManyWithoutCustomerNestedInput
+  quotes?: Prisma.BillingQuoteUpdateManyWithoutCustomerNestedInput
 }
 
 export type BillingCustomerUncheckedUpdateWithoutTenantInput = {
@@ -767,6 +879,7 @@ export type BillingCustomerUncheckedUpdateWithoutTenantInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   invoices?: Prisma.BillingInvoiceUncheckedUpdateManyWithoutCustomerNestedInput
+  quotes?: Prisma.BillingQuoteUncheckedUpdateManyWithoutCustomerNestedInput
 }
 
 export type BillingCustomerUncheckedUpdateManyWithoutTenantInput = {
@@ -791,10 +904,12 @@ export type BillingCustomerUncheckedUpdateManyWithoutTenantInput = {
 
 export type BillingCustomerCountOutputType = {
   invoices: number
+  quotes: number
 }
 
 export type BillingCustomerCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   invoices?: boolean | BillingCustomerCountOutputTypeCountInvoicesArgs
+  quotes?: boolean | BillingCustomerCountOutputTypeCountQuotesArgs
 }
 
 /**
@@ -814,6 +929,13 @@ export type BillingCustomerCountOutputTypeCountInvoicesArgs<ExtArgs extends runt
   where?: Prisma.BillingInvoiceWhereInput
 }
 
+/**
+ * BillingCustomerCountOutputType without action
+ */
+export type BillingCustomerCountOutputTypeCountQuotesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.BillingQuoteWhereInput
+}
+
 
 export type BillingCustomerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -831,6 +953,7 @@ export type BillingCustomerSelect<ExtArgs extends runtime.Types.Extensions.Inter
   updatedAt?: boolean
   tenant?: boolean | Prisma.BillingCustomer$tenantArgs<ExtArgs>
   invoices?: boolean | Prisma.BillingCustomer$invoicesArgs<ExtArgs>
+  quotes?: boolean | Prisma.BillingCustomer$quotesArgs<ExtArgs>
   _count?: boolean | Prisma.BillingCustomerCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["billingCustomer"]>
 
@@ -888,6 +1011,7 @@ export type BillingCustomerOmit<ExtArgs extends runtime.Types.Extensions.Interna
 export type BillingCustomerInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   tenant?: boolean | Prisma.BillingCustomer$tenantArgs<ExtArgs>
   invoices?: boolean | Prisma.BillingCustomer$invoicesArgs<ExtArgs>
+  quotes?: boolean | Prisma.BillingCustomer$quotesArgs<ExtArgs>
   _count?: boolean | Prisma.BillingCustomerCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type BillingCustomerIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -902,6 +1026,7 @@ export type $BillingCustomerPayload<ExtArgs extends runtime.Types.Extensions.Int
   objects: {
     tenant: Prisma.$TenantPayload<ExtArgs> | null
     invoices: Prisma.$BillingInvoicePayload<ExtArgs>[]
+    quotes: Prisma.$BillingQuotePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1313,6 +1438,7 @@ export interface Prisma__BillingCustomerClient<T, Null = never, ExtArgs extends 
   readonly [Symbol.toStringTag]: "PrismaPromise"
   tenant<T extends Prisma.BillingCustomer$tenantArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BillingCustomer$tenantArgs<ExtArgs>>): Prisma.Prisma__TenantClient<runtime.Types.Result.GetResult<Prisma.$TenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   invoices<T extends Prisma.BillingCustomer$invoicesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BillingCustomer$invoicesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BillingInvoicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  quotes<T extends Prisma.BillingCustomer$quotesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BillingCustomer$quotesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BillingQuotePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1796,6 +1922,30 @@ export type BillingCustomer$invoicesArgs<ExtArgs extends runtime.Types.Extension
   take?: number
   skip?: number
   distinct?: Prisma.BillingInvoiceScalarFieldEnum | Prisma.BillingInvoiceScalarFieldEnum[]
+}
+
+/**
+ * BillingCustomer.quotes
+ */
+export type BillingCustomer$quotesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the BillingQuote
+   */
+  select?: Prisma.BillingQuoteSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the BillingQuote
+   */
+  omit?: Prisma.BillingQuoteOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BillingQuoteInclude<ExtArgs> | null
+  where?: Prisma.BillingQuoteWhereInput
+  orderBy?: Prisma.BillingQuoteOrderByWithRelationInput | Prisma.BillingQuoteOrderByWithRelationInput[]
+  cursor?: Prisma.BillingQuoteWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.BillingQuoteScalarFieldEnum | Prisma.BillingQuoteScalarFieldEnum[]
 }
 
 /**

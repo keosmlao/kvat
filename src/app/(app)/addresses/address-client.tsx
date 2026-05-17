@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useMemo, useState, useTransition } from "react";
-import Link from "next/link";
 import {
   createProvince,
   updateProvince,
@@ -82,65 +81,52 @@ export function AddressClient({
   );
 
   return (
-    <div className="-mx-4 md:-mx-6 -mt-4 md:-mt-6">
-      <div className="bg-white border-b border-gray-200">
-        <div className="px-4 md:px-6 pt-3 pb-1">
-          <div className="text-[15px] flex items-center gap-2">
-            <Link href="/settings" className="text-gray-500 hover:underline">
-              ການກຳນົດຄ່າ
-            </Link>
-            <span className="text-gray-300">›</span>
-            <span className="font-medium text-gray-800">ທີ່ຢູ່</span>
-          </div>
-        </div>
-        <div className="px-4 md:px-6 pt-2 flex gap-1 text-[13px]">
-          <TabBtn
-            active={tab === "provinces"}
-            onClick={() => setTab("provinces")}
-          >
-            ແຂວງ ({provinces.length})
-          </TabBtn>
-          <TabBtn
-            active={tab === "districts"}
-            onClick={() => setTab("districts")}
-          >
-            ເມືອງ ({districts.length})
-          </TabBtn>
-          <TabBtn
-            active={tab === "villages"}
-            onClick={() => setTab("villages")}
-          >
-            ບ້ານ ({villages.length})
-          </TabBtn>
-        </div>
+    <>
+      <div className="bg-white border border-gray-200 rounded mb-4 px-3 pt-2 flex gap-1 text-[13px]">
+        <TabBtn
+          active={tab === "provinces"}
+          onClick={() => setTab("provinces")}
+        >
+          ແຂວງ ({provinces.length})
+        </TabBtn>
+        <TabBtn
+          active={tab === "districts"}
+          onClick={() => setTab("districts")}
+        >
+          ເມືອງ ({districts.length})
+        </TabBtn>
+        <TabBtn
+          active={tab === "villages"}
+          onClick={() => setTab("villages")}
+        >
+          ບ້ານ ({villages.length})
+        </TabBtn>
       </div>
 
-      <div className="px-4 md:px-6 py-4">
-        {tab === "provinces" && <ProvincesPanel items={provinces} />}
-        {tab === "districts" && (
-          <DistrictsPanel
-            items={filteredDistricts}
-            provinces={provinces}
-            filterProvince={filterProvince}
-            onFilter={setFilterProvince}
-          />
-        )}
-        {tab === "villages" && (
-          <VillagesPanel
-            items={filteredVillages}
-            provinces={provinces}
-            districts={districts}
-            filterProvince={filterProvince}
-            filterDistrict={filterDistrict}
-            onFilterProvince={(p) => {
-              setFilterProvince(p);
-              setFilterDistrict("");
-            }}
-            onFilterDistrict={setFilterDistrict}
-          />
-        )}
-      </div>
-    </div>
+      {tab === "provinces" && <ProvincesPanel items={provinces} />}
+      {tab === "districts" && (
+        <DistrictsPanel
+          items={filteredDistricts}
+          provinces={provinces}
+          filterProvince={filterProvince}
+          onFilter={setFilterProvince}
+        />
+      )}
+      {tab === "villages" && (
+        <VillagesPanel
+          items={filteredVillages}
+          provinces={provinces}
+          districts={districts}
+          filterProvince={filterProvince}
+          filterDistrict={filterDistrict}
+          onFilterProvince={(p) => {
+            setFilterProvince(p);
+            setFilterDistrict("");
+          }}
+          onFilterDistrict={setFilterDistrict}
+        />
+      )}
+    </>
   );
 }
 
@@ -159,7 +145,7 @@ function TabBtn({
       onClick={onClick}
       className={`px-3 py-2 border-b-2 -mb-px transition ${
         active
-          ? "border-[#b91c1c] text-[#b91c1c] font-medium"
+          ? "border-odoo text-odoo font-medium"
           : "border-transparent text-gray-500 hover:text-gray-800"
       }`}
     >
@@ -207,7 +193,7 @@ function ProvincesPanel({ items }: { items: ProvinceItem[] }) {
                 <button
                   type="submit"
                   disabled={pending}
-                  className="bg-[#b91c1c] hover:bg-[#991b1b] text-white px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
+                  className="bg-odoo hover:bg-odoo-hover text-white px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
                 >
                   {pending ? "..." : "+ ເພີ່ມ"}
                 </button>
@@ -273,7 +259,7 @@ function ProvinceRow({ item }: { item: ProvinceItem }) {
         <td className="px-2 py-1.5 text-right text-gray-400">{item.districtCount}</td>
         <td className="px-2 py-1.5 text-right text-gray-400">{item.customerCount}</td>
         <td className="px-2 py-1.5 text-center">
-          <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="accent-[#b91c1c]" />
+          <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="accent-odoo" />
         </td>
         <td className="px-3 py-1.5 text-right">
           <div className="flex justify-end gap-2 text-[12px]">
@@ -290,7 +276,7 @@ function ProvinceRow({ item }: { item: ProvinceItem }) {
   }
 
   return (
-    <tr className="border-b border-gray-100 hover:bg-[#b91c1c]/5 group">
+    <tr className="border-b border-gray-100 hover:bg-odoo/5 group">
       <td className="px-3 py-1.5 font-mono text-[12px] text-gray-700">{item.code}</td>
       <td className="px-2 py-1.5 text-gray-800 font-medium">{item.name}</td>
       <td className="px-2 py-1.5 text-gray-500">{item.nameEn || "—"}</td>
@@ -309,7 +295,7 @@ function ProvinceRow({ item }: { item: ProvinceItem }) {
       </td>
       <td className="px-3 py-1.5 text-right">
         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition text-[12px]">
-          <button onClick={() => setEditing(true)} className="text-[#b91c1c] hover:text-[#991b1b]">
+          <button onClick={() => setEditing(true)} className="text-odoo hover:text-odoo-hover">
             ແກ້ໄຂ
           </button>
           <button
@@ -350,7 +336,7 @@ function DistrictsPanel({
         <select
           value={filterProvince}
           onChange={(e) => onFilter(e.target.value)}
-          className="text-[13px] border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-[#b91c1c]"
+          className="text-[13px] border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-odoo"
         >
           <option value="">ກັ່ນຕອງ: ທຸກແຂວງ</option>
           {provinces.map((p) => (
@@ -391,7 +377,7 @@ function DistrictsPanel({
                 <button
                   type="submit"
                   disabled={pending}
-                  className="bg-[#b91c1c] hover:bg-[#991b1b] text-white px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
+                  className="bg-odoo hover:bg-odoo-hover text-white px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
                 >
                   {pending ? "..." : "+ ເພີ່ມ"}
                 </button>
@@ -466,7 +452,7 @@ function DistrictRow({ item, provinces }: { item: DistrictItem; provinces: Provi
         <td className="px-2 py-1.5 text-right text-gray-400">{item.villageCount}</td>
         <td className="px-2 py-1.5 text-right text-gray-400">{item.customerCount}</td>
         <td className="px-2 py-1.5 text-center">
-          <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="accent-[#b91c1c]" />
+          <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="accent-odoo" />
         </td>
         <td className="px-3 py-1.5 text-right">
           <div className="flex justify-end gap-2 text-[12px]">
@@ -483,7 +469,7 @@ function DistrictRow({ item, provinces }: { item: DistrictItem; provinces: Provi
   }
 
   return (
-    <tr className="border-b border-gray-100 hover:bg-[#b91c1c]/5 group">
+    <tr className="border-b border-gray-100 hover:bg-odoo/5 group">
       <td className="px-3 py-1.5 font-mono text-[12px] text-gray-700">{item.code}</td>
       <td className="px-2 py-1.5 text-gray-800 font-medium">{item.name}</td>
       <td className="px-2 py-1.5 text-gray-500">{item.nameEn || "—"}</td>
@@ -503,7 +489,7 @@ function DistrictRow({ item, provinces }: { item: DistrictItem; provinces: Provi
       </td>
       <td className="px-3 py-1.5 text-right">
         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition text-[12px]">
-          <button onClick={() => setEditing(true)} className="text-[#b91c1c] hover:text-[#991b1b]">
+          <button onClick={() => setEditing(true)} className="text-odoo hover:text-odoo-hover">
             ແກ້ໄຂ
           </button>
           <button
@@ -560,7 +546,7 @@ function VillagesPanel({
           <select
             value={filterProvince}
             onChange={(e) => onFilterProvince(e.target.value)}
-            className="text-[13px] border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-[#b91c1c]"
+            className="text-[13px] border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-odoo"
           >
             <option value="">ທຸກແຂວງ</option>
             {provinces.map((p) => (
@@ -571,7 +557,7 @@ function VillagesPanel({
             value={filterDistrict}
             onChange={(e) => onFilterDistrict(e.target.value)}
             disabled={!filterProvince}
-            className="text-[13px] border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-[#b91c1c]"
+            className="text-[13px] border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-odoo"
           >
             <option value="">ທຸກເມືອງ</option>
             {districtsForFilter.map((d) => (
@@ -596,7 +582,7 @@ function VillagesPanel({
           {items.length === 0 && (
             <tr>
               <td colSpan={7} className="py-12 text-center text-gray-500">
-                ຍັງບໍ່ມີຂໍ້ມູນບ້ານ — ກົດ "+ ເພີ່ມ" ດ້ານລຸ່ມ
+                ຍັງບໍ່ມີຂໍ້ມູນບ້ານ — ກົດ &quot;+ ເພີ່ມ&quot; ດ້ານລຸ່ມ
               </td>
             </tr>
           )}
@@ -628,7 +614,7 @@ function VillagesPanel({
                 <button
                   type="submit"
                   disabled={pending}
-                  className="bg-[#b91c1c] hover:bg-[#991b1b] text-white px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
+                  className="bg-odoo hover:bg-odoo-hover text-white px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
                 >
                   {pending ? "..." : "+ ເພີ່ມ"}
                 </button>
@@ -724,7 +710,7 @@ function VillageRow({
         </td>
         <td className="px-2 py-1.5 text-right text-gray-400">{item.customerCount}</td>
         <td className="px-2 py-1.5 text-center">
-          <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="accent-[#b91c1c]" />
+          <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="accent-odoo" />
         </td>
         <td className="px-3 py-1.5 text-right">
           <div className="flex justify-end gap-2 text-[12px]">
@@ -741,7 +727,7 @@ function VillageRow({
   }
 
   return (
-    <tr className="border-b border-gray-100 hover:bg-[#b91c1c]/5 group">
+    <tr className="border-b border-gray-100 hover:bg-odoo/5 group">
       <td className="px-3 py-1.5 font-mono text-[12px] text-gray-700">{item.code || "—"}</td>
       <td className="px-2 py-1.5 text-gray-800 font-medium">{item.name}</td>
       <td className="px-2 py-1.5 text-gray-600">{item.districtName}</td>
@@ -760,7 +746,7 @@ function VillageRow({
       </td>
       <td className="px-3 py-1.5 text-right">
         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition text-[12px]">
-          <button onClick={() => setEditing(true)} className="text-[#b91c1c] hover:text-[#991b1b]">
+          <button onClick={() => setEditing(true)} className="text-odoo hover:text-odoo-hover">
             ແກ້ໄຂ
           </button>
           <button

@@ -2,6 +2,7 @@
 -- PostgreSQL database dump
 --
 
+\restrict FcP0bvVxbD1nNzqt3SxC3g4E8PhuvEBX8rKAVZq3NeQgeoMowpUkeORoogSRxiM
 
 -- Dumped from database version 17.8 (Homebrew)
 -- Dumped by pg_dump version 17.8 (Homebrew)
@@ -52,6 +53,31 @@ CREATE TYPE public."PaymentStatus" AS ENUM (
 
 
 --
+-- Name: QuotationStatus; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public."QuotationStatus" AS ENUM (
+    'DRAFT',
+    'SENT',
+    'ACCEPTED',
+    'REJECTED',
+    'EXPIRED',
+    'CONVERTED'
+);
+
+
+--
+-- Name: RecurringCycle; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public."RecurringCycle" AS ENUM (
+    'MONTHLY',
+    'QUARTERLY',
+    'YEARLY'
+);
+
+
+--
 -- Name: StockMovementType; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -59,6 +85,17 @@ CREATE TYPE public."StockMovementType" AS ENUM (
     'IN',
     'OUT',
     'ADJUST'
+);
+
+
+--
+-- Name: TodoStage; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public."TodoStage" AS ENUM (
+    'TODO',
+    'IN_PROGRESS',
+    'DONE'
 );
 
 
@@ -149,6 +186,24 @@ CREATE TABLE public."District" (
 
 
 --
+-- Name: EmailLog; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."EmailLog" (
+    id text NOT NULL,
+    "toEmail" text NOT NULL,
+    subject text NOT NULL,
+    kind text NOT NULL,
+    "recordType" text,
+    "recordId" text,
+    status text DEFAULT 'SENT'::text NOT NULL,
+    "errorMsg" text,
+    "sentByUserId" text,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
 -- Name: Follower; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -201,7 +256,8 @@ CREATE TABLE public."Invoice" (
     "etaxSerialNum" text,
     "etaxStatus" text,
     "etaxStatusReason" text,
-    "etaxSubmittedAt" timestamp(3) without time zone
+    "etaxSubmittedAt" timestamp(3) without time zone,
+    "recurringId" text
 );
 
 
@@ -212,13 +268,16 @@ CREATE TABLE public."Invoice" (
 CREATE TABLE public."InvoiceItem" (
     id text NOT NULL,
     "invoiceId" text NOT NULL,
-    "productId" text NOT NULL,
+    "productId" text,
     "productName" text NOT NULL,
     unit text NOT NULL,
     quantity double precision NOT NULL,
     "priceLak" double precision NOT NULL,
     discount double precision DEFAULT 0 NOT NULL,
-    total double precision NOT NULL
+    total double precision NOT NULL,
+    "lineType" text DEFAULT 'PRODUCT'::text NOT NULL,
+    "taxAmount" double precision DEFAULT 0 NOT NULL,
+    "taxRate" double precision DEFAULT 0.1 NOT NULL
 );
 
 
@@ -328,6 +387,103 @@ CREATE TABLE public."Province" (
 
 
 --
+-- Name: Quotation; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."Quotation" (
+    id text NOT NULL,
+    number text NOT NULL,
+    date timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "validUntil" timestamp(3) without time zone,
+    "customerId" text NOT NULL,
+    "userId" text NOT NULL,
+    reference text,
+    currency text DEFAULT 'LAK'::text NOT NULL,
+    "exchangeRate" double precision DEFAULT 1 NOT NULL,
+    subtotal double precision NOT NULL,
+    discount double precision DEFAULT 0 NOT NULL,
+    "vatRate" double precision DEFAULT 0.1 NOT NULL,
+    "vatMode" text DEFAULT 'EXCLUSIVE'::text NOT NULL,
+    "vatAmount" double precision NOT NULL,
+    total double precision NOT NULL,
+    status public."QuotationStatus" DEFAULT 'DRAFT'::public."QuotationStatus" NOT NULL,
+    note text,
+    "sentAt" timestamp(3) without time zone,
+    "decidedAt" timestamp(3) without time zone,
+    "invoiceId" text,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+--
+-- Name: QuotationItem; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."QuotationItem" (
+    id text NOT NULL,
+    "quotationId" text NOT NULL,
+    "lineType" text DEFAULT 'PRODUCT'::text NOT NULL,
+    "productId" text,
+    "productName" text NOT NULL,
+    unit text NOT NULL,
+    quantity double precision NOT NULL,
+    "priceLak" double precision NOT NULL,
+    discount double precision DEFAULT 0 NOT NULL,
+    "taxRate" double precision DEFAULT 0.1 NOT NULL,
+    "taxAmount" double precision DEFAULT 0 NOT NULL,
+    total double precision NOT NULL
+);
+
+
+--
+-- Name: RecurringInvoice; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."RecurringInvoice" (
+    id text NOT NULL,
+    code text NOT NULL,
+    name text NOT NULL,
+    "customerId" text NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    cycle public."RecurringCycle" DEFAULT 'MONTHLY'::public."RecurringCycle" NOT NULL,
+    "startDate" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "nextRunDate" timestamp(3) without time zone NOT NULL,
+    "endDate" timestamp(3) without time zone,
+    currency text DEFAULT 'LAK'::text NOT NULL,
+    "exchangeRate" double precision DEFAULT 1 NOT NULL,
+    "vatMode" text DEFAULT 'EXCLUSIVE'::text NOT NULL,
+    "vatRate" double precision DEFAULT 0.1 NOT NULL,
+    discount double precision DEFAULT 0 NOT NULL,
+    "paymentMethod" text DEFAULT 'CASH'::text NOT NULL,
+    note text,
+    "lastRunAt" timestamp(3) without time zone,
+    "generatedCount" integer DEFAULT 0 NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+--
+-- Name: RecurringInvoiceItem; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."RecurringInvoiceItem" (
+    id text NOT NULL,
+    "recurringId" text NOT NULL,
+    "lineType" text DEFAULT 'PRODUCT'::text NOT NULL,
+    "productId" text,
+    "productName" text NOT NULL,
+    unit text NOT NULL,
+    quantity double precision NOT NULL,
+    "priceLak" double precision NOT NULL,
+    discount double precision DEFAULT 0 NOT NULL,
+    "taxRate" double precision DEFAULT 0.1 NOT NULL,
+    "taxAmount" double precision DEFAULT 0 NOT NULL
+);
+
+
+--
 -- Name: Setting; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -354,7 +510,15 @@ CREATE TABLE public."Setting" (
     "bankAccount" text,
     "bankAccountName" text,
     "licenseNumber" text,
-    "licenseDate" text
+    "licenseDate" text,
+    "enableTodo" boolean DEFAULT true NOT NULL,
+    "smtpFromEmail" text,
+    "smtpFromName" text,
+    "smtpHost" text,
+    "smtpPassword" text,
+    "smtpPort" integer DEFAULT 587,
+    "smtpSecure" boolean DEFAULT false NOT NULL,
+    "smtpUser" text
 );
 
 
@@ -370,6 +534,25 @@ CREATE TABLE public."StockMovement" (
     reference text,
     note text,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: TodoTask; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."TodoTask" (
+    id text NOT NULL,
+    title text NOT NULL,
+    description text,
+    stage public."TodoStage" DEFAULT 'TODO'::public."TodoStage" NOT NULL,
+    priority integer DEFAULT 0 NOT NULL,
+    "dueDate" timestamp(3) without time zone,
+    "doneAt" timestamp(3) without time zone,
+    "assignedToId" text,
+    "createdById" text NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
 );
 
 
@@ -399,7 +582,25 @@ CREATE TABLE public."User" (
     role public."UserRole" DEFAULT 'STAFF'::public."UserRole" NOT NULL,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "updatedAt" timestamp(3) without time zone NOT NULL,
-    "lastSeenAt" timestamp(3) without time zone
+    "lastSeenAt" timestamp(3) without time zone,
+    locale text DEFAULT 'lo'::text NOT NULL,
+    theme text DEFAULT 'light'::text NOT NULL
+);
+
+
+--
+-- Name: UserActivity; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."UserActivity" (
+    id text NOT NULL,
+    "userId" text,
+    action text NOT NULL,
+    "recordType" text,
+    "recordId" text,
+    summary text NOT NULL,
+    meta text,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 
@@ -464,6 +665,14 @@ ALTER TABLE ONLY public."Customer"
 
 ALTER TABLE ONLY public."District"
     ADD CONSTRAINT "District_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: EmailLog EmailLog_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."EmailLog"
+    ADD CONSTRAINT "EmailLog_pkey" PRIMARY KEY (id);
 
 
 --
@@ -539,6 +748,46 @@ ALTER TABLE ONLY public."Province"
 
 
 --
+-- Name: QuotationItem QuotationItem_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."QuotationItem"
+    ADD CONSTRAINT "QuotationItem_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Quotation Quotation_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."Quotation"
+    ADD CONSTRAINT "Quotation_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: RecurringInvoiceItem RecurringInvoiceItem_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."RecurringInvoiceItem"
+    ADD CONSTRAINT "RecurringInvoiceItem_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: RecurringInvoice RecurringInvoice_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."RecurringInvoice"
+    ADD CONSTRAINT "RecurringInvoice_code_key" UNIQUE (code);
+
+
+--
+-- Name: RecurringInvoice RecurringInvoice_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."RecurringInvoice"
+    ADD CONSTRAINT "RecurringInvoice_pkey" PRIMARY KEY (id);
+
+
+--
 -- Name: Setting Setting_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -555,11 +804,27 @@ ALTER TABLE ONLY public."StockMovement"
 
 
 --
+-- Name: TodoTask TodoTask_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."TodoTask"
+    ADD CONSTRAINT "TodoTask_pkey" PRIMARY KEY (id);
+
+
+--
 -- Name: Unit Unit_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Unit"
     ADD CONSTRAINT "Unit_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: UserActivity UserActivity_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."UserActivity"
+    ADD CONSTRAINT "UserActivity_pkey" PRIMARY KEY (id);
 
 
 --
@@ -650,6 +915,20 @@ CREATE INDEX "District_provinceId_idx" ON public."District" USING btree ("provin
 
 
 --
+-- Name: EmailLog_createdAt_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "EmailLog_createdAt_idx" ON public."EmailLog" USING btree ("createdAt");
+
+
+--
+-- Name: EmailLog_recordType_recordId_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "EmailLog_recordType_recordId_idx" ON public."EmailLog" USING btree ("recordType", "recordId");
+
+
+--
 -- Name: Follower_recordType_recordId_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -696,6 +975,13 @@ CREATE UNIQUE INDEX "Invoice_number_key" ON public."Invoice" USING btree (number
 --
 
 CREATE INDEX "Invoice_paymentStatus_idx" ON public."Invoice" USING btree ("paymentStatus");
+
+
+--
+-- Name: Invoice_recurringId_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "Invoice_recurringId_idx" ON public."Invoice" USING btree ("recurringId");
 
 
 --
@@ -769,6 +1055,62 @@ CREATE UNIQUE INDEX "Province_code_key" ON public."Province" USING btree (code);
 
 
 --
+-- Name: QuotationItem_quotationId_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "QuotationItem_quotationId_idx" ON public."QuotationItem" USING btree ("quotationId");
+
+
+--
+-- Name: Quotation_customerId_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "Quotation_customerId_idx" ON public."Quotation" USING btree ("customerId");
+
+
+--
+-- Name: Quotation_date_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "Quotation_date_idx" ON public."Quotation" USING btree (date);
+
+
+--
+-- Name: Quotation_number_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "Quotation_number_key" ON public."Quotation" USING btree (number);
+
+
+--
+-- Name: Quotation_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "Quotation_status_idx" ON public."Quotation" USING btree (status);
+
+
+--
+-- Name: RecurringInvoiceItem_recurringId_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "RecurringInvoiceItem_recurringId_idx" ON public."RecurringInvoiceItem" USING btree ("recurringId");
+
+
+--
+-- Name: RecurringInvoice_active_nextRunDate_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "RecurringInvoice_active_nextRunDate_idx" ON public."RecurringInvoice" USING btree (active, "nextRunDate");
+
+
+--
+-- Name: RecurringInvoice_customerId_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "RecurringInvoice_customerId_idx" ON public."RecurringInvoice" USING btree ("customerId");
+
+
+--
 -- Name: StockMovement_productId_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -776,10 +1118,59 @@ CREATE INDEX "StockMovement_productId_idx" ON public."StockMovement" USING btree
 
 
 --
+-- Name: TodoTask_assignedToId_stage_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "TodoTask_assignedToId_stage_idx" ON public."TodoTask" USING btree ("assignedToId", stage);
+
+
+--
+-- Name: TodoTask_createdById_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "TodoTask_createdById_idx" ON public."TodoTask" USING btree ("createdById");
+
+
+--
+-- Name: TodoTask_stage_dueDate_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "TodoTask_stage_dueDate_idx" ON public."TodoTask" USING btree (stage, "dueDate");
+
+
+--
 -- Name: Unit_code_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "Unit_code_key" ON public."Unit" USING btree (code);
+
+
+--
+-- Name: UserActivity_action_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "UserActivity_action_idx" ON public."UserActivity" USING btree (action);
+
+
+--
+-- Name: UserActivity_createdAt_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "UserActivity_createdAt_idx" ON public."UserActivity" USING btree ("createdAt");
+
+
+--
+-- Name: UserActivity_recordType_recordId_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "UserActivity_recordType_recordId_idx" ON public."UserActivity" USING btree ("recordType", "recordId");
+
+
+--
+-- Name: UserActivity_userId_createdAt_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "UserActivity_userId_createdAt_idx" ON public."UserActivity" USING btree ("userId", "createdAt");
 
 
 --
@@ -852,6 +1243,14 @@ ALTER TABLE ONLY public."District"
 
 
 --
+-- Name: EmailLog EmailLog_sentByUserId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."EmailLog"
+    ADD CONSTRAINT "EmailLog_sentByUserId_fkey" FOREIGN KEY ("sentByUserId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
 -- Name: Follower Follower_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -872,7 +1271,7 @@ ALTER TABLE ONLY public."InvoiceItem"
 --
 
 ALTER TABLE ONLY public."InvoiceItem"
-    ADD CONSTRAINT "InvoiceItem_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."Product"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+    ADD CONSTRAINT "InvoiceItem_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."Product"(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 
 --
@@ -889,6 +1288,14 @@ ALTER TABLE ONLY public."Invoice"
 
 ALTER TABLE ONLY public."Invoice"
     ADD CONSTRAINT "Invoice_paymentTermId_fkey" FOREIGN KEY ("paymentTermId") REFERENCES public."PaymentTerm"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: Invoice Invoice_recurringId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."Invoice"
+    ADD CONSTRAINT "Invoice_recurringId_fkey" FOREIGN KEY ("recurringId") REFERENCES public."RecurringInvoice"(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 
 --
@@ -964,11 +1371,99 @@ ALTER TABLE ONLY public."Product"
 
 
 --
+-- Name: QuotationItem QuotationItem_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."QuotationItem"
+    ADD CONSTRAINT "QuotationItem_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."Product"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: QuotationItem QuotationItem_quotationId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."QuotationItem"
+    ADD CONSTRAINT "QuotationItem_quotationId_fkey" FOREIGN KEY ("quotationId") REFERENCES public."Quotation"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Quotation Quotation_customerId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."Quotation"
+    ADD CONSTRAINT "Quotation_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES public."Customer"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: Quotation Quotation_invoiceId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."Quotation"
+    ADD CONSTRAINT "Quotation_invoiceId_fkey" FOREIGN KEY ("invoiceId") REFERENCES public."Invoice"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: Quotation Quotation_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."Quotation"
+    ADD CONSTRAINT "Quotation_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: RecurringInvoiceItem RecurringInvoiceItem_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."RecurringInvoiceItem"
+    ADD CONSTRAINT "RecurringInvoiceItem_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."Product"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: RecurringInvoiceItem RecurringInvoiceItem_recurringId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."RecurringInvoiceItem"
+    ADD CONSTRAINT "RecurringInvoiceItem_recurringId_fkey" FOREIGN KEY ("recurringId") REFERENCES public."RecurringInvoice"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: RecurringInvoice RecurringInvoice_customerId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."RecurringInvoice"
+    ADD CONSTRAINT "RecurringInvoice_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES public."Customer"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
 -- Name: StockMovement StockMovement_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."StockMovement"
     ADD CONSTRAINT "StockMovement_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."Product"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: TodoTask TodoTask_assignedToId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."TodoTask"
+    ADD CONSTRAINT "TodoTask_assignedToId_fkey" FOREIGN KEY ("assignedToId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: TodoTask TodoTask_createdById_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."TodoTask"
+    ADD CONSTRAINT "TodoTask_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: UserActivity UserActivity_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."UserActivity"
+    ADD CONSTRAINT "UserActivity_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 
 --
@@ -983,4 +1478,5 @@ ALTER TABLE ONLY public."Village"
 -- PostgreSQL database dump complete
 --
 
+\unrestrict FcP0bvVxbD1nNzqt3SxC3g4E8PhuvEBX8rKAVZq3NeQgeoMowpUkeORoogSRxiM
 

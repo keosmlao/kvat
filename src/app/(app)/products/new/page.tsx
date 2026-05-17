@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { ProductForm } from "../product-form";
 import { createProduct } from "../actions";
+import { getLocale } from "@/lib/i18n/server";
 
 export default async function NewProductPage() {
-  const [units, categories, types, warehouses] = await Promise.all([
+  const [units, categories, types, warehouses, locale] = await Promise.all([
     prisma.unit.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.category.findMany({
       where: { active: true },
@@ -17,11 +18,13 @@ export default async function NewProductPage() {
       where: { active: true },
       orderBy: { name: "asc" },
     }),
+    getLocale(),
   ]);
 
   return (
     <ProductForm
       action={createProduct}
+      locale={locale}
       units={units.map((u) => ({ id: u.id, code: u.code, name: u.name }))}
       categories={categories.map((c) => ({
         id: c.id,

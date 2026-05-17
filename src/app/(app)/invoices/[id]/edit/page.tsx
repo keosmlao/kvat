@@ -3,13 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { InvoiceForm, type InvoiceInitial } from "../../new/invoice-form";
 import { updateInvoice, type InvoiceFormState } from "../../actions";
 import type { Currency } from "@/lib/format";
+import { getLocale } from "@/lib/i18n/server";
 
 export default async function EditInvoicePage(props: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await props.params;
 
-  const [invoice, products, customers, settings] = await Promise.all([
+  const [invoice, products, customers, settings, locale] = await Promise.all([
     prisma.invoice.findUnique({
       where: { id },
       include: { items: true },
@@ -20,6 +21,7 @@ export default async function EditInvoicePage(props: {
     }),
     prisma.customer.findMany({ orderBy: { name: "asc" } }),
     prisma.setting.findUnique({ where: { id: "default" } }),
+    getLocale(),
   ]);
 
   if (!invoice) notFound();
@@ -31,7 +33,7 @@ export default async function EditInvoicePage(props: {
         </p>
         <a
           href={`/invoices/${id}`}
-          className="text-[#b91c1c] hover:underline text-sm mt-2 inline-block"
+          className="text-odoo hover:underline text-sm mt-2 inline-block"
         >
           ← ກັບໄປເບິ່ງບິນ
         </a>
@@ -62,16 +64,26 @@ export default async function EditInvoicePage(props: {
     paymentRef: invoice.paymentRef ?? "",
     note: invoice.note ?? "",
     items: invoice.items.map((it) => ({
-      productId: it.productId,
+      kind:
+        it.lineType === "SECTION"
+          ? "section"
+          : it.lineType === "NOTE"
+            ? "note"
+            : "product",
+      productId: it.productId ?? "",
+      label: it.productName,
+      unit: it.unit,
       quantity: it.quantity,
       priceLak: it.priceLak,
       discount: it.discount,
+      taxRate: it.taxRate,
     })),
   };
 
   return (
     <InvoiceForm
       action={action}
+      locale={locale}
       products={products.map((p) => ({
         id: p.id,
         code: p.code,

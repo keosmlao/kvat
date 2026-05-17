@@ -6,10 +6,8 @@
 
 const DIGITS = ["ສູນ", "ໜຶ່ງ", "ສອງ", "ສາມ", "ສີ່", "ຫ້າ", "ຫົກ", "ເຈັດ", "ແປດ", "ເກົ້າ"];
 
-// Place names for groups of 3 digits past thousands. "ພັນ" handles the first
-// non-thousand digit inside a million-group; the spelling pattern is:
+// Spelling pattern inside a million-group:
 //   1,234,567 → ໜຶ່ງລ້ານ ສອງແສນ ສາມໝື່ນ ສີ່ພັນ ຫ້າຮ້ອຍ ຫົກສິບເຈັດ
-const PLACE_1000 = ["", "ພັນ", "ໝື່ນ", "ແສນ"]; // 10^3..10^5 inside a million
 
 function below1000(n: number): string {
   // 0..999 inclusive. Returns "" for 0 so callers can omit empty groups.
@@ -34,7 +32,7 @@ function below1000(n: number): string {
 }
 
 // Recursively convert by chopping off millions: anything >= 1,000,000 prints
-// the upper part + "ລ້ານ" + the lower part. Inside a million we use PLACE_1000.
+// the upper part + "ລ້ານ" + the lower part.
 function intToWords(n: number): string {
   if (n === 0) return DIGITS[0];
 

@@ -53,7 +53,7 @@ export function UserForm({
           <button
             type="submit"
             disabled={pending}
-            className="bg-[#b91c1c] text-white px-3 py-1 rounded text-[13px] font-medium hover:bg-[#991b1b] disabled:opacity-50 transition tracking-wide"
+            className="bg-odoo text-white px-3 py-1 rounded text-[13px] font-medium hover:bg-odoo-hover disabled:opacity-50 transition tracking-wide"
           >
             {pending ? "ກຳລັງບັນທຶກ..." : "ບັນທຶກ"}
           </button>
@@ -72,7 +72,7 @@ export function UserForm({
         <div className="px-6 md:px-10 pt-6 pb-6">
           {/* Top: avatar + title */}
           <div className="flex gap-6 items-start mb-6">
-            <div className="w-28 h-28 rounded-full bg-[#b91c1c]/10 text-[#b91c1c] flex items-center justify-center text-4xl font-light flex-shrink-0">
+            <div className="w-28 h-28 rounded-full bg-odoo/10 text-odoo flex items-center justify-center text-4xl font-light flex-shrink-0">
               {name.charAt(0).toUpperCase() || "?"}
             </div>
 
@@ -86,7 +86,7 @@ export function UserForm({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="ຊື່..."
-                className="w-full text-[24px] font-light text-gray-900 border-0 border-b border-gray-200 hover:border-gray-400 focus:border-[#b91c1c] focus:outline-none focus:ring-0 pb-1 mb-1 bg-transparent"
+                className="w-full text-[24px] font-light text-gray-900 border-0 border-b border-gray-200 hover:border-gray-400 focus:border-odoo focus:outline-none focus:ring-0 pb-1 mb-1 bg-transparent"
               />
               {fe.name && (
                 <p className="text-xs text-red-600 mb-2">{fe.name[0]}</p>
@@ -222,7 +222,7 @@ function RoleBar({ role }: { role: "ADMIN" | "STAFF" }) {
       <span
         className={`px-3 py-1 text-[12px] uppercase tracking-wider rounded-sm font-medium transition ${
           role === "STAFF"
-            ? "bg-[#b91c1c] text-white"
+            ? "bg-odoo text-white"
             : "text-gray-400"
         }`}
       >
@@ -232,7 +232,7 @@ function RoleBar({ role }: { role: "ADMIN" | "STAFF" }) {
       <span
         className={`px-3 py-1 text-[12px] uppercase tracking-wider rounded-sm font-medium transition ${
           role === "ADMIN"
-            ? "bg-[#b91c1c] text-white"
+            ? "bg-odoo text-white"
             : "text-gray-400"
         }`}
       >

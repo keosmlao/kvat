@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
+import { t } from "@/lib/i18n/messages";
 import {
   createSubscription,
   updateSubscription,
@@ -10,6 +11,8 @@ import {
   deleteSubscription,
   type SubState,
 } from "./actions";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 type Category = { id: string; name: string };
 
@@ -55,35 +58,35 @@ export function SubForm({
   return (
     <form action={action} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <Field label="ຊື່">
+        <Field label={tm("subName")}>
           <input
             type="text"
             name="name"
             defaultValue={initial.name}
             required
-            placeholder="ເຊັ່ນ Vultr server US-East"
+            placeholder={tm("subNamePh")}
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
           />
         </Field>
-        <Field label="Vendor">
+        <Field label={tm("subVendor")}>
           <input
             type="text"
             name="vendor"
             defaultValue={initial.vendor}
             required
-            placeholder="Vultr / AWS / BCEL ..."
+            placeholder={tm("subVendorPh")}
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
           />
         </Field>
       </div>
 
-      <Field label="ໝວດ">
+      <Field label={tm("subCategory")}>
         <select
           name="categoryId"
           defaultValue={initial.categoryId}
           className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
         >
-          <option value="">— ບໍ່ໄດ້ຈັດໝວດ —</option>
+          <option value="">{tm("subNoCategory")}</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -93,7 +96,7 @@ export function SubForm({
       </Field>
 
       <div className="grid grid-cols-3 gap-4">
-        <Field label="ລາຄາ">
+        <Field label={tm("subPrice")}>
           <input
             type="number"
             name="amount"
@@ -104,32 +107,32 @@ export function SubForm({
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px] font-mono"
           />
         </Field>
-        <Field label="ສະກຸນເງິນ">
+        <Field label={tm("subCurrency")}>
           <select
             name="currency"
             defaultValue={initial.currency}
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
           >
-            <option value="LAK">LAK (ກີບ)</option>
+            <option value="LAK">{tm("subCurrencyLak")}</option>
             <option value="USD">USD</option>
             <option value="THB">THB</option>
           </select>
         </Field>
-        <Field label="ຮອບການຈ່າຍ">
+        <Field label={tm("subCycle")}>
           <select
             name="billingCycle"
             defaultValue={initial.billingCycle}
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
           >
-            <option value="MONTHLY">ລາຍເດືອນ</option>
-            <option value="QUARTERLY">ລາຍໄຕມາດ</option>
-            <option value="YEARLY">ລາຍປີ</option>
+            <option value="MONTHLY">{tm("subMonthly")}</option>
+            <option value="QUARTERLY">{tm("subQuarterly")}</option>
+            <option value="YEARLY">{tm("subYearly")}</option>
           </select>
         </Field>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="ວັນເລີ່ມ">
+        <Field label={tm("subStartDate")}>
           <input
             type="date"
             name="startDate"
@@ -138,7 +141,7 @@ export function SubForm({
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
           />
         </Field>
-        <Field label="ວັນຕໍ່ໃໝ່ຄັ້ງຕໍ່ໄປ">
+        <Field label={tm("subNextRenewal")}>
           <input
             type="date"
             name="nextRenewalDate"
@@ -156,10 +159,10 @@ export function SubForm({
           defaultChecked={initial.autoRenew}
           className="w-4 h-4"
         />
-        <span>ຕໍ່ໃໝ່ອັດຕະໂນມັດ (Auto-renew)</span>
+        <span>{tm("subAutoRenew")}</span>
       </label>
 
-      <Field label="ໝາຍເຫດ (ບໍ່ບັງຄັບ)">
+      <Field label={tm("subNotes")}>
         <textarea
           name="notes"
           defaultValue={initial.notes}
@@ -175,10 +178,10 @@ export function SubForm({
           className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-1.5 rounded text-[13px] font-medium disabled:opacity-50"
         >
           {pending
-            ? "ກຳລັງ..."
+            ? tm("working")
             : mode === "create"
-              ? "ສ້າງ"
-              : "ບັນທຶກການແກ້ໄຂ"}
+              ? tm("subCreate")
+              : tm("subSaveEdit")}
         </button>
         {mode === "edit" && id && (
           <>
@@ -186,12 +189,12 @@ export function SubForm({
               <button
                 type="button"
                 onClick={async () => {
-                  if (!confirm("ຍົກເລີກ subscription ນີ້?")) return;
+                  if (!confirm(tm("subCancelConfirm"))) return;
                   await cancelSubscription(id);
                 }}
                 className="border border-amber-300 text-amber-700 hover:bg-amber-50 px-3 py-1.5 rounded text-[13px] font-medium"
               >
-                ຍົກເລີກ
+                {tm("cancel")}
               </button>
             ) : (
               <button
@@ -201,19 +204,19 @@ export function SubForm({
                 }}
                 className="border border-emerald-300 text-emerald-700 hover:bg-emerald-50 px-3 py-1.5 rounded text-[13px] font-medium"
               >
-                Reactivate
+                {tm("reactivateBtn")}
               </button>
             )}
             <button
               type="button"
               onClick={async () => {
-                if (!confirm("ລົບຖາວອນ? ປະຫວັດການຈ່າຍຍັງເຫຼືອໃນ Ledger")) return;
+                if (!confirm(tm("subDeleteConfirm"))) return;
                 await deleteSubscription(id);
                 router.push("/manage/subscriptions");
               }}
               className="border border-red-300 text-red-700 hover:bg-red-50 px-3 py-1.5 rounded text-[13px] font-medium"
             >
-              ລົບ
+              {tm("delete")}
             </button>
           </>
         )}

@@ -2,6 +2,12 @@ import Link from "next/link";
 import { masterPrisma } from "@/lib/master-prisma";
 import { TenantStatus, BillingStatus } from "@/generated/master/client";
 import { aggregatePnL, daysUntil, cycleLabel } from "@/lib/ledger";
+import { loadInbox, inboxCounts } from "@/lib/inbox";
+import { OdooListPage } from "@/components/odoo/sheet";
+import { t } from "@/lib/i18n/messages";
+
+const LOCALE = "lo";
+const tm = (k: string) => t(LOCALE, "manage", k);
 
 const DATETIME_FMT = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Asia/Vientiane",
@@ -20,6 +26,7 @@ function fmtMoney(n: number) {
 export default async function DashboardPage() {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const next30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
   const [
     tenantsByStatus,
@@ -30,6 +37,8 @@ export default async function DashboardPage() {
     recentSignups,
     monthLedger,
     upcomingRenewals,
+    inbox,
+    recentAudit,
   ] = await Promise.all([
     masterPrisma.tenant.groupBy({
       by: ["status"],
@@ -75,14 +84,23 @@ export default async function DashboardPage() {
       where: {
         status: "ACTIVE",
         nextRenewalDate: {
-          lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          lte: next30Days,
         },
       },
       orderBy: { nextRenewalDate: "asc" },
       take: 8,
       include: { category: { select: { name: true } } },
     }),
+    // Top of the inbox (alerts admin should action)
+    loadInbox(),
+    // Last 8 admin actions for the feed
+    masterPrisma.adminAuditLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    }),
   ]);
+
+  const inboxStats = inboxCounts(inbox);
 
   const monthPnl = aggregatePnL(monthLedger);
   const monthNet =
@@ -96,38 +114,35 @@ export default async function DashboardPage() {
     billingTotals.find((b) => b.status === st)?._sum.amount ?? 0;
 
   return (
-    <div>
-      <div className="mb-5">
-        <h1 className="text-[22px] font-medium text-gray-900">Dashboard</h1>
-        <p className="text-[12px] text-gray-500 mt-1">
-          ສະຫຼຸບສະພາບລະບົບ — ອັບເດດອັດຕະໂນມັດ
-        </p>
-      </div>
-
+    <OdooListPage
+      title={tm("dashTitle")}
+      subtitle={tm("dashSubtitleFull")}
+    >
+      <>
       {/* Top KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <Kpi
-          label="ລາຍຮັບເດືອນນີ້"
+          label={tm("kpiRevenue")}
           value={`${fmtMoney((monthRevenue._sum.amount ?? 0) + monthPnl.income)} ກີບ`}
-          sub={`${monthRevenue._count} ໃບ + ${monthLedger.filter((e) => e.type === "INCOME").length} ອື່ນໆ`}
+          sub={`${monthRevenue._count} ${tm("kpiInvSuffix")} + ${monthLedger.filter((e) => e.type === "INCOME").length} ${tm("kpiOther")}`}
           colour="emerald"
         />
         <Kpi
-          label="ລາຍຈ່າຍເດືອນນີ້"
+          label={tm("kpiExpense")}
           value={`${fmtMoney(monthPnl.expense)} ກີບ`}
-          sub={`${monthLedger.filter((e) => e.type === "EXPENSE").length} ລາຍການ`}
+          sub={`${monthLedger.filter((e) => e.type === "EXPENSE").length} ${tm("kpiItems")}`}
           colour="rose"
         />
         <Kpi
-          label="ກຳໄລເດືອນນີ້"
+          label={tm("kpiProfit")}
           value={`${fmtMoney(monthNet)} ກີບ`}
-          sub="ລາຍຮັບ − ລາຍຈ່າຍ"
+          sub={tm("kpiPnLFormula")}
           colour={monthNet >= 0 ? "emerald" : "rose"}
         />
         <Kpi
-          label="Pending approval"
+          label={tm("kpiPendingAprv")}
           value={String(pendingRequests)}
-          sub="ລໍຖ້າຕັດສິນ"
+          sub={tm("kpiPending")}
           colour={pendingRequests > 0 ? "rose" : "slate"}
           href={pendingRequests > 0 ? "/manage/approvals" : undefined}
         />
@@ -136,28 +151,28 @@ export default async function DashboardPage() {
       {/* Second row: tenant + billing snapshot */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <Kpi
-          label="Tenants ACTIVE"
+          label={tm("kpiTenantActive")}
           value={String(tenantCount(TenantStatus.ACTIVE))}
-          sub={`${tenantCount(TenantStatus.TRIAL)} ກຳລັງທົດລອງ`}
+          sub={`${tenantCount(TenantStatus.TRIAL)} ${tm("kpiTenantTrialing")}`}
           colour="slate"
         />
         <Kpi
-          label="ໃບເກັບເງິນຍັງບໍ່ຈ່າຍ"
+          label={tm("kpiUnpaidInv")}
           value={`${fmtMoney(billingAmount("UNPAID"))} ກີບ`}
-          sub={`${billingCount("UNPAID")} ໃບ`}
+          sub={`${billingCount("UNPAID")} ${tm("kpiInvSuffix")}`}
           colour="amber"
           href="/manage/billing?status=UNPAID"
         />
         <Kpi
-          label="ໃບເກັບເງິນຈ່າຍແລ້ວ"
+          label={tm("kpiPaidInv")}
           value={`${fmtMoney(billingAmount("PAID"))} ກີບ`}
-          sub={`${billingCount("PAID")} ໃບ ສະສົມ`}
+          sub={`${billingCount("PAID")} ${tm("kpiPaidInvSuffix")}`}
           colour="emerald"
         />
         <Kpi
-          label="Renewals ໃນ 30 ວັນ"
+          label={tm("kpiRenewals")}
           value={String(upcomingRenewals.length)}
-          sub="subscription ໃກ້ໝົດ"
+          sub={tm("kpiSubsExpire")}
           colour={upcomingRenewals.length > 0 ? "amber" : "slate"}
           href="/manage/subscriptions"
         />
@@ -167,7 +182,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
         <div className="bg-white border border-gray-200 rounded p-4">
           <h2 className="text-[12px] uppercase tracking-widest text-gray-500 font-medium mb-3">
-            Tenants ຕາມສະຖານະ
+            {tm("tenantsByStatus")}
           </h2>
           <div className="space-y-2">
             <StatusBar
@@ -186,7 +201,7 @@ export default async function DashboardPage() {
                 tenantCount(TenantStatus.TRIAL) +
                 tenantCount(TenantStatus.SUSPENDED) +
                 tenantCount(TenantStatus.CANCELLED)}
-              colour="blue"
+              colour="odoo"
             />
             <StatusBar
               label="SUSPENDED"
@@ -211,23 +226,23 @@ export default async function DashboardPage() {
 
         <div className="bg-white border border-gray-200 rounded p-4">
           <h2 className="text-[12px] uppercase tracking-widest text-gray-500 font-medium mb-3">
-            Billing ສະຫຼຸບ
+            {tm("billingSummary")}
           </h2>
           <div className="space-y-2 text-[13px]">
             <BillingRow
-              label="ຍັງບໍ່ຈ່າຍ"
+              label={tm("unpaid")}
               amount={billingAmount("UNPAID")}
               count={billingCount("UNPAID")}
               colour="amber"
             />
             <BillingRow
-              label="ຈ່າຍແລ້ວ"
+              label={tm("paid")}
               amount={billingAmount("PAID")}
               count={billingCount("PAID")}
               colour="emerald"
             />
             <BillingRow
-              label="ຍົກເລີກ"
+              label={tm("cancelled")}
               amount={billingAmount("CANCELLED")}
               count={billingCount("CANCELLED")}
               colour="gray"
@@ -236,18 +251,112 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* Inbox preview + Audit feed */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+        <div className="bg-white border border-gray-200 rounded p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[12px] uppercase tracking-widest text-gray-500 font-medium">
+              📥 Inbox{" "}
+              {inboxStats.total > 0 && (
+                <span className="ml-1 text-[10px] bg-odoo text-white px-1.5 rounded-full">
+                  {inboxStats.total}
+                </span>
+              )}
+            </h2>
+            <Link
+              href="/manage/inbox"
+              className="text-[11px] text-slate-700 hover:underline"
+            >
+              {tm("viewAll")} →
+            </Link>
+          </div>
+          {inbox.length === 0 ? (
+            <p className="text-[12px] text-gray-400 italic">
+              {tm("nothingToDo")}
+            </p>
+          ) : (
+            <ul className="divide-y divide-gray-100 text-[13px]">
+              {inbox.slice(0, 6).map((it) => (
+                <li key={it.id}>
+                  <Link
+                    href={it.href ?? "/manage/inbox"}
+                    className="flex items-start gap-2 py-1.5 hover:bg-gray-50 -mx-2 px-2 rounded"
+                  >
+                    <span
+                      className={`mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                        it.severity === "critical"
+                          ? "bg-red-500"
+                          : it.severity === "warning"
+                            ? "bg-amber-500"
+                            : "bg-odoo"
+                      }`}
+                    />
+                    <span className="flex-1 truncate text-gray-800">
+                      {it.title}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[12px] uppercase tracking-widest text-gray-500 font-medium">
+              {tm("activityFeed")}
+            </h2>
+            <Link
+              href="/manage/audit"
+              className="text-[11px] text-slate-700 hover:underline"
+            >
+              {tm("viewAll")} →
+            </Link>
+          </div>
+          {recentAudit.length === 0 ? (
+            <p className="text-[12px] text-gray-400 italic">{tm("nothingYet")}</p>
+          ) : (
+            <ul className="divide-y divide-gray-100 text-[13px]">
+              {recentAudit.map((a) => (
+                <li
+                  key={a.id}
+                  className="py-1.5 flex items-start gap-2"
+                >
+                  <span className="text-[10px] text-gray-400 w-24 flex-shrink-0">
+                    {DATETIME_FMT.format(a.createdAt)}
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <div className="text-gray-800 truncate">
+                      <span className="font-mono text-[11px] text-gray-500">
+                        {a.action}
+                      </span>{" "}
+                      {a.entityLabel && (
+                        <span className="text-gray-700">— {a.entityLabel}</span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-gray-500">
+                      {a.actorEmail ?? "system"}
+                    </div>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
       {/* Upcoming renewals */}
       {upcomingRenewals.length > 0 && (
         <div className="bg-white border border-gray-200 rounded p-4 mb-3">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[12px] uppercase tracking-widest text-gray-500 font-medium">
-              🔄 ສັນຍາໃກ້ໝົດອາຍຸ (30 ວັນຂ້າງໜ້າ)
+              {tm("upcomingRenewals")}
             </h2>
             <Link
               href="/manage/subscriptions"
               className="text-[11px] text-slate-700 hover:underline"
             >
-              ເບິ່ງທັງໝົດ →
+              {tm("viewAll")} →
             </Link>
           </div>
           <div className="divide-y divide-gray-100 text-[13px]">
@@ -290,10 +399,10 @@ export default async function DashboardPage() {
                         }`}
                       >
                         {overdue
-                          ? `ເກີນກຳນົດ ${-d} ວັນ`
+                          ? `${tm("overdueDaysPrefix")} ${-d} ${tm("overdueDaysSuffix")}`
                           : d === 0
-                            ? "ມື້ນີ້"
-                            : `ເຫຼືອ ${d} ວັນ`}
+                            ? tm("today")
+                            : `${tm("remainingDays")} ${d} ${tm("daysSuffix")}`}
                       </div>
                     </div>
                   </div>
@@ -309,17 +418,17 @@ export default async function DashboardPage() {
         <div className="bg-white border border-gray-200 rounded p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[12px] uppercase tracking-widest text-gray-500 font-medium">
-              ໃບເກັບເງິນຫຼ້າສຸດ
+              {tm("recentInvoices")}
             </h2>
             <Link
               href="/manage/billing"
               className="text-[11px] text-slate-700 hover:underline"
             >
-              ເບິ່ງທັງໝົດ →
+              {tm("viewAll")} →
             </Link>
           </div>
           {recentInvoices.length === 0 ? (
-            <p className="text-[12px] text-gray-400 italic">ຍັງບໍ່ມີ</p>
+            <p className="text-[12px] text-gray-400 italic">{tm("nothingYet")}</p>
           ) : (
             <div className="divide-y divide-gray-100 text-[13px]">
               {recentInvoices.map((inv) => (
@@ -359,17 +468,17 @@ export default async function DashboardPage() {
         <div className="bg-white border border-gray-200 rounded p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[12px] uppercase tracking-widest text-gray-500 font-medium">
-              Tenants ໃໝ່
+              {tm("newTenants")}
             </h2>
             <Link
               href="/manage/tenants"
               className="text-[11px] text-slate-700 hover:underline"
             >
-              ເບິ່ງທັງໝົດ →
+              {tm("viewAll")} →
             </Link>
           </div>
           {recentSignups.length === 0 ? (
-            <p className="text-[12px] text-gray-400 italic">ຍັງບໍ່ມີ</p>
+            <p className="text-[12px] text-gray-400 italic">{tm("nothingYet")}</p>
           ) : (
             <div className="divide-y divide-gray-100 text-[13px]">
               {recentSignups.map((t) => (
@@ -398,7 +507,8 @@ export default async function DashboardPage() {
           )}
         </div>
       </div>
-    </div>
+      </>
+    </OdooListPage>
   );
 }
 
@@ -448,12 +558,12 @@ function StatusBar({
   label: string;
   count: number;
   total: number;
-  colour: "emerald" | "blue" | "amber" | "gray";
+  colour: "emerald" | "odoo" | "amber" | "gray";
 }) {
   const pct = total > 0 ? Math.round((count / total) * 100) : 0;
   const barColour = {
     emerald: "bg-emerald-500",
-    blue: "bg-blue-500",
+    odoo: "bg-odoo",
     amber: "bg-amber-500",
     gray: "bg-gray-400",
   }[colour];

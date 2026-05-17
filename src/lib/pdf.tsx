@@ -265,11 +265,14 @@ type InvoiceWithRelations = {
   user: { name: string };
   items: {
     id: string;
+    lineType: string;
     productName: string;
     unit: string;
     quantity: number;
     priceLak: number;
     discount: number;
+    taxRate: number;
+    taxAmount: number;
     total: number;
   }[];
 };
@@ -321,6 +324,22 @@ function paymentMethodLabel(method: string): string {
   }
 }
 
+function vatRateLabel(
+  items: InvoiceWithRelations["items"],
+  fallbackRate: number,
+): string {
+  const rates = Array.from(
+    new Set(
+      items
+        .filter((item) => item.lineType === "PRODUCT")
+        .map((item) => item.taxRate),
+    ),
+  );
+  if (rates.length === 0) return `${(fallbackRate * 100).toFixed(0)} %`;
+  if (rates.length === 1) return `${(rates[0] * 100).toFixed(0)} %`;
+  return "ຕາມແຕ່ລະລາຍການ";
+}
+
 function InvoicePdf({
   invoice,
   settings,
@@ -334,7 +353,11 @@ function InvoicePdf({
   const inCur = (lak: number) =>
     currency === "LAK" ? lak : lak / invoice.exchangeRate;
 
-  const taxExcluding = invoice.subtotal - invoice.discount;
+  const afterDiscount = Math.max(0, invoice.subtotal - invoice.discount);
+  const taxExcluding =
+    invoice.vatMode === "INCLUSIVE"
+      ? Math.max(0, afterDiscount - invoice.vatAmount)
+      : afterDiscount;
   const dateStr = formatDDMMYYYY(invoice.date);
 
   const village = invoice.customer.village?.name;
@@ -496,16 +519,34 @@ function InvoicePdf({
             <Text style={s.cTotal}>ລວມ</Text>
           </View>
           <View style={s.tableBody}>
-            {invoice.items.map((it, i) => (
-              <View key={it.id} style={s.tableRow}>
-                <Text style={s.cNo}>{i + 1}</Text>
-                <Text style={s.cName}>{laoText(it.productName)}</Text>
-                <Text style={s.cQty}>{formatNumber(it.quantity, 1)}</Text>
-                <Text style={s.cUnit}>{laoText(it.unit)}</Text>
-                <Text style={s.cPrice}>{formatNumber(inCur(it.priceLak))}</Text>
-                <Text style={s.cTotal}>{formatNumber(inCur(it.total))}</Text>
-              </View>
-            ))}
+            {invoice.items.map((it, i) =>
+              it.lineType === "SECTION" || it.lineType === "NOTE" ? (
+                <View key={it.id} style={s.tableRow}>
+                  <Text style={s.cNo}>{i + 1}</Text>
+                  <Text
+                    style={[
+                      s.cName,
+                      it.lineType === "SECTION" ? { fontWeight: 700 } : {},
+                    ]}
+                  >
+                    {laoText(it.productName)}
+                  </Text>
+                  <Text style={s.cQty}></Text>
+                  <Text style={s.cUnit}></Text>
+                  <Text style={s.cPrice}></Text>
+                  <Text style={s.cTotal}></Text>
+                </View>
+              ) : (
+                <View key={it.id} style={s.tableRow}>
+                  <Text style={s.cNo}>{i + 1}</Text>
+                  <Text style={s.cName}>{laoText(it.productName)}</Text>
+                  <Text style={s.cQty}>{formatNumber(it.quantity, 1)}</Text>
+                  <Text style={s.cUnit}>{laoText(it.unit)}</Text>
+                  <Text style={s.cPrice}>{formatNumber(inCur(it.priceLak))}</Text>
+                  <Text style={s.cTotal}>{formatNumber(inCur(it.total))}</Text>
+                </View>
+              ),
+            )}
           </View>
         </View>
 
@@ -526,7 +567,7 @@ function InvoicePdf({
             <View style={s.totRow}>
               <Text style={s.totLabel}>
                 ອັດຕາອາກອນມູນຄ່າເພີ່ມ: ອມພ{" "}
-                {(invoice.vatRate * 100).toFixed(0)} %, ເປັນຈໍານວນເງິນ:
+                {vatRateLabel(invoice.items, invoice.vatRate)}, ເປັນຈໍານວນເງິນ:
               </Text>
               <Text style={[s.totVal, s.totValLine]}>
                 {formatNumber(inCur(invoice.vatAmount))}

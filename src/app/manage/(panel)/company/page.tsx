@@ -1,5 +1,9 @@
 import { masterPrisma } from "@/lib/master-prisma";
 import { BillingConfigForm } from "./form";
+import { OdooListPage } from "@/components/odoo/sheet";
+import { t } from "@/lib/i18n/messages";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 export default async function CompanySettingsPage() {
   const [cfg, products] = await Promise.all([
@@ -25,16 +29,13 @@ export default async function CompanySettingsPage() {
   };
 
   return (
-    <div>
-      <h1 className="text-[22px] font-medium text-gray-900 mb-1">
-        ກຳນົດບໍລິສັດ
-      </h1>
-      <p className="text-[12px] text-gray-500 mb-5">
-        ຂໍ້ມູນບໍລິສັດ SMLAO (ປະກົດໃນ PDF) + ການກຳນົດສິນຄ້າ default ສຳລັບແຕ່ລະ plan
-      </p>
+    <OdooListPage
+      title={tm("companyTitle")}
+      subtitle={tm("companySubtitle")}
+    >
       <div className="bg-white border border-gray-200 rounded p-5 max-w-3xl">
         <BillingConfigForm initial={initial} products={products} />
       </div>
-    </div>
+    </OdooListPage>
   );
 }

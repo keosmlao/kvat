@@ -56,6 +56,8 @@ export const ModelName = {
   BillingProduct: 'BillingProduct',
   BillingInvoice: 'BillingInvoice',
   BillingInvoiceItem: 'BillingInvoiceItem',
+  BillingQuote: 'BillingQuote',
+  BillingQuoteItem: 'BillingQuoteItem',
   LedgerCategory: 'LedgerCategory',
   LedgerEntry: 'LedgerEntry',
   Subscription: 'Subscription',
@@ -63,7 +65,11 @@ export const ModelName = {
   TenantUserEmail: 'TenantUserEmail',
   PasswordResetToken: 'PasswordResetToken',
   ManagementUser: 'ManagementUser',
+  ManagementMessage: 'ManagementMessage',
+  ManagementFollower: 'ManagementFollower',
+  ManagementActivity: 'ManagementActivity',
   LoginLog: 'LoginLog',
+  AdminAuditLog: 'AdminAuditLog',
   EtaxConfig: 'EtaxConfig',
   ApprovalRequest: 'ApprovalRequest'
 } as const
@@ -174,16 +180,62 @@ export const BillingInvoiceItemScalarFieldEnum = {
   id: 'id',
   invoiceId: 'invoiceId',
   productId: 'productId',
+  lineType: 'lineType',
   sn: 'sn',
   description: 'description',
   unit: 'unit',
   quantity: 'quantity',
   unitPrice: 'unitPrice',
   discount: 'discount',
+  taxRate: 'taxRate',
+  taxAmount: 'taxAmount',
   total: 'total'
 } as const
 
 export type BillingInvoiceItemScalarFieldEnum = (typeof BillingInvoiceItemScalarFieldEnum)[keyof typeof BillingInvoiceItemScalarFieldEnum]
+
+
+export const BillingQuoteScalarFieldEnum = {
+  id: 'id',
+  number: 'number',
+  customerId: 'customerId',
+  title: 'title',
+  subtotal: 'subtotal',
+  discount: 'discount',
+  vatMode: 'vatMode',
+  vatRate: 'vatRate',
+  vatAmount: 'vatAmount',
+  amount: 'amount',
+  currency: 'currency',
+  issueDate: 'issueDate',
+  validUntil: 'validUntil',
+  status: 'status',
+  notes: 'notes',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BillingQuoteScalarFieldEnum = (typeof BillingQuoteScalarFieldEnum)[keyof typeof BillingQuoteScalarFieldEnum]
+
+
+export const BillingQuoteItemScalarFieldEnum = {
+  id: 'id',
+  quoteId: 'quoteId',
+  productId: 'productId',
+  lineType: 'lineType',
+  sn: 'sn',
+  description: 'description',
+  unit: 'unit',
+  quantity: 'quantity',
+  unitPrice: 'unitPrice',
+  discount: 'discount',
+  taxRate: 'taxRate',
+  taxAmount: 'taxAmount',
+  total: 'total'
+} as const
+
+export type BillingQuoteItemScalarFieldEnum = (typeof BillingQuoteItemScalarFieldEnum)[keyof typeof BillingQuoteItemScalarFieldEnum]
 
 
 export const LedgerCategoryScalarFieldEnum = {
@@ -291,6 +343,48 @@ export const ManagementUserScalarFieldEnum = {
 export type ManagementUserScalarFieldEnum = (typeof ManagementUserScalarFieldEnum)[keyof typeof ManagementUserScalarFieldEnum]
 
 
+export const ManagementMessageScalarFieldEnum = {
+  id: 'id',
+  body: 'body',
+  kind: 'kind',
+  recordType: 'recordType',
+  recordId: 'recordId',
+  authorId: 'authorId',
+  createdAt: 'createdAt'
+} as const
+
+export type ManagementMessageScalarFieldEnum = (typeof ManagementMessageScalarFieldEnum)[keyof typeof ManagementMessageScalarFieldEnum]
+
+
+export const ManagementFollowerScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  recordType: 'recordType',
+  recordId: 'recordId',
+  createdAt: 'createdAt'
+} as const
+
+export type ManagementFollowerScalarFieldEnum = (typeof ManagementFollowerScalarFieldEnum)[keyof typeof ManagementFollowerScalarFieldEnum]
+
+
+export const ManagementActivityScalarFieldEnum = {
+  id: 'id',
+  summary: 'summary',
+  note: 'note',
+  dueDate: 'dueDate',
+  done: 'done',
+  doneAt: 'doneAt',
+  assignedToId: 'assignedToId',
+  createdById: 'createdById',
+  recordType: 'recordType',
+  recordId: 'recordId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ManagementActivityScalarFieldEnum = (typeof ManagementActivityScalarFieldEnum)[keyof typeof ManagementActivityScalarFieldEnum]
+
+
 export const LoginLogScalarFieldEnum = {
   id: 'id',
   tenantId: 'tenantId',
@@ -301,6 +395,22 @@ export const LoginLogScalarFieldEnum = {
 } as const
 
 export type LoginLogScalarFieldEnum = (typeof LoginLogScalarFieldEnum)[keyof typeof LoginLogScalarFieldEnum]
+
+
+export const AdminAuditLogScalarFieldEnum = {
+  id: 'id',
+  actorId: 'actorId',
+  actorEmail: 'actorEmail',
+  action: 'action',
+  entityType: 'entityType',
+  entityId: 'entityId',
+  entityLabel: 'entityLabel',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  createdAt: 'createdAt'
+} as const
+
+export type AdminAuditLogScalarFieldEnum = (typeof AdminAuditLogScalarFieldEnum)[keyof typeof AdminAuditLogScalarFieldEnum]
 
 
 export const EtaxConfigScalarFieldEnum = {

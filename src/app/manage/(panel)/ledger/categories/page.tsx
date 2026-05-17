@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { masterPrisma } from "@/lib/master-prisma";
 import { CategoryManager } from "./manager";
+import { OdooListPage } from "@/components/odoo/sheet";
 
 export default async function CategoriesPage() {
   const categories = await masterPrisma.ledgerCategory.findMany({
@@ -9,8 +10,12 @@ export default async function CategoriesPage() {
   });
 
   return (
-    <div>
-      <div className="mb-4">
+    <OdooListPage
+      title="ໝວດລາຍຮັບ/ລາຍຈ່າຍ"
+      subtitle="ຈັດການລາຍຊື່ໝວດ — ໝວດທີ່ archive ຍັງສະແດງໃນລາຍການເກົ່າແຕ່ບໍ່ປະກົດຕອນສ້າງໃໝ່"
+    >
+      <>
+      <div className="mb-3">
         <Link
           href="/manage/ledger"
           className="text-[12px] text-gray-500 hover:text-gray-800"
@@ -18,12 +23,6 @@ export default async function CategoriesPage() {
           ← Ledger
         </Link>
       </div>
-      <h1 className="text-[22px] font-medium text-gray-900 mb-1">
-        ໝວດລາຍຮັບ/ລາຍຈ່າຍ
-      </h1>
-      <p className="text-[12px] text-gray-500 mb-5">
-        ຈັດການລາຍຊື່ໝວດ — ໝວດທີ່ archive ຍັງສະແດງໃນລາຍການເກົ່າແຕ່ບໍ່ປະກົດຕອນສ້າງໃໝ່
-      </p>
       <CategoryManager
         categories={categories.map((c) => ({
           id: c.id,
@@ -33,6 +32,7 @@ export default async function CategoriesPage() {
           entryCount: c._count.entries,
         }))}
       />
-    </div>
+      </>
+    </OdooListPage>
   );
 }

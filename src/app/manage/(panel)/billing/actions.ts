@@ -6,6 +6,7 @@ import { z } from "zod";
 import { masterPrisma } from "@/lib/master-prisma";
 import { requireManagement } from "@/lib/management-session";
 import { nextBillingInvoiceNumber } from "@/lib/billing";
+import { recordAudit } from "@/lib/audit";
 import { BillingStatus } from "@/generated/master/client";
 
 export type BillingState = { error?: string; success?: string } | undefined;
@@ -13,18 +14,21 @@ export type BillingState = { error?: string; success?: string } | undefined;
 // ───────────────────────── Item math ─────────────────────────
 
 const itemInputSchema = z.object({
+  kind: z.enum(["product", "section", "note"]).default("product"),
+  lineType: z.enum(["PRODUCT", "SECTION", "NOTE"]).optional(),
   productId: z.string().optional(),
   description: z.string().min(1).max(500),
   unit: z.string().max(40).optional(),
   quantity: z.coerce.number().min(0),
   unitPrice: z.coerce.number().min(0),
   discount: z.coerce.number().min(0).optional(),
+  taxRate: z.coerce.number().min(0).max(1).optional(),
 });
 
 type ItemInput = z.infer<typeof itemInputSchema>;
 
 type Totals = {
-  items: (ItemInput & { total: number; sn: number })[];
+  items: (ItemInput & { total: number; taxAmount: number; sn: number })[];
   subtotal: number;
   discount: number;
   vatAmount: number;
@@ -38,11 +42,39 @@ function computeTotals(args: {
   invoiceDiscount: number;
 }): Totals {
   const items = args.items.map((it, i) => {
+    const kind: "product" | "section" | "note" =
+      it.lineType === "SECTION" || it.kind === "section"
+        ? "section"
+        : it.lineType === "NOTE" || it.kind === "note"
+          ? "note"
+          : "product";
+    if (kind !== "product") {
+      const lineType: "SECTION" | "NOTE" =
+        kind === "section" ? "SECTION" : "NOTE";
+      return {
+        ...it,
+        kind,
+        lineType,
+        productId: undefined,
+        unit: "",
+        quantity: 0,
+        unitPrice: 0,
+        discount: 0,
+        taxRate: 0,
+        taxAmount: 0,
+        sn: i + 1,
+        total: 0,
+      };
+    }
     const lineDiscount = it.discount ?? 0;
     const total = Math.max(0, it.quantity * it.unitPrice - lineDiscount);
     return {
       ...it,
+      kind,
+      lineType: "PRODUCT" as const,
       discount: lineDiscount,
+      taxRate: it.taxRate ?? args.vatRate,
+      taxAmount: 0,
       unit: it.unit ?? "ໜ່ວຍ",
       sn: i + 1,
       total,
@@ -51,19 +83,27 @@ function computeTotals(args: {
 
   const subtotal = items.reduce((s, it) => s + it.total, 0);
   const afterDiscount = Math.max(0, subtotal - args.invoiceDiscount);
-
+  const discountRatio = subtotal > 0 ? afterDiscount / subtotal : 0;
   let vatAmount = 0;
   let grandTotal = afterDiscount;
   if (args.vatMode === "EXEMPT") {
     vatAmount = 0;
     grandTotal = afterDiscount;
-  } else if (args.vatMode === "EXCLUSIVE") {
-    vatAmount = Math.round(afterDiscount * args.vatRate * 100) / 100;
-    grandTotal = afterDiscount + vatAmount;
   } else {
-    vatAmount =
-      Math.round((afterDiscount * args.vatRate / (1 + args.vatRate)) * 100) /
-      100;
+    for (const it of items) {
+      if (it.kind !== "product") continue;
+      const taxableBase = it.total * discountRatio;
+      it.taxAmount =
+        args.vatMode === "INCLUSIVE"
+          ? Math.round(((taxableBase * (it.taxRate ?? 0)) / (1 + (it.taxRate ?? 0))) * 100) / 100
+          : Math.round(taxableBase * (it.taxRate ?? 0) * 100) / 100;
+      vatAmount += it.taxAmount;
+    }
+    vatAmount = Math.round(vatAmount * 100) / 100;
+  }
+  if (args.vatMode === "EXCLUSIVE") {
+    grandTotal = afterDiscount + vatAmount;
+  } else if (args.vatMode === "INCLUSIVE") {
     grandTotal = afterDiscount;
   }
 
@@ -96,9 +136,14 @@ function parseItems(formData: FormData): ItemInput[] {
     const o = r as Record<string, unknown>;
     const description = String(o.description ?? "").trim();
     if (!description) continue;
+    const rawKind = String(o.kind ?? o.lineType ?? "product").toUpperCase();
+    const kind: "product" | "section" | "note" =
+      rawKind === "SECTION" ? "section" : rawKind === "NOTE" ? "note" : "product";
     out.push({
+      kind,
+      lineType: kind === "section" ? "SECTION" : kind === "note" ? "NOTE" : "PRODUCT",
       productId:
-        typeof o.productId === "string" && o.productId.trim()
+        kind === "product" && typeof o.productId === "string" && o.productId.trim()
           ? o.productId.trim()
           : undefined,
       description,
@@ -106,6 +151,7 @@ function parseItems(formData: FormData): ItemInput[] {
       quantity: Number(o.quantity ?? 1) || 0,
       unitPrice: Number(o.unitPrice ?? 0) || 0,
       discount: Number(o.discount ?? 0) || 0,
+      taxRate: Number(o.taxRate ?? 0.1) || 0,
     });
   }
   return out;
@@ -176,6 +222,7 @@ export async function createBillingInvoice(
       createdBy: mgmt.managementUserId,
       items: {
         create: totals.items.map((it) => ({
+          lineType: it.lineType ?? "PRODUCT",
           sn: it.sn,
           productId: it.productId ?? null,
           description: it.description,
@@ -183,10 +230,22 @@ export async function createBillingInvoice(
           quantity: it.quantity,
           unitPrice: it.unitPrice,
           discount: it.discount ?? 0,
+          taxRate: it.taxRate ?? 0,
+          taxAmount: it.taxAmount,
           total: it.total,
         })),
       },
     },
+  });
+
+  await recordAudit({
+    actorId: mgmt.managementUserId,
+    actorEmail: mgmt.email,
+    action: "billing.create",
+    entityType: "BillingInvoice",
+    entityId: created.id,
+    entityLabel: created.number,
+    metadata: { amount: totals.amount, customerId: parsed.data.customerId },
   });
 
   revalidatePath("/manage/billing");
@@ -198,7 +257,7 @@ export async function updateBillingInvoice(
   _prev: BillingState,
   formData: FormData,
 ): Promise<BillingState> {
-  await requireManagement();
+  const mgmt = await requireManagement();
   const parsed = invoiceSchema.safeParse({
     customerId: String(formData.get("customerId") ?? ""),
     description: String(formData.get("description") ?? "").trim(),
@@ -224,7 +283,7 @@ export async function updateBillingInvoice(
   });
 
   // Replace items wholesale — simpler than reconciling diffs.
-  await masterPrisma.$transaction([
+  const [, updated] = await masterPrisma.$transaction([
     masterPrisma.billingInvoiceItem.deleteMany({ where: { invoiceId: id } }),
     masterPrisma.billingInvoice.update({
       where: { id },
@@ -242,6 +301,7 @@ export async function updateBillingInvoice(
         notes: parsed.data.notes || null,
         items: {
           create: totals.items.map((it) => ({
+            lineType: it.lineType ?? "PRODUCT",
             sn: it.sn,
             productId: it.productId ?? null,
             description: it.description,
@@ -249,12 +309,24 @@ export async function updateBillingInvoice(
             quantity: it.quantity,
             unitPrice: it.unitPrice,
             discount: it.discount ?? 0,
+            taxRate: it.taxRate ?? 0,
+            taxAmount: it.taxAmount,
             total: it.total,
           })),
         },
       },
+      select: { number: true },
     }),
   ]);
+  await recordAudit({
+    actorId: mgmt.managementUserId,
+    actorEmail: mgmt.email,
+    action: "billing.update",
+    entityType: "BillingInvoice",
+    entityId: id,
+    entityLabel: updated.number,
+    metadata: { amount: totals.amount },
+  });
 
   revalidatePath("/manage/billing");
   revalidatePath(`/manage/billing/${id}`);
@@ -274,7 +346,7 @@ export async function markBillingPaid(
   _prev: BillingState,
   formData: FormData,
 ): Promise<BillingState> {
-  await requireManagement();
+  const mgmt = await requireManagement();
   const parsed = markPaidSchema.safeParse({
     paymentMethod: String(formData.get("paymentMethod") ?? "CASH"),
     paymentRef: String(formData.get("paymentRef") ?? "").trim(),
@@ -284,7 +356,7 @@ export async function markBillingPaid(
     return { error: parsed.error.issues[0]?.message ?? "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ" };
   }
 
-  await masterPrisma.billingInvoice.update({
+  const inv = await masterPrisma.billingInvoice.update({
     where: { id },
     data: {
       status: BillingStatus.PAID,
@@ -292,6 +364,16 @@ export async function markBillingPaid(
       paymentRef: parsed.data.paymentRef || null,
       paidAt: parsed.data.paidAt ? new Date(parsed.data.paidAt) : new Date(),
     },
+    select: { number: true, amount: true },
+  });
+  await recordAudit({
+    actorId: mgmt.managementUserId,
+    actorEmail: mgmt.email,
+    action: "billing.mark-paid",
+    entityType: "BillingInvoice",
+    entityId: id,
+    entityLabel: inv.number,
+    metadata: { method: parsed.data.paymentMethod, amount: inv.amount },
   });
 
   revalidatePath("/manage/billing");

@@ -130,17 +130,26 @@ export function PosClient({
         "items",
         JSON.stringify(
           cart.map((c) => ({
+            kind: "product",
             productId: c.productId,
             quantity: c.quantity,
             priceLak: c.priceLak,
             discount: 0,
+            taxRate: defaultVatRate,
           })),
         ),
       );
 
       try {
-        await createInvoice(undefined, fd);
-        // createInvoice redirects on success — won't reach here
+        const result = await createInvoice(undefined, fd);
+        if (result?.error) {
+          setError(result.error);
+          return;
+        }
+        setCart([]);
+        setPaymentRef("");
+        if (result?.pdfUrl) window.open(result.pdfUrl, "_blank", "noopener");
+        if (result?.detailUrl) window.location.href = result.detailUrl;
       } catch (e) {
         // NEXT_REDIRECT is internal; not a real error
         const msg = e instanceof Error ? e.message : String(e);
@@ -163,7 +172,7 @@ export function PosClient({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="ຄົ້ນຫາສິນຄ້າ..."
-              className="flex-1 px-3 py-2 text-[14px] border border-gray-300 rounded focus:outline-none focus:border-[#b91c1c]"
+              className="flex-1 px-3 py-2 text-[14px] border border-gray-300 rounded focus:outline-none focus:border-odoo"
               autoFocus
             />
           </div>
@@ -173,7 +182,7 @@ export function PosClient({
               onClick={() => setActiveCat(null)}
               className={`px-3 py-1.5 rounded text-[13px] whitespace-nowrap ${
                 !activeCat
-                  ? "bg-[#b91c1c] text-white"
+                  ? "bg-odoo text-white"
                   : "bg-white border border-gray-200 text-gray-700"
               }`}
             >
@@ -188,7 +197,7 @@ export function PosClient({
                   onClick={() => setActiveCat(c.id)}
                   className={`px-3 py-1.5 rounded text-[13px] whitespace-nowrap ${
                     activeCat === c.id
-                      ? "bg-[#b91c1c] text-white"
+                      ? "bg-odoo text-white"
                       : "bg-white border border-gray-200 text-gray-700"
                   }`}
                 >
@@ -211,7 +220,7 @@ export function PosClient({
                   type="button"
                   onClick={() => addToCart(p)}
                   disabled={lowStock}
-                  className="bg-white border border-gray-200 rounded p-2 hover:border-[#b91c1c] hover:shadow-md transition text-left disabled:opacity-50 disabled:cursor-not-allowed flex flex-col"
+                  className="bg-white border border-gray-200 rounded p-2 hover:border-odoo hover:shadow-md transition text-left disabled:opacity-50 disabled:cursor-not-allowed flex flex-col"
                 >
                   <div className="aspect-square bg-gray-50 rounded mb-2 flex items-center justify-center overflow-hidden">
                     {p.imageUrl ? (
@@ -222,7 +231,7 @@ export function PosClient({
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <span className="text-3xl font-light text-[#b91c1c]/30">
+                      <span className="text-3xl font-light text-odoo/30">
                         {p.name.charAt(0).toUpperCase()}
                       </span>
                     )}
@@ -262,7 +271,7 @@ export function PosClient({
           <select
             value={customerId}
             onChange={(e) => setCustomerId(e.target.value)}
-            className="w-full px-2 py-1.5 text-[13px] border border-gray-300 rounded focus:outline-none focus:border-[#b91c1c]"
+            className="w-full px-2 py-1.5 text-[13px] border border-gray-300 rounded focus:outline-none focus:border-odoo"
           >
             {customers.map((c) => (
               <option key={c.id} value={c.id}>
@@ -358,7 +367,7 @@ export function PosClient({
               onClick={() => setPaymentMethod("CASH")}
               className={`py-2 rounded text-[14px] font-medium transition ${
                 paymentMethod === "CASH"
-                  ? "bg-[#b91c1c] text-white"
+                  ? "bg-odoo text-white"
                   : "bg-white border border-gray-300 text-gray-700"
               }`}
             >
@@ -369,7 +378,7 @@ export function PosClient({
               onClick={() => setPaymentMethod("TRANSFER")}
               className={`py-2 rounded text-[14px] font-medium transition ${
                 paymentMethod === "TRANSFER"
-                  ? "bg-[#b91c1c] text-white"
+                  ? "bg-odoo text-white"
                   : "bg-white border border-gray-300 text-gray-700"
               }`}
             >
@@ -382,7 +391,7 @@ export function PosClient({
               value={paymentRef}
               onChange={(e) => setPaymentRef(e.target.value)}
               placeholder="ເລກ slip / transaction ID"
-              className="w-full px-2 py-1.5 text-[13px] border border-gray-300 rounded focus:outline-none focus:border-[#b91c1c]"
+              className="w-full px-2 py-1.5 text-[13px] border border-gray-300 rounded focus:outline-none focus:border-odoo"
             />
           )}
 

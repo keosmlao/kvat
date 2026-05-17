@@ -1,20 +1,23 @@
 import { prisma } from "@/lib/prisma";
 import { InvoiceForm } from "./invoice-form";
 import { createInvoice } from "../actions";
+import { getLocale } from "@/lib/i18n/server";
 
 export default async function NewInvoicePage() {
-  const [products, customers, settings] = await Promise.all([
+  const [products, customers, settings, locale] = await Promise.all([
     prisma.product.findMany({
       where: { active: true },
       orderBy: { name: "asc" },
     }),
     prisma.customer.findMany({ orderBy: { name: "asc" } }),
     prisma.setting.findUnique({ where: { id: "default" } }),
+    getLocale(),
   ]);
 
   return (
     <InvoiceForm
       action={createInvoice}
+      locale={locale}
       products={products.map((p) => ({
         id: p.id,
         code: p.code,

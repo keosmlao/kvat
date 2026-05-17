@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/session";
 import { AddressClient } from "./address-client";
+import { OdooListPage } from "@/components/odoo/sheet";
 
 export default async function AddressesPage() {
   await requireAdmin();
@@ -34,39 +35,44 @@ export default async function AddressesPage() {
   ]);
 
   return (
-    <AddressClient
-      provinces={provinces.map((p) => ({
-        id: p.id,
-        code: p.code,
-        name: p.name,
-        nameEn: p.nameEn ?? "",
-        active: p.active,
-        districtCount: p._count.districts,
-        customerCount: p._count.customers,
-      }))}
-      districts={districts.map((d) => ({
-        id: d.id,
-        code: d.code,
-        name: d.name,
-        nameEn: d.nameEn ?? "",
-        provinceId: d.provinceId,
-        provinceName: d.province.name,
-        active: d.active,
-        villageCount: d._count.villages,
-        customerCount: d._count.customers,
-      }))}
-      villages={villages.map((v) => ({
-        id: v.id,
-        code: v.code ?? "",
-        name: v.name,
-        nameEn: v.nameEn ?? "",
-        districtId: v.districtId,
-        districtName: v.district.name,
-        provinceId: v.district.province.id,
-        provinceName: v.district.province.name,
-        active: v.active,
-        customerCount: v._count.customers,
-      }))}
-    />
+    <OdooListPage
+      title="ທີ່ຢູ່"
+      subtitle="ແຂວງ / ເມືອງ / ບ້ານ — ໃຊ້ສຳລັບລົງທະບຽນລູກຄ້າ"
+    >
+      <AddressClient
+        provinces={provinces.map((p) => ({
+          id: p.id,
+          code: p.code,
+          name: p.name,
+          nameEn: p.nameEn ?? "",
+          active: p.active,
+          districtCount: p._count.districts,
+          customerCount: p._count.customers,
+        }))}
+        districts={districts.map((d) => ({
+          id: d.id,
+          code: d.code,
+          name: d.name,
+          nameEn: d.nameEn ?? "",
+          provinceId: d.provinceId,
+          provinceName: d.province.name,
+          active: d.active,
+          villageCount: d._count.villages,
+          customerCount: d._count.customers,
+        }))}
+        villages={villages.map((v) => ({
+          id: v.id,
+          code: v.code ?? "",
+          name: v.name,
+          nameEn: v.nameEn ?? "",
+          districtId: v.districtId,
+          districtName: v.district.name,
+          provinceId: v.district.province.id,
+          provinceName: v.district.province.name,
+          active: v.active,
+          customerCount: v._count.customers,
+        }))}
+      />
+    </OdooListPage>
   );
 }

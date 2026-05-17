@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { CustomerForm } from "../customer-form";
 import { createCustomer } from "../actions";
+import { getLocale } from "@/lib/i18n/server";
 
 export default async function NewCustomerPage() {
-  const [provinces, districts, villages] = await Promise.all([
+  const [provinces, districts, villages, locale] = await Promise.all([
     prisma.province.findMany({
       where: { active: true },
       orderBy: { name: "asc" },
@@ -19,11 +20,13 @@ export default async function NewCustomerPage() {
       orderBy: { name: "asc" },
       select: { id: true, name: true, districtId: true },
     }),
+    getLocale(),
   ]);
 
   return (
     <CustomerForm
       action={createCustomer}
+      locale={locale}
       provinces={provinces}
       districts={districts}
       villages={villages}

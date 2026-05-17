@@ -257,6 +257,7 @@ export type BillingProductWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"BillingProduct"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"BillingProduct"> | Date | string
   items?: Prisma.BillingInvoiceItemListRelationFilter
+  quoteItems?: Prisma.BillingQuoteItemListRelationFilter
   yearlyForConfig?: Prisma.XOR<Prisma.BillingConfigNullableScalarRelationFilter, Prisma.BillingConfigWhereInput> | null
   lifetimeForConfig?: Prisma.XOR<Prisma.BillingConfigNullableScalarRelationFilter, Prisma.BillingConfigWhereInput> | null
 }
@@ -273,6 +274,7 @@ export type BillingProductOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   items?: Prisma.BillingInvoiceItemOrderByRelationAggregateInput
+  quoteItems?: Prisma.BillingQuoteItemOrderByRelationAggregateInput
   yearlyForConfig?: Prisma.BillingConfigOrderByWithRelationInput
   lifetimeForConfig?: Prisma.BillingConfigOrderByWithRelationInput
 }
@@ -292,6 +294,7 @@ export type BillingProductWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"BillingProduct"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"BillingProduct"> | Date | string
   items?: Prisma.BillingInvoiceItemListRelationFilter
+  quoteItems?: Prisma.BillingQuoteItemListRelationFilter
   yearlyForConfig?: Prisma.XOR<Prisma.BillingConfigNullableScalarRelationFilter, Prisma.BillingConfigWhereInput> | null
   lifetimeForConfig?: Prisma.XOR<Prisma.BillingConfigNullableScalarRelationFilter, Prisma.BillingConfigWhereInput> | null
 }, "id" | "code">
@@ -342,6 +345,7 @@ export type BillingProductCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   items?: Prisma.BillingInvoiceItemCreateNestedManyWithoutProductInput
+  quoteItems?: Prisma.BillingQuoteItemCreateNestedManyWithoutProductInput
   yearlyForConfig?: Prisma.BillingConfigCreateNestedOneWithoutYearlyProductInput
   lifetimeForConfig?: Prisma.BillingConfigCreateNestedOneWithoutLifetimeProductInput
 }
@@ -358,6 +362,7 @@ export type BillingProductUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   items?: Prisma.BillingInvoiceItemUncheckedCreateNestedManyWithoutProductInput
+  quoteItems?: Prisma.BillingQuoteItemUncheckedCreateNestedManyWithoutProductInput
   yearlyForConfig?: Prisma.BillingConfigUncheckedCreateNestedOneWithoutYearlyProductInput
   lifetimeForConfig?: Prisma.BillingConfigUncheckedCreateNestedOneWithoutLifetimeProductInput
 }
@@ -374,6 +379,7 @@ export type BillingProductUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.BillingInvoiceItemUpdateManyWithoutProductNestedInput
+  quoteItems?: Prisma.BillingQuoteItemUpdateManyWithoutProductNestedInput
   yearlyForConfig?: Prisma.BillingConfigUpdateOneWithoutYearlyProductNestedInput
   lifetimeForConfig?: Prisma.BillingConfigUpdateOneWithoutLifetimeProductNestedInput
 }
@@ -390,6 +396,7 @@ export type BillingProductUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.BillingInvoiceItemUncheckedUpdateManyWithoutProductNestedInput
+  quoteItems?: Prisma.BillingQuoteItemUncheckedUpdateManyWithoutProductNestedInput
   yearlyForConfig?: Prisma.BillingConfigUncheckedUpdateOneWithoutYearlyProductNestedInput
   lifetimeForConfig?: Prisma.BillingConfigUncheckedUpdateOneWithoutLifetimeProductNestedInput
 }
@@ -513,6 +520,22 @@ export type BillingProductUpdateOneWithoutItemsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.BillingProductUpdateToOneWithWhereWithoutItemsInput, Prisma.BillingProductUpdateWithoutItemsInput>, Prisma.BillingProductUncheckedUpdateWithoutItemsInput>
 }
 
+export type BillingProductCreateNestedOneWithoutQuoteItemsInput = {
+  create?: Prisma.XOR<Prisma.BillingProductCreateWithoutQuoteItemsInput, Prisma.BillingProductUncheckedCreateWithoutQuoteItemsInput>
+  connectOrCreate?: Prisma.BillingProductCreateOrConnectWithoutQuoteItemsInput
+  connect?: Prisma.BillingProductWhereUniqueInput
+}
+
+export type BillingProductUpdateOneWithoutQuoteItemsNestedInput = {
+  create?: Prisma.XOR<Prisma.BillingProductCreateWithoutQuoteItemsInput, Prisma.BillingProductUncheckedCreateWithoutQuoteItemsInput>
+  connectOrCreate?: Prisma.BillingProductCreateOrConnectWithoutQuoteItemsInput
+  upsert?: Prisma.BillingProductUpsertWithoutQuoteItemsInput
+  disconnect?: Prisma.BillingProductWhereInput | boolean
+  delete?: Prisma.BillingProductWhereInput | boolean
+  connect?: Prisma.BillingProductWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.BillingProductUpdateToOneWithWhereWithoutQuoteItemsInput, Prisma.BillingProductUpdateWithoutQuoteItemsInput>, Prisma.BillingProductUncheckedUpdateWithoutQuoteItemsInput>
+}
+
 export type BillingProductCreateNestedOneWithoutYearlyForConfigInput = {
   create?: Prisma.XOR<Prisma.BillingProductCreateWithoutYearlyForConfigInput, Prisma.BillingProductUncheckedCreateWithoutYearlyForConfigInput>
   connectOrCreate?: Prisma.BillingProductCreateOrConnectWithoutYearlyForConfigInput
@@ -556,6 +579,7 @@ export type BillingProductCreateWithoutItemsInput = {
   active?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  quoteItems?: Prisma.BillingQuoteItemCreateNestedManyWithoutProductInput
   yearlyForConfig?: Prisma.BillingConfigCreateNestedOneWithoutYearlyProductInput
   lifetimeForConfig?: Prisma.BillingConfigCreateNestedOneWithoutLifetimeProductInput
 }
@@ -571,6 +595,7 @@ export type BillingProductUncheckedCreateWithoutItemsInput = {
   active?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  quoteItems?: Prisma.BillingQuoteItemUncheckedCreateNestedManyWithoutProductInput
   yearlyForConfig?: Prisma.BillingConfigUncheckedCreateNestedOneWithoutYearlyProductInput
   lifetimeForConfig?: Prisma.BillingConfigUncheckedCreateNestedOneWithoutLifetimeProductInput
 }
@@ -602,6 +627,7 @@ export type BillingProductUpdateWithoutItemsInput = {
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  quoteItems?: Prisma.BillingQuoteItemUpdateManyWithoutProductNestedInput
   yearlyForConfig?: Prisma.BillingConfigUpdateOneWithoutYearlyProductNestedInput
   lifetimeForConfig?: Prisma.BillingConfigUpdateOneWithoutLifetimeProductNestedInput
 }
@@ -617,6 +643,87 @@ export type BillingProductUncheckedUpdateWithoutItemsInput = {
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  quoteItems?: Prisma.BillingQuoteItemUncheckedUpdateManyWithoutProductNestedInput
+  yearlyForConfig?: Prisma.BillingConfigUncheckedUpdateOneWithoutYearlyProductNestedInput
+  lifetimeForConfig?: Prisma.BillingConfigUncheckedUpdateOneWithoutLifetimeProductNestedInput
+}
+
+export type BillingProductCreateWithoutQuoteItemsInput = {
+  id?: string
+  code: string
+  name: string
+  kind?: $Enums.BillingProductKind
+  description?: string | null
+  unit?: string
+  priceLak?: number
+  active?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  items?: Prisma.BillingInvoiceItemCreateNestedManyWithoutProductInput
+  yearlyForConfig?: Prisma.BillingConfigCreateNestedOneWithoutYearlyProductInput
+  lifetimeForConfig?: Prisma.BillingConfigCreateNestedOneWithoutLifetimeProductInput
+}
+
+export type BillingProductUncheckedCreateWithoutQuoteItemsInput = {
+  id?: string
+  code: string
+  name: string
+  kind?: $Enums.BillingProductKind
+  description?: string | null
+  unit?: string
+  priceLak?: number
+  active?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  items?: Prisma.BillingInvoiceItemUncheckedCreateNestedManyWithoutProductInput
+  yearlyForConfig?: Prisma.BillingConfigUncheckedCreateNestedOneWithoutYearlyProductInput
+  lifetimeForConfig?: Prisma.BillingConfigUncheckedCreateNestedOneWithoutLifetimeProductInput
+}
+
+export type BillingProductCreateOrConnectWithoutQuoteItemsInput = {
+  where: Prisma.BillingProductWhereUniqueInput
+  create: Prisma.XOR<Prisma.BillingProductCreateWithoutQuoteItemsInput, Prisma.BillingProductUncheckedCreateWithoutQuoteItemsInput>
+}
+
+export type BillingProductUpsertWithoutQuoteItemsInput = {
+  update: Prisma.XOR<Prisma.BillingProductUpdateWithoutQuoteItemsInput, Prisma.BillingProductUncheckedUpdateWithoutQuoteItemsInput>
+  create: Prisma.XOR<Prisma.BillingProductCreateWithoutQuoteItemsInput, Prisma.BillingProductUncheckedCreateWithoutQuoteItemsInput>
+  where?: Prisma.BillingProductWhereInput
+}
+
+export type BillingProductUpdateToOneWithWhereWithoutQuoteItemsInput = {
+  where?: Prisma.BillingProductWhereInput
+  data: Prisma.XOR<Prisma.BillingProductUpdateWithoutQuoteItemsInput, Prisma.BillingProductUncheckedUpdateWithoutQuoteItemsInput>
+}
+
+export type BillingProductUpdateWithoutQuoteItemsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  kind?: Prisma.EnumBillingProductKindFieldUpdateOperationsInput | $Enums.BillingProductKind
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  priceLak?: Prisma.FloatFieldUpdateOperationsInput | number
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  items?: Prisma.BillingInvoiceItemUpdateManyWithoutProductNestedInput
+  yearlyForConfig?: Prisma.BillingConfigUpdateOneWithoutYearlyProductNestedInput
+  lifetimeForConfig?: Prisma.BillingConfigUpdateOneWithoutLifetimeProductNestedInput
+}
+
+export type BillingProductUncheckedUpdateWithoutQuoteItemsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  kind?: Prisma.EnumBillingProductKindFieldUpdateOperationsInput | $Enums.BillingProductKind
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  priceLak?: Prisma.FloatFieldUpdateOperationsInput | number
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  items?: Prisma.BillingInvoiceItemUncheckedUpdateManyWithoutProductNestedInput
   yearlyForConfig?: Prisma.BillingConfigUncheckedUpdateOneWithoutYearlyProductNestedInput
   lifetimeForConfig?: Prisma.BillingConfigUncheckedUpdateOneWithoutLifetimeProductNestedInput
 }
@@ -633,6 +740,7 @@ export type BillingProductCreateWithoutYearlyForConfigInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   items?: Prisma.BillingInvoiceItemCreateNestedManyWithoutProductInput
+  quoteItems?: Prisma.BillingQuoteItemCreateNestedManyWithoutProductInput
   lifetimeForConfig?: Prisma.BillingConfigCreateNestedOneWithoutLifetimeProductInput
 }
 
@@ -648,6 +756,7 @@ export type BillingProductUncheckedCreateWithoutYearlyForConfigInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   items?: Prisma.BillingInvoiceItemUncheckedCreateNestedManyWithoutProductInput
+  quoteItems?: Prisma.BillingQuoteItemUncheckedCreateNestedManyWithoutProductInput
   lifetimeForConfig?: Prisma.BillingConfigUncheckedCreateNestedOneWithoutLifetimeProductInput
 }
 
@@ -668,6 +777,7 @@ export type BillingProductCreateWithoutLifetimeForConfigInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   items?: Prisma.BillingInvoiceItemCreateNestedManyWithoutProductInput
+  quoteItems?: Prisma.BillingQuoteItemCreateNestedManyWithoutProductInput
   yearlyForConfig?: Prisma.BillingConfigCreateNestedOneWithoutYearlyProductInput
 }
 
@@ -683,6 +793,7 @@ export type BillingProductUncheckedCreateWithoutLifetimeForConfigInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   items?: Prisma.BillingInvoiceItemUncheckedCreateNestedManyWithoutProductInput
+  quoteItems?: Prisma.BillingQuoteItemUncheckedCreateNestedManyWithoutProductInput
   yearlyForConfig?: Prisma.BillingConfigUncheckedCreateNestedOneWithoutYearlyProductInput
 }
 
@@ -714,6 +825,7 @@ export type BillingProductUpdateWithoutYearlyForConfigInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.BillingInvoiceItemUpdateManyWithoutProductNestedInput
+  quoteItems?: Prisma.BillingQuoteItemUpdateManyWithoutProductNestedInput
   lifetimeForConfig?: Prisma.BillingConfigUpdateOneWithoutLifetimeProductNestedInput
 }
 
@@ -729,6 +841,7 @@ export type BillingProductUncheckedUpdateWithoutYearlyForConfigInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.BillingInvoiceItemUncheckedUpdateManyWithoutProductNestedInput
+  quoteItems?: Prisma.BillingQuoteItemUncheckedUpdateManyWithoutProductNestedInput
   lifetimeForConfig?: Prisma.BillingConfigUncheckedUpdateOneWithoutLifetimeProductNestedInput
 }
 
@@ -755,6 +868,7 @@ export type BillingProductUpdateWithoutLifetimeForConfigInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.BillingInvoiceItemUpdateManyWithoutProductNestedInput
+  quoteItems?: Prisma.BillingQuoteItemUpdateManyWithoutProductNestedInput
   yearlyForConfig?: Prisma.BillingConfigUpdateOneWithoutYearlyProductNestedInput
 }
 
@@ -770,6 +884,7 @@ export type BillingProductUncheckedUpdateWithoutLifetimeForConfigInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.BillingInvoiceItemUncheckedUpdateManyWithoutProductNestedInput
+  quoteItems?: Prisma.BillingQuoteItemUncheckedUpdateManyWithoutProductNestedInput
   yearlyForConfig?: Prisma.BillingConfigUncheckedUpdateOneWithoutYearlyProductNestedInput
 }
 
@@ -780,10 +895,12 @@ export type BillingProductUncheckedUpdateWithoutLifetimeForConfigInput = {
 
 export type BillingProductCountOutputType = {
   items: number
+  quoteItems: number
 }
 
 export type BillingProductCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   items?: boolean | BillingProductCountOutputTypeCountItemsArgs
+  quoteItems?: boolean | BillingProductCountOutputTypeCountQuoteItemsArgs
 }
 
 /**
@@ -803,6 +920,13 @@ export type BillingProductCountOutputTypeCountItemsArgs<ExtArgs extends runtime.
   where?: Prisma.BillingInvoiceItemWhereInput
 }
 
+/**
+ * BillingProductCountOutputType without action
+ */
+export type BillingProductCountOutputTypeCountQuoteItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.BillingQuoteItemWhereInput
+}
+
 
 export type BillingProductSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -816,6 +940,7 @@ export type BillingProductSelect<ExtArgs extends runtime.Types.Extensions.Intern
   createdAt?: boolean
   updatedAt?: boolean
   items?: boolean | Prisma.BillingProduct$itemsArgs<ExtArgs>
+  quoteItems?: boolean | Prisma.BillingProduct$quoteItemsArgs<ExtArgs>
   yearlyForConfig?: boolean | Prisma.BillingProduct$yearlyForConfigArgs<ExtArgs>
   lifetimeForConfig?: boolean | Prisma.BillingProduct$lifetimeForConfigArgs<ExtArgs>
   _count?: boolean | Prisma.BillingProductCountOutputTypeDefaultArgs<ExtArgs>
@@ -863,6 +988,7 @@ export type BillingProductSelectScalar = {
 export type BillingProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "name" | "kind" | "description" | "unit" | "priceLak" | "active" | "createdAt" | "updatedAt", ExtArgs["result"]["billingProduct"]>
 export type BillingProductInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   items?: boolean | Prisma.BillingProduct$itemsArgs<ExtArgs>
+  quoteItems?: boolean | Prisma.BillingProduct$quoteItemsArgs<ExtArgs>
   yearlyForConfig?: boolean | Prisma.BillingProduct$yearlyForConfigArgs<ExtArgs>
   lifetimeForConfig?: boolean | Prisma.BillingProduct$lifetimeForConfigArgs<ExtArgs>
   _count?: boolean | Prisma.BillingProductCountOutputTypeDefaultArgs<ExtArgs>
@@ -874,6 +1000,7 @@ export type $BillingProductPayload<ExtArgs extends runtime.Types.Extensions.Inte
   name: "BillingProduct"
   objects: {
     items: Prisma.$BillingInvoiceItemPayload<ExtArgs>[]
+    quoteItems: Prisma.$BillingQuoteItemPayload<ExtArgs>[]
     yearlyForConfig: Prisma.$BillingConfigPayload<ExtArgs> | null
     lifetimeForConfig: Prisma.$BillingConfigPayload<ExtArgs> | null
   }
@@ -1283,6 +1410,7 @@ readonly fields: BillingProductFieldRefs;
 export interface Prisma__BillingProductClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   items<T extends Prisma.BillingProduct$itemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BillingProduct$itemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BillingInvoiceItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  quoteItems<T extends Prisma.BillingProduct$quoteItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BillingProduct$quoteItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BillingQuoteItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   yearlyForConfig<T extends Prisma.BillingProduct$yearlyForConfigArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BillingProduct$yearlyForConfigArgs<ExtArgs>>): Prisma.Prisma__BillingConfigClient<runtime.Types.Result.GetResult<Prisma.$BillingConfigPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   lifetimeForConfig<T extends Prisma.BillingProduct$lifetimeForConfigArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BillingProduct$lifetimeForConfigArgs<ExtArgs>>): Prisma.Prisma__BillingConfigClient<runtime.Types.Result.GetResult<Prisma.$BillingConfigPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
@@ -1738,6 +1866,30 @@ export type BillingProduct$itemsArgs<ExtArgs extends runtime.Types.Extensions.In
   take?: number
   skip?: number
   distinct?: Prisma.BillingInvoiceItemScalarFieldEnum | Prisma.BillingInvoiceItemScalarFieldEnum[]
+}
+
+/**
+ * BillingProduct.quoteItems
+ */
+export type BillingProduct$quoteItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the BillingQuoteItem
+   */
+  select?: Prisma.BillingQuoteItemSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the BillingQuoteItem
+   */
+  omit?: Prisma.BillingQuoteItemOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BillingQuoteItemInclude<ExtArgs> | null
+  where?: Prisma.BillingQuoteItemWhereInput
+  orderBy?: Prisma.BillingQuoteItemOrderByWithRelationInput | Prisma.BillingQuoteItemOrderByWithRelationInput[]
+  cursor?: Prisma.BillingQuoteItemWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.BillingQuoteItemScalarFieldEnum | Prisma.BillingQuoteItemScalarFieldEnum[]
 }
 
 /**

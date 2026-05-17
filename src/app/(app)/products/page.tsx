@@ -1,13 +1,24 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatMoney } from "@/lib/format";
+import { OdooListPage, OdooPager } from "@/components/odoo/sheet";
+import { OdooSearch, type SearchFacet } from "@/components/odoo-search";
 import { DeleteProductButton } from "./delete-button";
+import { getLocale } from "@/lib/i18n/server";
+import { t } from "@/lib/i18n/messages";
+
+const PAGE_SIZE = 40;
 
 export default async function ProductsPage(props: {
-  searchParams: Promise<{ q?: string; filter?: string; view?: string }>;
+  searchParams: Promise<{ q?: string; filter?: string; view?: string; page?: string }>;
 }) {
-  const { q, filter, view } = await props.searchParams;
+  const { q, filter, view, page: pageParam } = await props.searchParams;
+  const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
   const currentView: "list" | "kanban" = view === "kanban" ? "kanban" : "list";
+  const locale = await getLocale();
+  const tp = (k: string) => t(locale, "product", k);
+  const tc = (k: string) => t(locale, "common", k);
+  const ti = (k: string) => t(locale, "invoice", k);
 
   const where: Record<string, unknown> = {};
   if (q) {
@@ -19,7 +30,7 @@ export default async function ProductsPage(props: {
   if (filter === "active") where.active = true;
   if (filter === "archived") where.active = false;
 
-  const products = await prisma.product.findMany({
+  const fetchedProducts = await prisma.product.findMany({
     where,
     orderBy: { createdAt: "desc" },
     include: { category: true, type: true },
@@ -32,78 +43,78 @@ export default async function ProductsPage(props: {
 
   const visible =
     filter === "low"
-      ? products.filter((p) => p.stock <= p.minStock)
-      : products;
+      ? fetchedProducts.filter((p) => p.stock <= p.minStock)
+      : fetchedProducts;
+
+  const totalCount = visible.length;
+  const products = visible.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const totalValue = visible.reduce(
     (s, p) => s + p.stock * p.priceLak,
     0,
   );
 
-  return (
-    <div className="-mx-4 md:-mx-6 -mt-4 md:-mt-6">
-      {/* Control panel */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="px-4 md:px-6 pt-3 pb-1 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-[15px]">
-            <span className="font-medium text-gray-800">ສິນຄ້າ</span>
-          </div>
-          <form className="flex items-center">
-            <div className="relative">
-              <input
-                type="search"
-                name="q"
-                defaultValue={q ?? ""}
-                placeholder="ຄົ້ນຫາ..."
-                className="w-72 pl-9 pr-3 py-1.5 text-[13px] border border-gray-300 rounded focus:outline-none focus:border-[#b91c1c] focus:ring-2 focus:ring-[#b91c1c]/15 bg-white"
-              />
-              <svg
-                className="absolute left-2.5 top-2 w-4 h-4 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"
-                />
-              </svg>
-            </div>
-            {filter && <input type="hidden" name="filter" value={filter} />}
-            {currentView !== "list" && (
-              <input type="hidden" name="view" value={currentView} />
-            )}
-          </form>
-        </div>
+  const hrefForPage = (nextPage: number) =>
+    buildUrl({ q, filter, view: currentView, page: nextPage });
 
-        <div className="px-4 md:px-6 py-2 flex items-center justify-between gap-3 flex-wrap">
+  return (
+    <OdooListPage
+      title={tp("listTitle")}
+      actions={
+        <>
+          <Link
+            href="/products/new"
+            className="bg-odoo hover:bg-odoo-hover text-white px-3 py-1.5 rounded text-[13px] font-medium"
+          >
+            + {tc("new")}
+          </Link>
+          <OdooSearch
+            facets={
+              [
+                q && { key: "q", label: `${ti("searchPrefix")}: ${q}`, value: q },
+                filter && { key: "filter", label: `${tp("filter")}: ${filter}`, value: filter },
+                currentView !== "list" && {
+                  key: "view",
+                  label: `View: ${currentView}`,
+                  value: currentView,
+                },
+              ].filter(Boolean) as SearchFacet[]
+            }
+            options={[
+              { key: "q", label: tp("searchHint") },
+              {
+                key: "filter",
+                label: tp("filter"),
+                values: [
+                  { value: "active", label: tp("active") },
+                  { value: "archived", label: tp("closed") },
+                  { value: "low", label: tp("lowStock") },
+                ],
+              },
+            ]}
+          />
+        </>
+      }
+      filters={
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-1.5">
-            <Link
-              href="/products/new"
-              className="bg-[#b91c1c] hover:bg-[#991b1b] text-white px-3 py-1 rounded text-[13px] font-medium tracking-wide transition"
-            >
-              ໃໝ່
-            </Link>
-            <span className="text-gray-300 mx-1">|</span>
             <FilterChip
-              label="ທັງໝົດ"
+              label={tc("all")}
               href={buildUrl({ view: currentView })}
               active={!filter}
             />
             <FilterChip
-              label={`ໃຊ້ງານ (${activeCount})`}
+              label={`${tp("active")} (${activeCount})`}
               href={buildUrl({ filter: "active", view: currentView })}
               active={filter === "active"}
             />
             <FilterChip
-              label={`ປິດ (${archivedCount})`}
+              label={`${tp("closed")} (${archivedCount})`}
               href={buildUrl({ filter: "archived", view: currentView })}
               active={filter === "archived"}
             />
             <FilterChip
-              label={`ໃກ້ໝົດ (${lowStockCount})`}
+              label={`${tp("lowStock")} (${lowStockCount})`}
               href={buildUrl({ filter: "low", view: currentView })}
               active={filter === "low"}
             />
@@ -111,52 +122,42 @@ export default async function ProductsPage(props: {
 
           <div className="flex items-center gap-2">
             <span className="text-[12px] text-gray-500 tabular-nums">
-              1-{visible.length} / {visible.length}
+              {tp("stockValue")}: {formatMoney(totalValue)}
             </span>
-            <div className="flex border border-gray-200 rounded overflow-hidden">
-              <button
-                type="button"
-                className="px-1.5 py-1 text-gray-400 hover:bg-gray-50 disabled:opacity-40"
-                disabled
-              >
-                ‹
-              </button>
-              <button
-                type="button"
-                className="px-1.5 py-1 text-gray-400 hover:bg-gray-50 disabled:opacity-40"
-                disabled
-              >
-                ›
-              </button>
-            </div>
+            <OdooPager
+              page={page}
+              pageSize={PAGE_SIZE}
+              total={totalCount}
+              hrefForPage={hrefForPage}
+            />
             <span className="mx-1 text-gray-300">|</span>
             <ViewSwitcher current={currentView} filter={filter} q={q} />
           </div>
         </div>
-      </div>
-
+      }
+    >
       {/* Kanban view */}
       {currentView === "kanban" && (
-        <div className="px-4 md:px-6 py-4">
-          {visible.length === 0 ? (
+        <div>
+          {products.length === 0 ? (
             <div className="text-center py-20">
-              <div className="text-gray-500 text-sm mb-2">ບໍ່ມີສິນຄ້າ</div>
+              <div className="text-gray-500 text-sm mb-2">{tp("noProducts")}</div>
               <Link
                 href="/products/new"
-                className="text-[#b91c1c] hover:underline text-sm font-medium"
+                className="text-odoo hover:underline text-sm font-medium"
               >
-                ສ້າງສິນຄ້າໃໝ່
+                {tp("createFirst")}
               </Link>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-              {visible.map((p) => {
+              {products.map((p) => {
                 const lowStock = p.stock <= p.minStock;
                 return (
                   <Link
                     key={p.id}
                     href={`/products/${p.id}/edit`}
-                    className="bg-white border border-gray-200 rounded overflow-hidden hover:border-[#b91c1c] hover:shadow-md transition flex flex-col group"
+                    className="bg-white border border-gray-200 rounded overflow-hidden hover:border-odoo hover:shadow-md transition flex flex-col group"
                   >
                     <div className="aspect-square bg-gray-50 flex items-center justify-center relative overflow-hidden">
                       {p.imageUrl ? (
@@ -167,20 +168,20 @@ export default async function ProductsPage(props: {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <span className="text-5xl font-light text-[#b91c1c]/30">
+                        <span className="text-5xl font-light text-odoo/30">
                           {p.name.charAt(0).toUpperCase()}
                         </span>
                       )}
                       {!p.active && (
                         <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
                           <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-medium border border-gray-200">
-                            ປິດ
+                            {tp("closed")}
                           </span>
                         </div>
                       )}
                       {p.active && lowStock && (
                         <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-red-50 text-red-700 text-[10px] font-medium border border-red-200">
-                          ⚠ ໃກ້ໝົດ
+                          ⚠ {tp("lowStock")}
                         </span>
                       )}
                     </div>
@@ -188,7 +189,7 @@ export default async function ProductsPage(props: {
                       <div className="text-[10px] font-mono text-gray-500">
                         {p.code}
                       </div>
-                      <div className="text-[13px] font-medium text-gray-800 line-clamp-2 mb-1 group-hover:text-[#b91c1c]">
+                      <div className="text-[13px] font-medium text-gray-800 line-clamp-2 mb-1 group-hover:text-odoo">
                         {p.name}
                       </div>
                       <div className="flex items-center justify-between mt-auto pt-1">
@@ -205,7 +206,7 @@ export default async function ProductsPage(props: {
                       </div>
                       {p.category && (
                         <div className="mt-1">
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-blue-50 text-blue-700 border border-blue-200">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-odoo/10 text-odoo border border-odoo/30">
                             {p.category.name}
                           </span>
                         </div>
@@ -221,57 +222,57 @@ export default async function ProductsPage(props: {
 
       {/* Tree view */}
       {currentView === "list" && (
-      <div className="bg-white">
+      <div>
         <table className="w-full text-[13px]">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200 text-[11px] uppercase tracking-wider text-gray-600">
               <th className="px-3 py-2 w-10 text-left">
-                <input type="checkbox" className="accent-[#b91c1c]" />
+                <input type="checkbox" className="accent-odoo" />
               </th>
-              <th className="px-2 py-2 text-left font-semibold">ລະຫັດ</th>
+              <th className="px-2 py-2 text-left font-semibold">{tp("code")}</th>
               <th className="px-2 py-2 text-left font-semibold">
-                <SortHeader label="ຊື່ສິນຄ້າ" active dir="desc" />
+                <SortHeader label={tp("productName")} active dir="desc" />
               </th>
-              <th className="px-2 py-2 text-left font-semibold w-32">ໝວດໝູ່</th>
-              <th className="px-2 py-2 text-left font-semibold w-28">ປະເພດ</th>
-              <th className="px-2 py-2 text-center font-semibold w-16">ໜ່ວຍ</th>
-              <th className="px-2 py-2 text-right font-semibold w-32">ລາຄາຂາຍ</th>
-              <th className="px-2 py-2 text-right font-semibold w-24">ຄັງ</th>
-              <th className="px-2 py-2 text-center font-semibold w-20">ສະຖານະ</th>
+              <th className="px-2 py-2 text-left font-semibold w-32">{tp("category")}</th>
+              <th className="px-2 py-2 text-left font-semibold w-28">{tp("type")}</th>
+              <th className="px-2 py-2 text-center font-semibold w-16">{tp("unit")}</th>
+              <th className="px-2 py-2 text-right font-semibold w-32">{tp("sellPrice")}</th>
+              <th className="px-2 py-2 text-right font-semibold w-24">{tp("stock")}</th>
+              <th className="px-2 py-2 text-center font-semibold w-20">{ti("status")}</th>
               <th className="px-3 py-2 w-20"></th>
             </tr>
           </thead>
           <tbody>
-            {visible.length === 0 && (
+            {products.length === 0 && (
               <tr>
                 <td colSpan={10} className="py-20 text-center">
-                  <div className="text-gray-500 text-sm mb-2">ບໍ່ມີສິນຄ້າ</div>
+                  <div className="text-gray-500 text-sm mb-2">{tp("noProducts")}</div>
                   <Link
                     href="/products/new"
-                    className="text-[#b91c1c] hover:underline text-sm font-medium"
+                    className="text-odoo hover:underline text-sm font-medium"
                   >
-                    ສ້າງສິນຄ້າໃໝ່
+                    {tp("createFirst")}
                   </Link>
                 </td>
               </tr>
             )}
-            {visible.map((p) => {
+            {products.map((p) => {
               const lowStock = p.stock <= p.minStock;
               return (
                 <tr
                   key={p.id}
-                  className="border-b border-gray-100 hover:bg-[#b91c1c]/5 group"
+                  className="border-b border-gray-100 hover:bg-odoo/5 group"
                 >
                   <td className="px-3 py-2">
                     <input
                       type="checkbox"
-                      className="accent-[#b91c1c] opacity-0 group-hover:opacity-100 transition"
+                      className="accent-odoo opacity-0 group-hover:opacity-100 transition"
                     />
                   </td>
                   <td className="px-2 py-2">
                     <Link
                       href={`/products/${p.id}/edit`}
-                      className="font-mono text-[12px] text-gray-800 hover:text-[#b91c1c]"
+                      className="font-mono text-[12px] text-gray-800 hover:text-odoo"
                     >
                       {p.code}
                     </Link>
@@ -279,7 +280,7 @@ export default async function ProductsPage(props: {
                   <td className="px-2 py-2">
                     <Link
                       href={`/products/${p.id}/edit`}
-                      className="flex items-center gap-2 hover:text-[#b91c1c]"
+                      className="flex items-center gap-2 hover:text-odoo"
                     >
                       {p.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -289,7 +290,7 @@ export default async function ProductsPage(props: {
                           className="w-7 h-7 rounded object-cover flex-shrink-0 border border-gray-200"
                         />
                       ) : (
-                        <span className="w-7 h-7 rounded bg-[#b91c1c]/10 text-[#b91c1c] flex items-center justify-center text-[11px] font-semibold flex-shrink-0">
+                        <span className="w-7 h-7 rounded bg-odoo/10 text-odoo flex items-center justify-center text-[11px] font-semibold flex-shrink-0">
                           {p.name.charAt(0).toUpperCase()}
                         </span>
                       )}
@@ -300,7 +301,7 @@ export default async function ProductsPage(props: {
                   </td>
                   <td className="px-2 py-2 text-gray-700">
                     {p.category ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] bg-blue-50 text-blue-700 border border-blue-200">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] bg-odoo/10 text-odoo border border-odoo/30">
                         {p.category.name}
                       </span>
                     ) : (
@@ -340,12 +341,12 @@ export default async function ProductsPage(props: {
                     {p.active ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-medium border border-emerald-200">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        ໃຊ້ງານ
+                        {tp("active")}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-medium border border-gray-200">
                         <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-                        ປິດ
+                        {tp("closed")}
                       </span>
                     )}
                   </td>
@@ -353,9 +354,9 @@ export default async function ProductsPage(props: {
                     <div className="flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition">
                       <Link
                         href={`/products/${p.id}/edit`}
-                        className="text-[#b91c1c] hover:text-[#991b1b] text-[12px]"
+                        className="text-odoo hover:text-odoo-hover text-[12px]"
                       >
-                        ແກ້ໄຂ
+                        {tc("edit")}
                       </Link>
                       <DeleteProductButton id={p.id} />
                     </div>
@@ -368,7 +369,7 @@ export default async function ProductsPage(props: {
             <tfoot>
               <tr className="bg-gray-50 border-t-2 border-gray-300 font-semibold text-gray-800">
                 <td colSpan={7} className="px-3 py-2 text-right text-gray-600 text-[12px] uppercase tracking-wider">
-                  ມູນຄ່າສິນຄ້າຄົງເຫຼືອ
+                  {tp("stockValueFooter")}
                 </td>
                 <td className="px-2 py-2 text-right tabular-nums">
                   {formatMoney(totalValue)}
@@ -380,14 +381,14 @@ export default async function ProductsPage(props: {
         </table>
       </div>
       )}
-    </div>
+    </OdooListPage>
   );
 }
 
-function buildUrl(params: Record<string, string | undefined>) {
+function buildUrl(params: Record<string, string | number | undefined>) {
   const search = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
-    if (v) search.set(k, v);
+    if (v && !(k === "page" && v === 1)) search.set(k, String(v));
   }
   const qs = search.toString();
   return qs ? `/products?${qs}` : "/products";
@@ -407,7 +408,7 @@ function FilterChip({
       href={href}
       className={`px-2.5 py-1 rounded text-[12px] font-medium transition ${
         active
-          ? "bg-[#b91c1c]/10 text-[#b91c1c]"
+          ? "bg-odoo/10 text-odoo"
           : "text-gray-600 hover:bg-gray-100"
       }`}
     >
@@ -428,7 +429,7 @@ function SortHeader({
   return (
     <span
       className={`inline-flex items-center gap-1 ${
-        active ? "text-[#b91c1c]" : ""
+        active ? "text-odoo" : ""
       }`}
     >
       {label}
@@ -456,7 +457,7 @@ function ViewSwitcher({
         title="ລາຍການ"
         className={`px-2 py-1 ${
           current === "list"
-            ? "bg-[#b91c1c]/10 text-[#b91c1c]"
+            ? "bg-odoo/10 text-odoo"
             : "hover:bg-gray-50"
         }`}
       >
@@ -469,7 +470,7 @@ function ViewSwitcher({
         title="Kanban"
         className={`px-2 py-1 ${
           current === "kanban"
-            ? "bg-[#b91c1c]/10 text-[#b91c1c]"
+            ? "bg-odoo/10 text-odoo"
             : "hover:bg-gray-50"
         }`}
       >

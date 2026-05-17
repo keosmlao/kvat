@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { ProductForm } from "../product-form";
+import { OdooListPage } from "@/components/odoo/sheet";
 
 export default function NewProductPage() {
   return (
-    <div>
-      <div className="mb-4">
+    <OdooListPage title="ເພີ່ມສິນຄ້າ / ບໍລິການ">
+      <>
+      <div className="mb-3">
         <Link
           href="/manage/billing/products"
           className="text-[12px] text-gray-500 hover:text-gray-800"
@@ -12,9 +14,6 @@ export default function NewProductPage() {
           ← Products
         </Link>
       </div>
-      <h1 className="text-[22px] font-medium text-gray-900 mb-5">
-        ເພີ່ມສິນຄ້າ / ບໍລິການ
-      </h1>
       <div className="bg-white border border-gray-200 rounded p-5 max-w-2xl">
         <ProductForm
           mode="create"
@@ -28,6 +27,7 @@ export default function NewProductPage() {
           }}
         />
       </div>
-    </div>
+      </>
+    </OdooListPage>
   );
 }

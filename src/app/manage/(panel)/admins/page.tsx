@@ -1,6 +1,10 @@
 import { masterPrisma } from "@/lib/master-prisma";
 import { getManagementSession } from "@/lib/management-session";
 import { CreateAdminForm, DeleteAdminButton } from "./admins-ui";
+import { OdooListPage } from "@/components/odoo/sheet";
+import { t } from "@/lib/i18n/messages";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 const DATE_FMT = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Asia/Vientiane",
@@ -16,17 +20,14 @@ export default async function AdminsPage() {
   });
 
   return (
-    <div>
-      <div className="mb-4">
-        <h1 className="text-[18px] font-medium text-gray-900">Management admins</h1>
-        <p className="text-[12px] text-gray-500 mt-0.5">
-          ບັນຊີທີ່ເຂົ້າ /manage portal — {admins.length} ບັນຊີ
-        </p>
-      </div>
-
+    <OdooListPage
+      title={tm("adminsTitle")}
+      subtitle={`${tm("admAccountsPrefix")} ${admins.length} ${tm("admAccountsSuffix")}`}
+    >
+      <>
       <div className="bg-white border border-gray-200 rounded p-4 mb-4">
         <h3 className="text-[12px] uppercase tracking-widest text-gray-500 font-medium mb-3">
-          ເພີ່ມ admin ໃໝ່
+          {tm("admAddNewBtn")}
         </h3>
         <CreateAdminForm />
       </div>
@@ -36,9 +37,9 @@ export default async function AdminsPage() {
           <thead className="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
             <tr>
               <th className="px-3 py-2 text-left">Email</th>
-              <th className="px-3 py-2 text-left">ຊື່</th>
-              <th className="px-3 py-2 text-left">ສ້າງເມື່ອ</th>
-              <th className="px-3 py-2 text-right">ກະທຳ</th>
+              <th className="px-3 py-2 text-left">{tm("admColName")}</th>
+              <th className="px-3 py-2 text-left">{tm("admColCreated")}</th>
+              <th className="px-3 py-2 text-right">{tm("admColAction")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -65,6 +66,7 @@ export default async function AdminsPage() {
           </tbody>
         </table>
       </div>
-    </div>
+      </>
+    </OdooListPage>
   );
 }

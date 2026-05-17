@@ -1,7 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
+import { t } from "@/lib/i18n/messages";
 import { saveEtaxConfig, type EtaxConfigState } from "./actions";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 export function EtaxConfigForm({
   initial,
@@ -21,14 +24,14 @@ export function EtaxConfigForm({
   return (
     <form action={action} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Field label="Environment" hint="dev = ທົດສອບ / prod = ໃຊ້ງານຈິງ">
+        <Field label="Environment" hint={tm("etxEnvHint")}>
           <select
             name="env"
             defaultValue={initial.env || "dev"}
             className="w-full px-2 py-1.5 border border-gray-300 rounded text-[13px]"
           >
-            <option value="dev">dev (ທົດສອບ)</option>
-            <option value="prod">prod (ໃຊ້ງານຈິງ)</option>
+            <option value="dev">{tm("etxEnvDev")}</option>
+            <option value="prod">{tm("etxEnvProd")}</option>
           </select>
         </Field>
 
@@ -44,11 +47,7 @@ export function EtaxConfigForm({
 
         <Field
           label="Secret"
-          hint={
-            initial.secret
-              ? "ມີຄ່າຢູ່ແລ້ວ — ປ່ອຍຫວ່າງເພື່ອບໍ່ປ່ຽນ ຫຼື ໃສ່ໃໝ່ເພື່ອປ່ຽນ"
-              : "ຍັງບໍ່ໄດ້ຕັ້ງ"
-          }
+          hint={initial.secret ? tm("etxSecretSet") : tm("etxSecretNone")}
         >
           <input
             type="password"
@@ -61,7 +60,7 @@ export function EtaxConfigForm({
 
         <Field
           label="Gateway URL"
-          hint="ປ່ອຍຫວ່າງເພື່ອໃຊ້ຄ່າຈາກ env (ETAX_GATEWAY_URL)"
+          hint={tm("etxGwHint")}
           full
         >
           <input
@@ -80,7 +79,7 @@ export function EtaxConfigForm({
           disabled={pending}
           className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-1.5 rounded text-[13px] font-medium disabled:opacity-50"
         >
-          {pending ? "ກຳລັງບັນທຶກ..." : "ບັນທຶກ"}
+          {pending ? tm("saving") : tm("save")}
         </button>
         {state?.error && (
           <span className="text-[12px] text-red-600">{state.error}</span>
@@ -89,7 +88,7 @@ export function EtaxConfigForm({
           <span className="text-[12px] text-emerald-700">{state.success}</span>
         )}
         <span className="text-[11px] text-gray-400 ml-auto">
-          ການປ່ຽນແປງມີຜົນພາຍໃນ 1 ນາທີ (cache TTL)
+          {tm("etxCacheNote")}
         </span>
       </div>
     </form>

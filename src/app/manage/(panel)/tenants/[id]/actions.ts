@@ -9,6 +9,7 @@ import { requireManagement } from "@/lib/management-session";
 import { TenantPlan, TenantStatus } from "@/generated/master/client";
 import { nextBillingInvoiceNumber, planProduct } from "@/lib/billing";
 import { ensureCustomerForTenant } from "@/lib/billing-codes";
+import { recordAudit } from "@/lib/audit";
 
 export type ActionState = { error?: string; success?: string } | undefined;
 
@@ -80,7 +81,7 @@ export async function approveTenant(
       const vatMode = "EXCLUSIVE";
       const vatRate = 0.1;
       const subtotal = product.priceLak;
-      const vatAmount = Math.round(subtotal * vatRate * 100) / 100;
+      const vatAmount = Math.round(product.priceLak * vatRate * 100) / 100;
       const grandTotal = subtotal + vatAmount;
       await masterPrisma.billingInvoice.create({
         data: {
@@ -105,6 +106,8 @@ export async function approveTenant(
                 quantity: 1,
                 unitPrice: product.priceLak,
                 discount: 0,
+                taxRate: vatRate,
+                taxAmount: vatAmount,
                 total: product.priceLak,
               },
             ],
@@ -117,27 +120,50 @@ export async function approveTenant(
     }
   }
 
+  const tenantRow = await masterPrisma.tenant.findUnique({
+    where: { id },
+    select: { name: true },
+  });
+  await recordAudit({
+    actorId: mgmt.managementUserId,
+    actorEmail: mgmt.email,
+    action: "tenant.approve",
+    entityType: "Tenant",
+    entityId: id,
+    entityLabel: tenantRow?.name ?? id,
+    metadata: { plan, overrideProductId: overrideProductId ?? null },
+  });
+
   revalidatePath("/manage/tenants");
   revalidatePath(`/manage/tenants/${id}`);
   return { success: "✓ Approve ສຳເລັດ" };
 }
 
 export async function suspendTenant(id: string): Promise<void> {
-  await requireManagement();
-  await masterPrisma.tenant.update({
+  const mgmt = await requireManagement();
+  const t = await masterPrisma.tenant.update({
     where: { id },
     data: { status: TenantStatus.SUSPENDED },
+    select: { name: true },
+  });
+  await recordAudit({
+    actorId: mgmt.managementUserId,
+    actorEmail: mgmt.email,
+    action: "tenant.suspend",
+    entityType: "Tenant",
+    entityId: id,
+    entityLabel: t.name,
   });
   revalidatePath("/manage/tenants");
   revalidatePath(`/manage/tenants/${id}`);
 }
 
 export async function reactivateTenant(id: string): Promise<void> {
-  await requireManagement();
+  const mgmt = await requireManagement();
   // Reactivate: TRIAL if not yet approved, ACTIVE if previously approved.
   const t = await masterPrisma.tenant.findUnique({
     where: { id },
-    select: { approvedAt: true, trialEndsAt: true },
+    select: { approvedAt: true, trialEndsAt: true, name: true },
   });
   if (!t) return;
   const status =
@@ -146,15 +172,33 @@ export async function reactivateTenant(id: string): Promise<void> {
     where: { id },
     data: { status },
   });
+  await recordAudit({
+    actorId: mgmt.managementUserId,
+    actorEmail: mgmt.email,
+    action: "tenant.reactivate",
+    entityType: "Tenant",
+    entityId: id,
+    entityLabel: t.name,
+    metadata: { newStatus: status },
+  });
   revalidatePath("/manage/tenants");
   revalidatePath(`/manage/tenants/${id}`);
 }
 
 export async function cancelTenant(id: string): Promise<void> {
-  await requireManagement();
-  await masterPrisma.tenant.update({
+  const mgmt = await requireManagement();
+  const t = await masterPrisma.tenant.update({
     where: { id },
     data: { status: TenantStatus.CANCELLED },
+    select: { name: true },
+  });
+  await recordAudit({
+    actorId: mgmt.managementUserId,
+    actorEmail: mgmt.email,
+    action: "tenant.cancel",
+    entityType: "Tenant",
+    entityId: id,
+    entityLabel: t.name,
   });
   revalidatePath("/manage/tenants");
   revalidatePath(`/manage/tenants/${id}`);
@@ -165,7 +209,7 @@ export async function cancelTenant(id: string): Promise<void> {
 export async function deleteTenantHard(
   id: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  await requireManagement();
+  const mgmt = await requireManagement();
   const tenant = await masterPrisma.tenant.findUnique({ where: { id } });
   if (!tenant) return { ok: false, error: "ບໍ່ພົບ tenant" };
   if (tenant.isTemplate) {
@@ -178,6 +222,15 @@ export async function deleteTenantHard(
     return { ok: false, error: `drop DB ບໍ່ໄດ້: ${errMsg(e)}` };
   }
   await masterPrisma.tenant.delete({ where: { id } });
+  await recordAudit({
+    actorId: mgmt.managementUserId,
+    actorEmail: mgmt.email,
+    action: "tenant.delete",
+    entityType: "Tenant",
+    entityId: id,
+    entityLabel: tenant.name,
+    metadata: { dbName: tenant.dbName },
+  });
   revalidatePath("/manage/tenants");
   return { ok: true };
 }

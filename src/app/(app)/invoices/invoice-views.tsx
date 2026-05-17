@@ -92,7 +92,7 @@ export function PivotView({ invoices }: { invoices: InvoiceRow[] }) {
               onChange={(e) =>
                 setGroupBy(e.target.value as "customer" | "month" | "status")
               }
-              className="border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-[#b91c1c]"
+              className="border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-odoo"
             >
               <option value="customer">ລູກຄ້າ</option>
               <option value="month">ເດືອນ</option>
@@ -132,7 +132,7 @@ export function PivotView({ invoices }: { invoices: InvoiceRow[] }) {
             {data.map((row) => (
               <tr
                 key={row.label}
-                className="border-b border-gray-100 last:border-b-0 hover:bg-[#b91c1c]/5"
+                className="border-b border-gray-100 last:border-b-0 hover:bg-odoo/5"
               >
                 <td className="px-3 py-2 text-gray-800 font-medium">
                   {groupBy === "status" ? statusLabel(row.label) : row.label}
@@ -222,7 +222,7 @@ export function GraphView({ invoices }: { invoices: InvoiceRow[] }) {
                 onClick={() => setChartType("bar")}
                 className={`px-2 py-1 ${
                   chartType === "bar"
-                    ? "bg-[#b91c1c] text-white"
+                    ? "bg-odoo text-white"
                     : "hover:bg-gray-50"
                 }`}
                 title="Bar"
@@ -245,7 +245,7 @@ export function GraphView({ invoices }: { invoices: InvoiceRow[] }) {
                 onClick={() => setChartType("line")}
                 className={`px-2 py-1 ${
                   chartType === "line"
-                    ? "bg-[#b91c1c] text-white"
+                    ? "bg-odoo text-white"
                     : "hover:bg-gray-50"
                 }`}
                 title="Line"
@@ -271,7 +271,7 @@ export function GraphView({ invoices }: { invoices: InvoiceRow[] }) {
               onChange={(e) =>
                 setGroupBy(e.target.value as "day" | "month" | "customer")
               }
-              className="border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-[#b91c1c]"
+              className="border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-odoo"
             >
               <option value="day">ມື້</option>
               <option value="month">ເດືອນ</option>
@@ -306,7 +306,7 @@ export function GraphView({ invoices }: { invoices: InvoiceRow[] }) {
                     contentStyle={{ fontSize: 12 }}
                     formatter={(v) => [`${formatMoney(Number(v))} ກີບ`, "ມູນຄ່າ"] as [string, string]}
                   />
-                  <Bar dataKey="total" fill="#b91c1c" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="total" fill="var(--odoo-primary)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               ) : (
                 <LineChart data={data}>
@@ -331,9 +331,9 @@ export function GraphView({ invoices }: { invoices: InvoiceRow[] }) {
                   <Line
                     type="monotone"
                     dataKey="total"
-                    stroke="#b91c1c"
+                    stroke="var(--odoo-primary)"
                     strokeWidth={2}
-                    dot={{ fill: "#b91c1c", r: 4 }}
+                    dot={{ fill: "var(--odoo-primary)", r: 4 }}
                   />
                 </LineChart>
               )}

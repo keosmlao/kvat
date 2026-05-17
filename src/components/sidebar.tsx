@@ -86,7 +86,7 @@ export function Sidebar({ role }: { role: "ADMIN" | "STAFF" }) {
     <aside className="w-60 bg-gray-900 text-gray-100 flex flex-col shrink-0 no-print">
       <div className="px-6 py-5 border-b border-gray-800">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center font-bold">
+          <div className="w-9 h-9 rounded-lg bg-odoo flex items-center justify-center font-bold">
             S
           </div>
           <div>
@@ -107,7 +107,7 @@ export function Sidebar({ role }: { role: "ADMIN" | "STAFF" }) {
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition ${
                   active
-                    ? "bg-blue-600 text-white"
+                    ? "bg-odoo text-white"
                     : "text-gray-300 hover:bg-gray-800 hover:text-white"
                 }`}
               >

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { LoginForm } from "./login-form";
+import { getLocale } from "@/lib/i18n/server";
+import { t } from "@/lib/i18n/messages";
 
 type SP = Promise<{ reset?: string; from?: string }>;
 
@@ -22,49 +24,51 @@ export default async function LoginPage({
   const session = await getSession();
   if (session) redirect(safeRedirectTarget(sp.from));
   const resetOk = sp.reset === "ok";
+  const locale = await getLocale();
+  const ta = (k: string) => t(locale, "auth", k);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-white to-rose-100 px-4">
       <div className="w-full max-w-sm">
         {/* Brand */}
         <div className="text-center mb-6">
-          <div className="inline-flex w-14 h-14 rounded-xl bg-[#b91c1c] items-center justify-center mb-3 shadow-md">
+          <div className="inline-flex w-14 h-14 rounded-xl bg-odoo items-center justify-center mb-3 shadow-md">
             <span className="text-white font-bold text-xl">S</span>
           </div>
           <h1 className="text-[20px] font-medium text-gray-900">SMLAO</h1>
           <p className="text-gray-500 mt-0.5 text-[13px]">
-            ລະບົບອອກບິນອາກອນ
+            {ta("tagline")}
           </p>
         </div>
 
         {resetOk && (
           <div className="mb-3 bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-2 rounded text-[12px]">
-            ✓ ປ່ຽນລະຫັດຜ່ານສຳເລັດ — ໃຊ້ລະຫັດໃໝ່ເພື່ອເຂົ້າ
+            {ta("resetOk")}
           </div>
         )}
 
         <div className="bg-white rounded shadow-sm border border-gray-200 p-6">
           <h2 className="text-[15px] font-medium text-gray-800 mb-4">
-            ເຂົ້າສູ່ລະບົບ
+            {ta("login")}
           </h2>
-          <LoginForm />
+          <LoginForm locale={locale} />
           <p className="text-right mt-3">
             <Link
               href="/forgot"
-              className="text-[12px] text-gray-500 hover:text-[#b91c1c] hover:underline"
+              className="text-[12px] text-gray-500 hover:text-odoo hover:underline"
             >
-              ລືມລະຫັດຜ່ານ?
+              {ta("forgotPassword")}
             </Link>
           </p>
         </div>
 
         <p className="text-center text-[12px] text-gray-600 mt-4">
-          ຍັງບໍ່ມີບັນຊີ?{" "}
+          {ta("noAccount")}{" "}
           <Link
             href="/signup"
-            className="text-[#b91c1c] hover:underline font-medium"
+            className="text-odoo hover:underline font-medium"
           >
-            ສ້າງບັນຊີໃໝ່ ທົດລອງຟຣີ 30 ວັນ
+            {ta("signupTrial")}
           </Link>
         </p>
 

@@ -18,7 +18,15 @@ if (!connectionString) {
 export const masterPrisma =
   globalForMaster.masterPrisma ??
   new PrismaClient({
-    adapter: new PrismaPg({ connectionString }),
+    adapter: new PrismaPg({
+      connectionString,
+      // Default pg client has no connection timeout; first request after an idle
+      // period can hang waiting on a dead socket. Cap it so we fail fast and
+      // Next can retry the request instead of returning P1008 to the user.
+      connectionTimeoutMillis: 15_000,
+      idleTimeoutMillis: 30_000,
+      max: 10,
+    }),
   });
 
 if (process.env.NODE_ENV !== "production") {

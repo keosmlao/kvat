@@ -2,8 +2,10 @@
 
 import { useActionState } from "react";
 import { loginAction, type LoginState } from "./actions";
+import { t, type Locale } from "@/lib/i18n/messages";
 
-export function LoginForm() {
+export function LoginForm({ locale }: { locale: Locale }) {
+  const ta = (k: string) => t(locale, "auth", k);
   const [state, action, pending] = useActionState<LoginState, FormData>(
     loginAction,
     undefined,
@@ -16,7 +18,7 @@ export function LoginForm() {
           htmlFor="email"
           className="block text-[12px] font-medium text-gray-600 mb-1"
         >
-          Email
+          {ta("email")}
         </label>
         <input
           id="email"
@@ -24,8 +26,8 @@ export function LoginForm() {
           type="email"
           required
           autoComplete="email"
-          defaultValue="admin@smlao.la"
-          className="w-full px-3 py-2 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-[#b91c1c] focus:ring-2 focus:ring-[#b91c1c]/15 transition"
+          defaultValue={state?.email ?? ""}
+          className="w-full px-3 py-2 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-odoo focus:ring-2 focus:ring-odoo/15 transition"
         />
       </div>
 
@@ -34,7 +36,7 @@ export function LoginForm() {
           htmlFor="password"
           className="block text-[12px] font-medium text-gray-600 mb-1"
         >
-          ລະຫັດຜ່ານ
+          {ta("password")}
         </label>
         <input
           id="password"
@@ -42,7 +44,7 @@ export function LoginForm() {
           type="password"
           required
           autoComplete="current-password"
-          className="w-full px-3 py-2 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-[#b91c1c] focus:ring-2 focus:ring-[#b91c1c]/15 transition"
+          className="w-full px-3 py-2 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-odoo focus:ring-2 focus:ring-odoo/15 transition"
         />
       </div>
 
@@ -55,9 +57,9 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full bg-[#b91c1c] text-white py-2 rounded text-[13px] font-medium hover:bg-[#991b1b] disabled:opacity-50 disabled:cursor-not-allowed transition tracking-wide"
+        className="w-full bg-odoo text-white py-2 rounded text-[13px] font-medium hover:bg-odoo-hover disabled:opacity-50 disabled:cursor-not-allowed transition tracking-wide"
       >
-        {pending ? "ກຳລັງເຂົ້າ..." : "ເຂົ້າສູ່ລະບົບ"}
+        {pending ? ta("loggingIn") : ta("loginBtn")}
       </button>
     </form>
   );

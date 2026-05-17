@@ -1,12 +1,15 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
+import { t } from "@/lib/i18n/messages";
 import {
   createCategory,
   renameCategory,
   toggleCategoryArchived,
   type LedgerState,
 } from "../actions";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 type Cat = {
   id: string;
@@ -23,13 +26,13 @@ export function CategoryManager({ categories }: { categories: Cat[] }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <Column
-        title="ລາຍຮັບ"
+        title={tm("ledIncome")}
         type="INCOME"
         colour="emerald"
         categories={income}
       />
       <Column
-        title="ລາຍຈ່າຍ"
+        title={tm("ledExpense")}
         type="EXPENSE"
         colour="rose"
         categories={expense}
@@ -60,7 +63,7 @@ function Column({
           <CategoryRow key={c.id} cat={c} />
         ))}
         {categories.length === 0 && (
-          <p className="text-[12px] text-gray-400 italic py-2">ບໍ່ມີ</p>
+          <p className="text-[12px] text-gray-400 italic py-2">{tm("ledCatNone")}</p>
         )}
       </div>
     </div>
@@ -78,7 +81,7 @@ function AddRow({ type }: { type: "INCOME" | "EXPENSE" }) {
       <input
         type="text"
         name="name"
-        placeholder="ຊື່ໝວດໃໝ່..."
+        placeholder={tm("ledCatNewPh")}
         required
         className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-[13px]"
       />
@@ -87,7 +90,7 @@ function AddRow({ type }: { type: "INCOME" | "EXPENSE" }) {
         disabled={pending}
         className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded text-[13px] font-medium disabled:opacity-50"
       >
-        {pending ? "..." : "+ ເພີ່ມ"}
+        {pending ? "..." : tm("ledCatAdd")}
       </button>
       {state?.error && (
         <span className="text-[11px] text-red-600 self-center">
@@ -163,7 +166,7 @@ function CategoryRow({ cat }: { cat: Cat }) {
           onClick={() => setEditing(true)}
           className="text-[11px] px-2 py-0.5 text-gray-600 hover:bg-gray-100 rounded"
         >
-          ແກ້
+          {tm("ledCatEdit")}
         </button>
         <button
           type="button"
@@ -171,7 +174,7 @@ function CategoryRow({ cat }: { cat: Cat }) {
           disabled={pending}
           className="text-[11px] px-2 py-0.5 text-gray-600 hover:bg-gray-100 rounded"
         >
-          {cat.archived ? "ກູ້ຄືນ" : "Archive"}
+          {cat.archived ? tm("ledCatRestore") : tm("ledCatArchive")}
         </button>
       </div>
     </div>

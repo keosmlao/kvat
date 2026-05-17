@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { masterPrisma } from "@/lib/master-prisma";
 import { EntryForm } from "../entry-form";
+import { OdooListPage } from "@/components/odoo/sheet";
 
 export default async function EditEntryPage({
   params,
@@ -20,8 +21,9 @@ export default async function EditEntryPage({
   if (!entry) notFound();
 
   return (
-    <div>
-      <div className="mb-4">
+    <OdooListPage title="ແກ້ໄຂລາຍການ">
+      <>
+      <div className="mb-3">
         <Link
           href="/manage/ledger"
           className="text-[12px] text-gray-500 hover:text-gray-800"
@@ -29,9 +31,6 @@ export default async function EditEntryPage({
           ← Ledger
         </Link>
       </div>
-      <h1 className="text-[22px] font-medium text-gray-900 mb-5">
-        ແກ້ໄຂລາຍການ
-      </h1>
       <div className="bg-white border border-gray-200 rounded p-5 max-w-2xl">
         <EntryForm
           mode="edit"
@@ -51,6 +50,7 @@ export default async function EditEntryPage({
           }}
         />
       </div>
-    </div>
+      </>
+    </OdooListPage>
   );
 }

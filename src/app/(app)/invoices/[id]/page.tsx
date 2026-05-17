@@ -9,17 +9,20 @@ import { getChatterData } from "@/lib/chatter";
 import { getFeatures } from "@/lib/features";
 import { isEtaxConfigured } from "@/lib/etax";
 import { EtaxPanel } from "./etax-panel";
+import { SendEmailButton } from "@/components/send-email-button";
 import {
   CreditNoteButton,
   ResetToDraftButton,
   PostInvoiceButton,
 } from "./credit-note-button";
+import { getLocale } from "@/lib/i18n/server";
+import { t } from "@/lib/i18n/messages";
 
 export default async function InvoiceDetailPage(props: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await props.params;
-  const [invoice, settings] = await Promise.all([
+  const [invoice, settings, locale] = await Promise.all([
     prisma.invoice.findUnique({
       where: { id },
       include: {
@@ -31,9 +34,11 @@ export default async function InvoiceDetailPage(props: {
       },
     }),
     prisma.setting.findUnique({ where: { id: "default" } }),
+    getLocale(),
   ]);
 
   if (!invoice) notFound();
+  const td = (k: string) => t(locale, "invoiceDetail", k);
 
   // Smart button counts
   const [customerInvoiceCount, customerCreditCount] = await Promise.all([
@@ -66,13 +71,13 @@ export default async function InvoiceDetailPage(props: {
       {/* Breadcrumb */}
       <div className="text-xs text-gray-500 px-1 mb-2 no-print">
         <Link href="/invoices" className="hover:underline">
-          ບິນອາກອນລູກຄ້າ
+          {td("breadcrumb")}
         </Link>
         <span className="mx-1.5 text-gray-400">›</span>
         <span className="text-gray-700">{invoice.number}</span>
         {isCreditNote && (
           <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-orange-50 text-orange-700 border border-orange-200 font-medium uppercase tracking-wider">
-            ໃບລົດໜີ້
+            {td("creditNote")}
           </span>
         )}
       </div>
@@ -80,7 +85,7 @@ export default async function InvoiceDetailPage(props: {
       {/* Action bar */}
       <div className="bg-white border border-gray-200 rounded-t-md px-3 py-2 flex items-center justify-between no-print">
         <div className="flex items-center gap-1.5 flex-wrap">
-          {status === "DRAFT" && <PostInvoiceButton id={invoice.id} />}
+          {status === "DRAFT" && <PostInvoiceButton id={invoice.id} locale={locale} />}
           <a
             href={`/api/invoices/${invoice.id}/pdf`}
             target="_blank"
@@ -88,7 +93,7 @@ export default async function InvoiceDetailPage(props: {
             className={`${
               status === "DRAFT"
                 ? "border border-gray-300 text-gray-700 hover:bg-gray-50"
-                : "bg-[#b91c1c] text-white hover:bg-[#991b1b]"
+                : "bg-odoo text-white hover:bg-odoo-hover"
             } px-3 py-1 rounded text-[13px] font-medium transition tracking-wide inline-flex items-center gap-1.5`}
           >
             <svg
@@ -111,14 +116,31 @@ export default async function InvoiceDetailPage(props: {
               href={`/invoices/${invoice.id}/edit`}
               className="border border-gray-300 text-gray-700 px-3 py-1 rounded text-[13px] font-medium hover:bg-gray-50 transition"
             >
-              ແກ້ໄຂ
+              {td("edit")}
             </Link>
           )}
           {status === "ISSUED" && !isCreditNote && (
-            <ResetToDraftButton id={invoice.id} />
+            <ResetToDraftButton id={invoice.id} locale={locale} />
           )}
           {status === "ISSUED" && !isCreditNote && features.creditNotes && (
-            <CreditNoteButton id={invoice.id} />
+            <CreditNoteButton id={invoice.id} locale={locale} />
+          )}
+          {status === "ISSUED" && (
+            <>
+              <SendEmailButton
+                kind="invoice"
+                invoiceId={invoice.id}
+                customerEmail={invoice.customer.email}
+              />
+              {invoice.paymentStatus !== "PAID" && (
+                <SendEmailButton
+                  kind="invoice"
+                  invoiceId={invoice.id}
+                  customerEmail={invoice.customer.email}
+                  reminder
+                />
+              )}
+            </>
           )}
           {status === "ISSUED" && <CancelInvoiceButton id={invoice.id} />}
           <DeleteInvoiceButton id={invoice.id} />
@@ -127,10 +149,10 @@ export default async function InvoiceDetailPage(props: {
             href="/invoices"
             className="text-gray-600 hover:bg-gray-100 px-2.5 py-1 rounded text-[13px]"
           >
-            ກັບໄປ
+            {td("back")}
           </Link>
         </div>
-        <StatusBar current={status} isCreditNote={isCreditNote} />
+        <StatusBar current={status} isCreditNote={isCreditNote} locale={locale} />
       </div>
 
       {/* Sheet */}
@@ -139,10 +161,10 @@ export default async function InvoiceDetailPage(props: {
           {/* Reversal references */}
           {invoice.reversed && (
             <div className="mb-4 bg-orange-50 border border-orange-200 rounded p-2.5 text-[13px] no-print">
-              ໃບລົດໜີ້ນີ້ກ່ຽວກັບບິນ:{" "}
+              {td("creditNoteAbout")}:{" "}
               <Link
                 href={`/invoices/${invoice.reversed.id}`}
-                className="font-mono text-[#b91c1c] hover:underline"
+                className="font-mono text-odoo hover:underline"
               >
                 {invoice.reversed.number}
               </Link>
@@ -150,12 +172,12 @@ export default async function InvoiceDetailPage(props: {
           )}
           {invoice.reversals.length > 0 && (
             <div className="mb-4 bg-orange-50 border border-orange-200 rounded p-2.5 text-[13px] no-print">
-              ມີໃບລົດໜີ້:{" "}
+              {td("hasCreditNote")}:{" "}
               {invoice.reversals.map((r, i) => (
                 <span key={r.id}>
                   <Link
                     href={`/invoices/${r.id}`}
-                    className="font-mono text-[#b91c1c] hover:underline"
+                    className="font-mono text-odoo hover:underline"
                   >
                     {r.number}
                   </Link>
@@ -167,34 +189,34 @@ export default async function InvoiceDetailPage(props: {
 
           {/* Smart buttons (Odoo-style) */}
           <div className="flex justify-end gap-2 mb-4 no-print flex-wrap">
-            <button type="button" className="o-smart-btn" title="ໃບລົດໜີ້ທີ່ກ່ຽວ">
+            <button type="button" className="o-smart-btn" title={td("smartCreditNotes")}>
               <span className="o-smart-icon">↩</span>
               <div className="leading-tight">
                 <div className="o-smart-value">{invoice.reversals.length}</div>
-                <div className="o-smart-label">ໃບລົດໜີ້</div>
+                <div className="o-smart-label">{td("smartCreditLabel")}</div>
               </div>
             </button>
             <a
               href={`/customers/${invoice.customerId}/edit`}
               className="o-smart-btn"
-              title={`ບິນອື່ນຂອງລູກຄ້າ ${invoice.customer.name}`}
+              title={`${td("smartOtherTitle")} ${invoice.customer.name}`}
             >
               <span className="o-smart-icon">📋</span>
               <div className="leading-tight">
                 <div className="o-smart-value">{customerInvoiceCount}</div>
-                <div className="o-smart-label">ບິນອື່ນ</div>
+                <div className="o-smart-label">{td("smartOtherLabel")}</div>
               </div>
             </a>
             {customerCreditCount > 0 && (
               <button
                 type="button"
                 className="o-smart-btn"
-                title="ໃບລົດໜີ້ຂອງລູກຄ້ານີ້"
+                title={td("smartCustomerCnTitle")}
               >
                 <span className="o-smart-icon">📑</span>
                 <div className="leading-tight">
                   <div className="o-smart-value">{customerCreditCount}</div>
-                  <div className="o-smart-label">ລົດໜີ້ລູກຄ້າ</div>
+                  <div className="o-smart-label">{td("smartCustomerCnLabel")}</div>
                 </div>
               </button>
             )}
@@ -204,7 +226,7 @@ export default async function InvoiceDetailPage(props: {
           <div className="flex justify-between items-start border-b border-gray-200 pb-6 mb-6">
             <div>
               <h1 className="text-[22px] font-semibold text-gray-900">
-                {settings?.shopName ?? "ຮ້ານຄ້າ"}
+                {settings?.shopName ?? td("defaultShop")}
               </h1>
               {settings?.shopNameEn && (
                 <p className="text-[13px] text-gray-600">
@@ -213,15 +235,15 @@ export default async function InvoiceDetailPage(props: {
               )}
               <div className="text-[12px] text-gray-600 mt-2 space-y-0.5">
                 {settings?.address && <div>{settings.address}</div>}
-                {settings?.phone && <div>ໂທ: {settings.phone}</div>}
+                {settings?.phone && <div>{td("phoneLabel")}: {settings.phone}</div>}
                 {settings?.taxId && (
-                  <div>ເລກອາກອນ: {settings.taxId}</div>
+                  <div>{td("taxIdLabel")}: {settings.taxId}</div>
                 )}
               </div>
             </div>
             <div className="text-right">
               <div className="text-[11px] uppercase tracking-widest text-gray-500 font-medium">
-                {isCreditNote ? "ໃບລົດໜີ້" : "ໃບບິນອາກອນ"}
+                {isCreditNote ? td("creditNote") : td("taxInvoice")}
               </div>
               <h2 className="text-[28px] leading-tight font-light text-gray-900">
                 {invoice.number}
@@ -236,14 +258,14 @@ export default async function InvoiceDetailPage(props: {
           <div className="grid grid-cols-2 gap-x-12 mb-6">
             <div>
               <div className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">
-                ລູກຄ້າ
+                {td("customerHeading")}
               </div>
               <div className="font-semibold text-gray-900">
                 {invoice.customer.name}
               </div>
               {invoice.customer.taxId && (
                 <div className="text-[12px] text-gray-600">
-                  ເລກອາກອນ: {invoice.customer.taxId}
+                  {td("taxIdLabel")}: {invoice.customer.taxId}
                 </div>
               )}
               {invoice.customer.address && (
@@ -253,43 +275,43 @@ export default async function InvoiceDetailPage(props: {
               )}
               {invoice.customer.phone && (
                 <div className="text-[12px] text-gray-600">
-                  ໂທ: {invoice.customer.phone}
+                  {td("phoneLabel")}: {invoice.customer.phone}
                 </div>
               )}
             </div>
             <div>
               <div className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">
-                ຂໍ້ມູນບິນ
+                {td("invoiceInfo")}
               </div>
               <div className="grid grid-cols-[110px_1fr] gap-y-0.5 text-[13px]">
-                <div className="text-gray-500">ວັນທີ:</div>
+                <div className="text-gray-500">{td("dateLabel")}:</div>
                 <div className="text-gray-800">
                   {formatDateTime(invoice.date)}
                 </div>
                 {invoice.dueDate && (
                   <>
-                    <div className="text-gray-500">ຄົບກຳນົດ:</div>
+                    <div className="text-gray-500">{td("dueDate")}:</div>
                     <div className="text-gray-800">
                       {formatDateTime(invoice.dueDate)}
                     </div>
                   </>
                 )}
-                <div className="text-gray-500">ສະກຸນເງິນ:</div>
+                <div className="text-gray-500">{td("currencyLabel")}:</div>
                 <div className="text-gray-800">{invoice.currency}</div>
                 {invoice.currency !== "LAK" && (
                   <>
-                    <div className="text-gray-500">ອັດຕາແລກ:</div>
+                    <div className="text-gray-500">{td("exchangeRate")}:</div>
                     <div className="text-gray-800">
-                      {invoice.exchangeRate.toLocaleString()} ກີບ/
+                      {invoice.exchangeRate.toLocaleString()} {td("kipPer")}/
                       {invoice.currency}
                     </div>
                   </>
                 )}
-                <div className="text-gray-500">ການຊຳລະ:</div>
+                <div className="text-gray-500">{td("paymentLabel")}:</div>
                 <div className="text-gray-800">
                   {invoice.paymentMethod === "TRANSFER" ? (
                     <>
-                      🏦 ໂອນ
+                      {td("transfer")}
                       {invoice.paymentRef && (
                         <span className="text-gray-500 text-[12px] ml-1">
                           ({invoice.paymentRef})
@@ -297,10 +319,10 @@ export default async function InvoiceDetailPage(props: {
                       )}
                     </>
                   ) : (
-                    "💵 ເງິນສົດ"
+                    td("cash")
                   )}
                 </div>
-                <div className="text-gray-500">ຜູ້ອອກ:</div>
+                <div className="text-gray-500">{td("issuer")}:</div>
                 <div className="text-gray-800">{invoice.user.name}</div>
               </div>
             </div>
@@ -311,40 +333,63 @@ export default async function InvoiceDetailPage(props: {
             <thead>
               <tr className="border-b border-gray-200 text-[11px] uppercase tracking-wider text-gray-500">
                 <th className="text-left py-2 w-10">#</th>
-                <th className="text-left py-2">ສິນຄ້າ</th>
-                <th className="text-right py-2 w-24">ຈຳນວນ</th>
-                <th className="text-right py-2 w-32">ລາຄາ</th>
-                <th className="text-right py-2 w-32">ລວມ</th>
+                <th className="text-left py-2">{td("colProduct")}</th>
+                <th className="text-right py-2 w-24">{td("colQty")}</th>
+                <th className="text-right py-2 w-32">{td("colPrice")}</th>
+                <th className="text-right py-2 w-28">VAT</th>
+                <th className="text-right py-2 w-32">{td("colTotal")}</th>
               </tr>
             </thead>
             <tbody>
-              {invoice.items.map((it, i) => (
-                <tr
-                  key={it.id}
-                  className="border-b border-gray-100 last:border-b-0"
-                >
-                  <td className="py-2 text-gray-500">{i + 1}</td>
-                  <td className="py-2">
-                    <div className="font-medium text-gray-800">
+              {invoice.items.map((it, i) =>
+                it.lineType === "SECTION" || it.lineType === "NOTE" ? (
+                  <tr
+                    key={it.id}
+                    className={
+                      it.lineType === "SECTION"
+                        ? "border-b border-gray-100 bg-gray-50 font-medium text-gray-800"
+                        : "border-b border-gray-100 text-gray-500 italic"
+                    }
+                  >
+                    <td className="py-2 text-gray-500">{i + 1}</td>
+                    <td className="py-2" colSpan={5}>
                       {it.productName}
-                    </div>
-                    {it.discount > 0 && (
-                      <div className="text-[11px] text-gray-500">
-                        ສ່ວນຫຼຸດ: {formatMoney(it.discount)}
+                    </td>
+                  </tr>
+                ) : (
+                  <tr
+                    key={it.id}
+                    className="border-b border-gray-100 last:border-b-0"
+                  >
+                    <td className="py-2 text-gray-500">{i + 1}</td>
+                    <td className="py-2">
+                      <div className="font-medium text-gray-800">
+                        {it.productName}
                       </div>
-                    )}
-                  </td>
-                  <td className="py-2 text-right tabular-nums">
-                    {it.quantity} {it.unit}
-                  </td>
-                  <td className="py-2 text-right tabular-nums">
-                    {formatMoney(inCurrency(it.priceLak), currency)}
-                  </td>
-                  <td className="py-2 text-right tabular-nums font-medium">
-                    {formatMoney(inCurrency(it.total), currency)}
-                  </td>
-                </tr>
-              ))}
+                      {it.discount > 0 && (
+                        <div className="text-[11px] text-gray-500">
+                          {td("discount")}: {formatMoney(it.discount)}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-2 text-right tabular-nums">
+                      {it.quantity} {it.unit}
+                    </td>
+                    <td className="py-2 text-right tabular-nums">
+                      {formatMoney(inCurrency(it.priceLak), currency)}
+                    </td>
+                    <td className="py-2 text-right tabular-nums text-gray-600">
+                      {(it.taxRate * 100).toFixed(0)}%
+                      <div className="text-[11px] text-gray-500">
+                        {formatMoney(inCurrency(it.taxAmount), currency)}
+                      </div>
+                    </td>
+                    <td className="py-2 text-right tabular-nums font-medium">
+                      {formatMoney(inCurrency(it.total), currency)}
+                    </td>
+                  </tr>
+                ),
+              )}
             </tbody>
           </table>
 
@@ -354,33 +399,33 @@ export default async function InvoiceDetailPage(props: {
               <SumRow
                 label={
                   invoice.vatMode === "INCLUSIVE"
-                    ? "ມູນຄ່າ (ລວມ VAT)"
-                    : "ມູນຄ່າກ່ອນພາສີ"
+                    ? td("subtotalInclVat")
+                    : td("subtotalExclVat")
                 }
                 value={formatMoney(inCurrency(invoice.subtotal), currency)}
               />
               {invoice.discount > 0 && (
                 <SumRow
-                  label="ສ່ວນຫຼຸດ"
+                  label={td("discountLabel")}
                   value={`- ${formatMoney(inCurrency(invoice.discount), currency)}`}
                 />
               )}
               {invoice.vatMode === "EXEMPT" ? (
                 <div className="flex justify-between items-center py-1 text-gray-500 italic">
                   <span>VAT</span>
-                  <span>ຍົກເວັ້ນ</span>
+                  <span>{td("vatExempt")}</span>
                 </div>
               ) : (
                 <SumRow
-                  label={`VAT ${(invoice.vatRate * 100).toFixed(0)}%${
-                    invoice.vatMode === "INCLUSIVE" ? " (ລວມໃນ)" : ""
-                  }`}
+                  label={`VAT ${
+                    invoice.vatMode === "INCLUSIVE" ? `(${td("vatInclusiveShort")})` : ""
+                  }`.trim()}
                   value={formatMoney(inCurrency(invoice.vatAmount), currency)}
                 />
               )}
               <div className="border-t border-gray-300 mt-2 pt-2 flex justify-between items-center">
                 <span className="font-semibold text-gray-900">
-                  ມູນຄ່າທັງໝົດ
+                  {td("grandTotal")}
                 </span>
                 <span className="font-semibold text-[18px] text-gray-900 tabular-nums">
                   {formatMoney(inCurrency(invoice.total), currency)}
@@ -393,6 +438,7 @@ export default async function InvoiceDetailPage(props: {
           {isEtaxConfigured() && status === "ISSUED" && (
             <EtaxPanel
               invoiceId={invoice.id}
+              locale={locale}
               initial={{
                 serialNum: invoice.etaxSerialNum,
                 invoiceNumber: invoice.etaxInvoiceNumber,
@@ -413,7 +459,7 @@ export default async function InvoiceDetailPage(props: {
           {invoice.note && (
             <div className="border-t border-gray-100 pt-4 mb-6">
               <div className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">
-                ໝາຍເຫດ
+                {td("note")}
               </div>
               <div className="text-[13px] text-gray-700">{invoice.note}</div>
             </div>
@@ -423,12 +469,12 @@ export default async function InvoiceDetailPage(props: {
           <div className="grid grid-cols-2 gap-12 mt-12 pt-8">
             <div className="text-center">
               <div className="border-t border-gray-400 pt-2 text-[13px] text-gray-600">
-                ລາຍເຊັນຜູ້ຮັບ
+                {td("sigReceiver")}
               </div>
             </div>
             <div className="text-center">
               <div className="border-t border-gray-400 pt-2 text-[13px] text-gray-600">
-                ລາຍເຊັນຜູ້ອອກ
+                {td("sigIssuer")}
               </div>
             </div>
           </div>
@@ -446,6 +492,7 @@ export default async function InvoiceDetailPage(props: {
               users={chatter.users}
               isFollowing={chatter.isFollowing}
               currentUserId={chatter.currentUserId}
+              locale={locale}
             />
           </div>
         )}
@@ -466,21 +513,24 @@ function SumRow({ label, value }: { label: string; value: string }) {
 function StatusBar({
   current,
   isCreditNote,
+  locale,
 }: {
   current: string;
   isCreditNote: boolean;
+  locale: Parameters<typeof t>[0];
 }) {
+  const td = (k: string) => t(locale, "invoiceDetail", k);
   if (isCreditNote) {
     return (
       <span className="px-3 py-1 text-[12px] uppercase tracking-wider rounded-sm font-medium bg-orange-500 text-white">
-        ໃບລົດໜີ້
+        {td("creditNote")}
       </span>
     );
   }
   const steps = [
-    { key: "DRAFT", label: "ຮ່າງ" },
-    { key: "ISSUED", label: "ອອກບິນ" },
-    { key: "CANCELLED", label: "ຍົກເລີກ", danger: true },
+    { key: "DRAFT", label: td("stepDraft") },
+    { key: "ISSUED", label: td("stepIssued") },
+    { key: "CANCELLED", label: td("stepCancelled"), danger: true },
   ];
   return (
     <div className="flex items-center gap-0">
@@ -493,7 +543,7 @@ function StatusBar({
                 active
                   ? s.danger
                     ? "bg-red-700 text-white"
-                    : "bg-[#b91c1c] text-white"
+                    : "bg-odoo text-white"
                   : "text-gray-400"
               }`}
             >

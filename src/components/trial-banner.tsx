@@ -11,7 +11,7 @@ export type TrialInfo = {
 export function TrialBanner({ info }: { info: TrialInfo }) {
   if (info.status !== "TRIAL" || !info.trialEndsAt) return null;
 
-  const msLeft = info.trialEndsAt.getTime() - Date.now();
+  const msLeft = info.trialEndsAt.getTime() - new Date().getTime();
   const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
   const expired = msLeft <= 0;
   const urgent = !expired && daysLeft <= 7;
@@ -20,7 +20,7 @@ export function TrialBanner({ info }: { info: TrialInfo }) {
     ? "bg-red-600 text-white"
     : urgent
     ? "bg-amber-500 text-white"
-    : "bg-blue-600 text-white";
+    : "o-trial-banner";
 
   return (
     <div className={`${cls} px-4 py-1.5 text-[12px] flex items-center justify-center gap-3`}>

@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { masterPrisma } from "@/lib/master-prisma";
 import { cycleLabel, daysUntil } from "@/lib/ledger";
+import { OdooListPage } from "@/components/odoo/sheet";
+import { t } from "@/lib/i18n/messages";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 const DATE_FMT = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Asia/Vientiane",
@@ -49,26 +53,32 @@ export default async function SubscriptionsPage({
     }, 0);
 
   return (
-    <div>
-      <div className="flex items-start justify-between mb-5 flex-wrap gap-3">
-        <div>
-          <h1 className="text-[22px] font-medium text-gray-900">
-            ສັນຍາເຊົ່າ / Subscriptions
-          </h1>
-          <p className="text-[12px] text-gray-500 mt-1">
-            ຕິດຕາມລາຍຈ່າຍປະຈຳ — server, hosting, software ແລະ ອື່ນໆ
-          </p>
+    <OdooListPage
+      title={tm("subscriptionsTitle")}
+      subtitle={tm("subscriptionsSubtitle")}
+      actions={
+        <Link
+          href="/manage/subscriptions/new"
+          className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded text-[13px] font-medium"
+        >
+          + ເພີ່ມສັນຍາ
+        </Link>
+      }
+      filters={
+        <div className="flex items-center gap-1 text-[12px]">
+          <Tab
+            label="ໃຊ້ງານຢູ່"
+            href="/manage/subscriptions"
+            active={filter === "ACTIVE"}
+          />
+          <Tab
+            label="ຍົກເລີກແລ້ວ"
+            href="/manage/subscriptions?status=CANCELLED"
+            active={filter === "CANCELLED"}
+          />
         </div>
-        <div className="flex gap-2">
-          <Link
-            href="/manage/subscriptions/new"
-            className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded text-[13px] font-medium"
-          >
-            + ເພີ່ມສັນຍາ
-          </Link>
-        </div>
-      </div>
-
+      }
+    >
       {/* Monthly burn rate */}
       <div className="bg-white border border-gray-200 rounded p-4 mb-4 max-w-md">
         <div className="text-[11px] uppercase tracking-wider text-gray-500">
@@ -80,19 +90,6 @@ export default async function SubscriptionsPage({
         <div className="text-[11px] text-gray-500 mt-0.5">
           ປະມານ {fmtMoney(monthlyBurn * 12, "LAK")} ຕໍ່ປີ
         </div>
-      </div>
-
-      <div className="flex items-center gap-1 mb-3 text-[12px]">
-        <Tab
-          label="ໃຊ້ງານຢູ່"
-          href="/manage/subscriptions"
-          active={filter === "ACTIVE"}
-        />
-        <Tab
-          label="ຍົກເລີກແລ້ວ"
-          href="/manage/subscriptions?status=CANCELLED"
-          active={filter === "CANCELLED"}
-        />
       </div>
 
       <div className="bg-white border border-gray-200 rounded overflow-hidden">
@@ -173,7 +170,7 @@ export default async function SubscriptionsPage({
           </tbody>
         </table>
       </div>
-    </div>
+    </OdooListPage>
   );
 }
 

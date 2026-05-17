@@ -4,6 +4,9 @@ import { masterPrisma } from "@/lib/master-prisma";
 import { requireUser } from "@/lib/session";
 import { formatMoney, formatDate } from "@/lib/format";
 import { OnboardingBanner } from "@/components/onboarding-banner";
+import { OdooListPage } from "@/components/odoo/sheet";
+import { getLocale } from "@/lib/i18n/server";
+import { t } from "@/lib/i18n/messages";
 
 type Period = "day" | "week" | "month" | "year";
 
@@ -24,13 +27,6 @@ function periodStart(p: Period) {
   return new Date(now.getFullYear(), now.getMonth(), 1);
 }
 
-const PERIOD_LABEL: Record<Period, string> = {
-  day: "ມື້ນີ້",
-  week: "ອາທິດນີ້",
-  month: "ເດືອນນີ້",
-  year: "ປີນີ້",
-};
-
 export default async function DashboardPage(props: {
   searchParams: Promise<{ period?: string }>;
 }) {
@@ -43,6 +39,17 @@ export default async function DashboardPage(props: {
       : "month";
 
   const session = await requireUser();
+  const locale = await getLocale();
+  const td = (k: string) => t(locale, "dashboard", k);
+  const ti = (k: string) => t(locale, "invoice", k);
+
+  const periodLabel: Record<Period, string> = {
+    day:   td("periodDay"),
+    week:  td("periodWeek"),
+    month: td("periodMonth"),
+    year:  td("periodYear"),
+  };
+
   const start = periodStart(period);
   const startOfDay = periodStart("day");
 
@@ -90,7 +97,7 @@ export default async function DashboardPage(props: {
       0,
     );
 
-  // Credit notes don't count as "ບິນຂາຍ" — only count regular invoices
+  // Credit notes don't count as sales — only count regular invoices
   const countReal = (rows: { isCreditNote: boolean }[]) =>
     rows.filter((r) => !r.isCreditNote).length;
 
@@ -105,66 +112,64 @@ export default async function DashboardPage(props: {
 
   const cards = [
     {
-      label: "ຍອດຂາຍວັນນີ້",
+      label: td("salesToday"),
       value: formatMoney(todayInvoices.sum),
-      sub: `${todayInvoices.count} ບິນ`,
+      sub: `${todayInvoices.count} ${td("bills")}`,
       icon: "📈",
       tint: "bg-emerald-50 text-emerald-700 border-emerald-200",
     },
     {
-      label: `ຍອດຂາຍ${PERIOD_LABEL[period]}`,
+      label: `${td("salesIn")} ${periodLabel[period]}`,
       value: formatMoney(periodInvoices.sum),
-      sub: `${periodInvoices.count} ບິນ`,
+      sub: `${periodInvoices.count} ${td("bills")}`,
       icon: "💰",
-      tint: "bg-blue-50 text-blue-700 border-blue-200",
+      tint: "bg-odoo/10 text-odoo border-odoo/30",
     },
     {
-      label: "ສິນຄ້າທັງໝົດ",
+      label: td("totalProducts"),
       value: totalProducts.toString(),
-      sub: "ລາຍການທີ່ໃຊ້ງານ",
+      sub: td("activeItems"),
       icon: "📦",
       tint: "bg-amber-50 text-amber-700 border-amber-200",
     },
     {
-      label: "ລູກຄ້າທັງໝົດ",
+      label: td("totalCustomers"),
       value: totalCustomers.toString(),
-      sub: "ຄົນ",
+      sub: td("people"),
       icon: "👥",
       tint: "bg-violet-50 text-violet-700 border-violet-200",
     },
   ];
 
   return (
-    <div className="-mx-4 md:-mx-6 -mt-4 md:-mt-6">
-      {/* Control panel */}
-      <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-3">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="text-[18px] font-medium text-gray-800">ໜ້າຫຼັກ</h1>
-          <div className="flex items-center gap-1.5 text-[12px] text-gray-500">
-            {(["day", "week", "month", "year"] as Period[]).map((p, i) => (
-              <span key={p} className="flex items-center gap-1.5">
-                {i > 0 && <span className="text-gray-300">·</span>}
-                <Link
-                  href={p === "month" ? "/dashboard" : `/dashboard?period=${p}`}
-                  className={
-                    period === p
-                      ? "font-medium text-[#b91c1c]"
-                      : "hover:text-[#b91c1c]"
-                  }
-                >
-                  {PERIOD_LABEL[p]}
-                </Link>
-              </span>
-            ))}
-          </div>
+    <OdooListPage
+      title={td("title")}
+      actions={
+        <div className="flex items-center gap-1.5 text-[12px] text-gray-500">
+          {(["day", "week", "month", "year"] as Period[]).map((p, i) => (
+            <span key={p} className="flex items-center gap-1.5">
+              {i > 0 && <span className="text-gray-300">·</span>}
+              <Link
+                href={p === "month" ? "/dashboard" : `/dashboard?period=${p}`}
+                className={
+                  period === p
+                    ? "font-medium text-odoo"
+                    : "hover:text-odoo"
+                }
+              >
+                {periodLabel[p]}
+              </Link>
+            </span>
+          ))}
         </div>
-      </div>
-
-      <div className="px-4 md:px-6 py-4">
+      }
+    >
+      <>
         {tenant && (
           <OnboardingBanner
             tenantCreatedAt={tenant.createdAt}
             ownerName={session.name}
+            locale={locale}
           />
         )}
 
@@ -199,73 +204,73 @@ export default async function DashboardPage(props: {
           <div className="bg-white rounded border border-gray-200">
             <div className="px-4 py-2.5 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-[13px] font-semibold text-gray-800 uppercase tracking-wider">
-                ບິນຫຼ້າສຸດ
+                {td("recentInvoices")}
               </h2>
               <Link
                 href="/invoices"
-                className="text-[12px] text-[#b91c1c] hover:underline"
+                className="text-[12px] text-odoo hover:underline"
               >
-                ເບິ່ງທັງໝົດ →
+                {td("viewAll")} →
               </Link>
             </div>
             <div>
               {recentInvoices.length === 0 && (
                 <div className="p-6 text-sm text-gray-500 text-center">
-                  ຍັງບໍ່ມີຂໍ້ມູນ
+                  {td("noData")}
                 </div>
               )}
               {recentInvoices.map((inv) => {
                 const hasReversal =
                   !inv.isCreditNote && inv.reversals.length > 0;
                 return (
-                <Link
-                  href={`/invoices/${inv.id}`}
-                  key={inv.id}
-                  className={`flex justify-between items-center px-4 py-2.5 border-b border-gray-100 last:border-b-0 ${
-                    hasReversal
-                      ? "bg-red-50 hover:bg-red-100/70"
-                      : "hover:bg-[#b91c1c]/5"
-                  }`}
-                  title={hasReversal ? "ບິນນີ້ຖືກລົດໜີ້" : undefined}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="w-8 h-8 rounded-full bg-[#b91c1c]/10 text-[#b91c1c] flex items-center justify-center text-[11px] font-semibold flex-shrink-0">
-                      {inv.customer.name.charAt(0).toUpperCase()}
-                    </span>
-                    <div className="min-w-0">
-                      <div className="text-[13px] font-mono text-gray-800 truncate">
-                        {inv.number}
+                  <Link
+                    href={`/invoices/${inv.id}`}
+                    key={inv.id}
+                    className={`flex justify-between items-center px-4 py-2.5 border-b border-gray-100 last:border-b-0 ${
+                      hasReversal
+                        ? "bg-red-50 hover:bg-red-100/70"
+                        : "hover:bg-odoo/5"
+                    }`}
+                    title={hasReversal ? td("reversedTitle") : undefined}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="w-8 h-8 rounded-full bg-odoo/10 text-odoo flex items-center justify-center text-[11px] font-semibold flex-shrink-0">
+                        {inv.customer.name.charAt(0).toUpperCase()}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="text-[13px] font-mono text-gray-800 truncate">
+                          {inv.number}
+                        </div>
+                        <div className="text-[11px] text-gray-500 truncate">
+                          {inv.customer.name} · {formatDate(inv.date)}
+                        </div>
                       </div>
-                      <div className="text-[11px] text-gray-500 truncate">
-                        {inv.customer.name} · {formatDate(inv.date)}
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div
+                        className={`text-[13px] font-medium tabular-nums ${
+                          inv.isCreditNote
+                            ? "text-orange-700"
+                            : "text-gray-900"
+                        }`}
+                      >
+                        {inv.isCreditNote ? "- " : ""}
+                        {formatMoney(
+                          inv.total,
+                          inv.currency as "LAK" | "USD" | "THB",
+                        )}
+                      </div>
+                      <div className="text-[10px] text-gray-400 uppercase tracking-wider">
+                        {inv.isCreditNote
+                          ? ti("creditNote")
+                          : inv.status === "ISSUED"
+                            ? ti("issued")
+                            : inv.status === "CANCELLED"
+                              ? ti("cancelled")
+                              : ti("draft")}
                       </div>
                     </div>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <div
-                      className={`text-[13px] font-medium tabular-nums ${
-                        inv.isCreditNote
-                          ? "text-orange-700"
-                          : "text-gray-900"
-                      }`}
-                    >
-                      {inv.isCreditNote ? "- " : ""}
-                      {formatMoney(
-                        inv.total,
-                        inv.currency as "LAK" | "USD" | "THB",
-                      )}
-                    </div>
-                    <div className="text-[10px] text-gray-400 uppercase tracking-wider">
-                      {inv.isCreditNote
-                        ? "ໃບລົດໜີ້"
-                        : inv.status === "ISSUED"
-                          ? "ອອກແລ້ວ"
-                          : inv.status === "CANCELLED"
-                            ? "ຍົກເລີກ"
-                            : "ຮ່າງ"}
-                    </div>
-                  </div>
-                </Link>
+                  </Link>
                 );
               })}
             </div>
@@ -275,19 +280,19 @@ export default async function DashboardPage(props: {
           <div className="bg-white rounded border border-gray-200">
             <div className="px-4 py-2.5 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-[13px] font-semibold text-gray-800 uppercase tracking-wider">
-                ສິນຄ້າເຫຼືອນ້ອຍ
+                {td("lowStock")}
               </h2>
               <Link
                 href="/products"
-                className="text-[12px] text-[#b91c1c] hover:underline"
+                className="text-[12px] text-odoo hover:underline"
               >
-                ຈັດການ →
+                {td("manage")} →
               </Link>
             </div>
             <div>
               {lowStock.length === 0 && (
                 <div className="p-6 text-sm text-gray-500 text-center">
-                  ສິນຄ້າທຸກລາຍການມີຄັງພຽງພໍ
+                  {td("allStocked")}
                 </div>
               )}
               {lowStock.map((p) => (
@@ -316,14 +321,14 @@ export default async function DashboardPage(props: {
                     >
                       {p.stock} {p.unit}
                     </div>
-                    <div className="text-[10px] text-gray-400">ຄົງເຫຼືອ</div>
+                    <div className="text-[10px] text-gray-400">{td("remaining")}</div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </>
+    </OdooListPage>
   );
 }

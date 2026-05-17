@@ -46,7 +46,7 @@ export function ImageUpload({
   return (
     <div className="inline-block relative group">
       <label
-        className={`block ${sizeCls} ${shapeCls} cursor-pointer overflow-hidden border-2 border-dashed border-gray-300 hover:border-[#b91c1c] transition relative bg-gray-50 ${
+        className={`block ${sizeCls} ${shapeCls} cursor-pointer overflow-hidden border-2 border-dashed border-gray-300 hover:border-odoo transition relative bg-gray-50 ${
           preview ? "border-solid border-gray-200" : ""
         }`}
         title="ກົດເພື່ອປ່ຽນຮູບ"
@@ -59,7 +59,7 @@ export function ImageUpload({
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 hover:text-[#b91c1c] transition">
+          <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 hover:text-odoo transition">
             <svg
               className="w-7 h-7 mb-1"
               fill="none"

@@ -40,6 +40,7 @@ const settingSchema = z.object({
   enableChatter: boolish,
   enableReports: boolish,
   enableDashboard: boolish,
+  enableTodo: boolish,
   etaxAutoSubmit: boolish,
 });
 
@@ -104,6 +105,7 @@ export async function saveSettings(
         enableChatter: v.enableChatter,
         enableReports: v.enableReports,
         enableDashboard: v.enableDashboard,
+        enableTodo: v.enableTodo,
         etaxAutoSubmit: v.etaxAutoSubmit,
       },
       create: {
@@ -128,6 +130,7 @@ export async function saveSettings(
         enableChatter: v.enableChatter,
         enableReports: v.enableReports,
         enableDashboard: v.enableDashboard,
+        enableTodo: v.enableTodo,
         etaxAutoSubmit: v.etaxAutoSubmit,
       },
     });

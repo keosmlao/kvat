@@ -1,0 +1,1 @@
+ALTER TABLE "Setting" ADD COLUMN "enableTodo" BOOLEAN NOT NULL DEFAULT true;

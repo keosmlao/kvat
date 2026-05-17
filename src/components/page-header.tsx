@@ -22,7 +22,7 @@ export function PageHeader({
       {action?.href && (
         <Link
           href={action.href}
-          className="inline-flex items-center gap-1.5 bg-[#b91c1c] text-white px-3 py-1.5 rounded text-[13px] font-medium hover:bg-[#991b1b] transition tracking-wide"
+          className="inline-flex items-center gap-1.5 bg-odoo text-white px-3 py-1.5 rounded text-[13px] font-medium hover:bg-odoo-hover transition tracking-wide"
         >
           <svg
             className="w-3.5 h-3.5"

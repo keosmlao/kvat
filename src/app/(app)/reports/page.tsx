@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatDate, formatMoney } from "@/lib/format";
 import { getFeatures } from "@/lib/features";
+import { OdooListPage } from "@/components/odoo/sheet";
+import { getLocale } from "@/lib/i18n/server";
+import { t } from "@/lib/i18n/messages";
 
 function parseRange(qs: { from?: string; to?: string }) {
   const now = new Date();
@@ -21,33 +24,39 @@ export default async function ReportsPage(props: {
 
   const sp = await props.searchParams;
   const { from, to } = parseRange(sp);
+  const locale = await getLocale();
+  const tr = (k: string) => t(locale, "report", k);
 
   const where = {
     date: { gte: from, lte: to },
     status: "ISSUED" as const,
   };
 
-  const [invoices, items] = await Promise.all([
-    prisma.invoice.findMany({
-      where,
-      include: {
-        customer: true,
-        reversals: { select: { id: true } },
-      },
-      orderBy: { date: "desc" },
-    }),
-    prisma.invoiceItem.findMany({
-      where: { invoice: where },
-      include: { product: true, invoice: { select: { isCreditNote: true } } },
-    }),
-  ]);
+  const invoices = await prisma.invoice.findMany({
+    where,
+    include: {
+      customer: true,
+      reversals: { select: { id: true } },
+    },
+    orderBy: { date: "desc" },
+  });
+
+  const items = await prisma.invoiceItem.findMany({
+    where: { invoice: where },
+    include: { product: true, invoice: { select: { isCreditNote: true } } },
+  });
 
   // Net aggregates — credit notes subtract
   const sign = (isCN: boolean) => (isCN ? -1 : 1);
   const agg = invoices.reduce(
     (acc, inv) => {
       const s = sign(inv.isCreditNote);
-      acc.subtotal += inv.subtotal * s;
+      const afterDiscount = Math.max(0, inv.subtotal - inv.discount);
+      const taxBase =
+        inv.vatMode === "INCLUSIVE"
+          ? Math.max(0, afterDiscount - inv.vatAmount)
+          : afterDiscount;
+      acc.subtotal += taxBase * s;
       acc.vatAmount += inv.vatAmount * s;
       acc.total += inv.total * s;
       acc.discount += inv.discount * s;
@@ -62,6 +71,7 @@ export default async function ReportsPage(props: {
     { name: string; qty: number; total: number; unit: string }
   >();
   for (const it of items) {
+    if (it.lineType !== "PRODUCT" || !it.productId) continue;
     const s = sign(it.invoice.isCreditNote);
     const cur = productSummary.get(it.productId);
     if (cur) {
@@ -93,15 +103,15 @@ export default async function ReportsPage(props: {
 
   const cards = [
     {
-      label: "ຍອດຂາຍລວມ",
+      label: tr("salesTotal"),
       value: formatMoney(agg.total),
       tint: "bg-emerald-50 text-emerald-700 border-emerald-200",
       icon: "💰",
     },
     {
-      label: "ຍ່ອຍ (ກ່ອນ VAT)",
+      label: tr("subtotalBeforeVat"),
       value: formatMoney(agg.subtotal),
-      tint: "bg-blue-50 text-blue-700 border-blue-200",
+      tint: "bg-odoo/10 text-odoo border-odoo/30",
       icon: "📊",
     },
     {
@@ -111,55 +121,58 @@ export default async function ReportsPage(props: {
       icon: "🧾",
     },
     {
-      label: "ຈຳນວນບິນ",
+      label: tr("invoiceCount"),
       value: agg.count.toString(),
-      tint: "bg-[#b91c1c]/10 text-[#b91c1c] border-[#b91c1c]/30",
+      tint: "bg-odoo/10 text-odoo border-odoo/30",
       icon: "📄",
     },
   ];
 
   return (
-    <div className="-mx-4 md:-mx-6 -mt-4 md:-mt-6">
-      {/* Control panel */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="px-4 md:px-6 pt-3 pb-1 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-[15px]">
-            <span className="font-medium text-gray-800">ລາຍງານການຂາຍ</span>
+    <OdooListPage
+      title={tr("salesTitle")}
+      subtitle={`${tr("range")}: ${formatDate(from)} ${tr("to")} ${formatDate(to)}`}
+      actions={
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 text-[14px]">
+            <a
+              href="/reports/vat"
+              className="text-gray-600 hover:text-odoo px-2 py-1 border-b-2 border-transparent transition"
+            >
+              {tr("vatReportLink")}
+            </a>
           </div>
           <form className="flex items-end gap-2">
             <div>
               <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-0.5">
-                ຈາກ
+                {tr("from")}
               </label>
               <input
                 type="date"
                 name="from"
                 defaultValue={from.toISOString().slice(0, 10)}
-                className="px-2 py-1 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-[#b91c1c]"
+                className="px-2 py-1 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-odoo"
               />
             </div>
             <div>
               <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-0.5">
-                ຮອດ
+                {tr("until")}
               </label>
               <input
                 type="date"
                 name="to"
                 defaultValue={to.toISOString().slice(0, 10)}
-                className="px-2 py-1 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-[#b91c1c]"
+                className="px-2 py-1 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-odoo"
               />
             </div>
-            <button className="bg-[#b91c1c] hover:bg-[#991b1b] text-white px-3 py-1 rounded text-[13px] font-medium transition">
-              ສະແດງ
+            <button className="bg-odoo hover:bg-odoo-hover text-white px-3 py-1 rounded text-[13px] font-medium transition">
+              {tr("show")}
             </button>
           </form>
         </div>
-        <div className="px-4 md:px-6 py-2 text-[12px] text-gray-500">
-          ໄລຍະ: {formatDate(from)} ຫາ {formatDate(to)}
-        </div>
-      </div>
-
-      <div className="px-4 md:px-6 py-4">
+      }
+    >
+      <>
         {/* KPI cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
           {cards.map((c) => (
@@ -189,19 +202,19 @@ export default async function ReportsPage(props: {
           <div className="bg-white rounded border border-gray-200">
             <div className="px-4 py-2.5 border-b border-gray-200">
               <h2 className="text-[13px] font-semibold text-gray-800 uppercase tracking-wider">
-                ສິນຄ້າຂາຍດີ Top 10
+                {tr("topProducts")}
               </h2>
             </div>
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-[11px] uppercase tracking-wider text-gray-600">
                   <th className="px-4 py-2 text-left font-semibold w-8">#</th>
-                  <th className="px-2 py-2 text-left font-semibold">ສິນຄ້າ</th>
+                  <th className="px-2 py-2 text-left font-semibold">{tr("product")}</th>
                   <th className="px-2 py-2 text-right font-semibold w-24">
-                    ຈຳນວນ
+                    {tr("quantity")}
                   </th>
                   <th className="px-4 py-2 text-right font-semibold w-32">
-                    ຍອດ
+                    {tr("total")}
                   </th>
                 </tr>
               </thead>
@@ -212,14 +225,14 @@ export default async function ReportsPage(props: {
                       colSpan={4}
                       className="text-center py-10 text-gray-500 text-[13px]"
                     >
-                      ບໍ່ມີຂໍ້ມູນ
+                      {tr("noData")}
                     </td>
                   </tr>
                 )}
                 {topProducts.map((p, i) => (
                   <tr
                     key={i}
-                    className="border-b border-gray-100 last:border-b-0 hover:bg-[#b91c1c]/5"
+                    className="border-b border-gray-100 last:border-b-0 hover:bg-odoo/5"
                   >
                     <td className="px-4 py-2 text-gray-400 tabular-nums">
                       {i + 1}
@@ -242,14 +255,14 @@ export default async function ReportsPage(props: {
           <div className="bg-white rounded border border-gray-200">
             <div className="px-4 py-2.5 border-b border-gray-200">
               <h2 className="text-[13px] font-semibold text-gray-800 uppercase tracking-wider">
-                ຍອດຂາຍຕາມວັນ
+                {tr("dailySales")}
               </h2>
             </div>
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-[11px] uppercase tracking-wider text-gray-600">
-                  <th className="px-4 py-2 text-left font-semibold">ວັນທີ</th>
-                  <th className="px-4 py-2 text-right font-semibold">ຍອດຂາຍ</th>
+                  <th className="px-4 py-2 text-left font-semibold">{tr("date")}</th>
+                  <th className="px-4 py-2 text-right font-semibold">{tr("salesCol")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -259,14 +272,14 @@ export default async function ReportsPage(props: {
                       colSpan={2}
                       className="text-center py-10 text-gray-500 text-[13px]"
                     >
-                      ບໍ່ມີຂໍ້ມູນ
+                      {tr("noData")}
                     </td>
                   </tr>
                 )}
                 {daily.map(([d, total]) => (
                   <tr
                     key={d}
-                    className="border-b border-gray-100 last:border-b-0 hover:bg-[#b91c1c]/5"
+                    className="border-b border-gray-100 last:border-b-0 hover:bg-odoo/5"
                   >
                     <td className="px-4 py-2 text-gray-800">
                       {formatDate(new Date(d))}
@@ -285,16 +298,16 @@ export default async function ReportsPage(props: {
         <div className="bg-white rounded border border-gray-200">
           <div className="px-4 py-2.5 border-b border-gray-200">
             <h2 className="text-[13px] font-semibold text-gray-800 uppercase tracking-wider">
-              ບິນທັງໝົດໃນຊ່ວງເວລາ
+              {tr("allInvoicesInRange")}
             </h2>
           </div>
           <table className="w-full text-[13px]">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-[11px] uppercase tracking-wider text-gray-600">
-                <th className="px-4 py-2 text-left font-semibold">ເລກບິນ</th>
-                <th className="px-2 py-2 text-left font-semibold">ວັນທີ</th>
-                <th className="px-2 py-2 text-left font-semibold">ລູກຄ້າ</th>
-                <th className="px-4 py-2 text-right font-semibold w-32">ລວມ</th>
+                <th className="px-4 py-2 text-left font-semibold">{tr("number")}</th>
+                <th className="px-2 py-2 text-left font-semibold">{tr("date")}</th>
+                <th className="px-2 py-2 text-left font-semibold">{tr("customer")}</th>
+                <th className="px-4 py-2 text-right font-semibold w-32">{tr("sumCol")}</th>
               </tr>
             </thead>
             <tbody>
@@ -304,7 +317,7 @@ export default async function ReportsPage(props: {
                     colSpan={4}
                     className="text-center py-10 text-gray-500 text-[13px]"
                   >
-                    ບໍ່ມີບິນໃນຊ່ວງເວລານີ້
+                    {tr("noInvoicesInRange")}
                   </td>
                 </tr>
               )}
@@ -317,9 +330,9 @@ export default async function ReportsPage(props: {
                     className={`border-b border-gray-100 last:border-b-0 ${
                       hasReversal
                         ? "bg-red-50 hover:bg-red-100/70 text-red-700 line-through decoration-red-400/60"
-                        : "hover:bg-[#b91c1c]/5"
+                        : "hover:bg-odoo/5"
                     }`}
-                    title={hasReversal ? "ບິນນີ້ຖືກລົດໜີ້" : undefined}
+                    title={hasReversal ? tr("reversedTooltip") : undefined}
                   >
                     <td className="px-4 py-2 font-mono text-[12px]">
                       <span
@@ -336,7 +349,7 @@ export default async function ReportsPage(props: {
                       )}
                       {hasReversal && (
                         <span className="no-underline ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-red-100 text-red-700 border border-red-200 font-medium uppercase tracking-wider">
-                          ຖືກລົດໜີ້
+                          {tr("reversedChip")}
                         </span>
                       )}
                     </td>
@@ -369,7 +382,7 @@ export default async function ReportsPage(props: {
                     colSpan={3}
                     className="px-4 py-2 text-right text-gray-600 text-[12px] uppercase tracking-wider"
                   >
-                    ລວມ
+                    {tr("sumCol")}
                   </td>
                   <td className="px-4 py-2 text-right tabular-nums">
                     {formatMoney(agg.total)}
@@ -379,7 +392,7 @@ export default async function ReportsPage(props: {
             )}
           </table>
         </div>
-      </div>
-    </div>
+      </>
+    </OdooListPage>
   );
 }

@@ -4,12 +4,13 @@ import { ProductForm } from "../../product-form";
 import { updateProduct, type ProductFormState } from "../../actions";
 import { Chatter } from "@/components/chatter";
 import { getChatterData } from "@/lib/chatter";
+import { getLocale } from "@/lib/i18n/server";
 
 export default async function EditProductPage(props: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await props.params;
-  const [product, units, categories, types, warehouses, chatter] =
+  const [product, units, categories, types, warehouses, chatter, locale] =
     await Promise.all([
       prisma.product.findUnique({ where: { id } }),
       prisma.unit.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
@@ -26,6 +27,7 @@ export default async function EditProductPage(props: {
         orderBy: { name: "asc" },
       }),
       getChatterData("product", id),
+      getLocale(),
     ]);
   if (!product) notFound();
 
@@ -37,6 +39,7 @@ export default async function EditProductPage(props: {
   return (
     <ProductForm
       action={action}
+      locale={locale}
       initial={product}
       units={units.map((u) => ({ id: u.id, code: u.code, name: u.name }))}
       categories={categories.map((c) => ({
@@ -61,6 +64,7 @@ export default async function EditProductPage(props: {
           users={chatter.users}
           isFollowing={chatter.isFollowing}
           currentUserId={chatter.currentUserId}
+          locale={locale}
         />
       }
     />

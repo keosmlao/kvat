@@ -57,6 +57,14 @@ enum BillingStatus {
   CANCELLED
 }
 
+enum BillingQuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
 enum BillingCustomerType {
   TENANT     // signed up to the SaaS — linked back to a Tenant row
   EXTERNAL   // bought a system/service from SMLAO but not a tenant
@@ -86,6 +94,7 @@ model BillingCustomer {
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
   invoices    BillingInvoice[]
+  quotes      BillingQuote[]
 
   @@unique([tenantId])
   @@index([type])
@@ -106,6 +115,7 @@ model BillingProduct {
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
   items           BillingInvoiceItem[]
+  quoteItems      BillingQuoteItem[]
   yearlyForConfig BillingConfig?       @relation("YearlyProduct")
   lifetimeForConfig BillingConfig?     @relation("LifetimeProduct")
 
@@ -157,15 +167,68 @@ model BillingInvoiceItem {
   invoice     BillingInvoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   productId   String?
   product     BillingProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  lineType    String          @default("PRODUCT") // PRODUCT | SECTION | NOTE
   sn          Int             @default(1)
   description String
   unit        String          @default("ໜ່ວຍ")
   quantity    Float           @default(1)
   unitPrice   Float
   discount    Float           @default(0)
+  taxRate     Float           @default(0.1)
+  taxAmount   Float           @default(0)
   total       Float
 
   @@index([invoiceId])
+}
+
+// Commercial quotations issued from the management portal before a bill is
+// confirmed. Mirrors the Odoo sales quotation workflow and shares customer /
+// product catalogue data with BillingInvoice.
+model BillingQuote {
+  id            String             @id @default(cuid())
+  number        String             @unique          // e.g. "QT-2026-0001"
+  customerId    String
+  customer      BillingCustomer    @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  title         String
+  subtotal      Float              @default(0)
+  discount      Float              @default(0)
+  vatMode       String             @default("EXCLUSIVE") // EXCLUSIVE | INCLUSIVE | EXEMPT
+  vatRate       Float              @default(0.1)
+  vatAmount     Float              @default(0)
+  amount        Float
+  currency      String             @default("LAK")
+  issueDate     DateTime           @default(now())
+  validUntil    DateTime?
+  status        BillingQuoteStatus @default(DRAFT)
+  notes         String?
+  createdBy     String?                              // ManagementUser.id
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  items         BillingQuoteItem[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([issueDate])
+}
+
+model BillingQuoteItem {
+  id          String          @id @default(cuid())
+  quoteId     String
+  quote       BillingQuote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     BillingProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  lineType    String          @default("PRODUCT") // PRODUCT | SECTION | NOTE
+  sn          Int             @default(1)
+  description String
+  unit        String          @default("ໜ່ວຍ")
+  quantity    Float           @default(1)
+  unitPrice   Float
+  discount    Float           @default(0)
+  taxRate     Float           @default(0.1)
+  taxAmount   Float           @default(0)
+  total       Float
+
+  @@index([quoteId])
 }
 
 enum LedgerType {
@@ -302,6 +365,57 @@ model ManagementUser {
   name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  messages  ManagementMessage[]
+  follows   ManagementFollower[]
+  activitiesAssigned ManagementActivity[] @relation("ManagementActivityAssigned")
+  activitiesCreated  ManagementActivity[] @relation("ManagementActivityCreated")
+}
+
+model ManagementMessage {
+  id         String         @id @default(cuid())
+  body       String
+  kind       String         @default("COMMENT") // COMMENT | NOTE | LOG
+  recordType String
+  recordId   String
+  authorId   String
+  author     ManagementUser @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt  DateTime       @default(now())
+
+  @@index([recordType, recordId, createdAt])
+  @@index([authorId, createdAt])
+}
+
+model ManagementFollower {
+  id         String         @id @default(cuid())
+  userId     String
+  user       ManagementUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recordType String
+  recordId   String
+  createdAt  DateTime       @default(now())
+
+  @@unique([userId, recordType, recordId])
+  @@index([recordType, recordId])
+}
+
+model ManagementActivity {
+  id           String         @id @default(cuid())
+  summary      String
+  note         String?
+  dueDate      DateTime
+  done         Boolean        @default(false)
+  doneAt       DateTime?
+  assignedToId String
+  assignedTo   ManagementUser @relation("ManagementActivityAssigned", fields: [assignedToId], references: [id], onDelete: Cascade)
+  createdById  String
+  createdBy    ManagementUser @relation("ManagementActivityCreated", fields: [createdById], references: [id], onDelete: Cascade)
+  recordType   String
+  recordId     String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([recordType, recordId, done, dueDate])
+  @@index([assignedToId, done, dueDate])
+  @@index([createdById, createdAt])
 }
 
 model LoginLog {
@@ -314,6 +428,28 @@ model LoginLog {
   createdAt DateTime @default(now())
 
   @@index([tenantId, createdAt])
+}
+
+// Append-only record of every meaningful admin action. Used for compliance,
+// debugging ("who suspended this tenant?"), and the manage dashboard feed.
+// Schema is deliberately loose — `entityType` + `entityId` point at whatever
+// got touched and `metadata` is free-form JSON-as-string for context.
+model AdminAuditLog {
+  id          String   @id @default(cuid())
+  actorId     String?                          // ManagementUser.id (null = system)
+  actorEmail  String?                          // denormalised for fast display
+  action      String                           // verb: tenant.approve, billing.create, ...
+  entityType  String                           // model name: Tenant / BillingInvoice / ...
+  entityId    String?                          // PK of the row touched
+  entityLabel String?                          // human-friendly label for the row
+  metadata    String?                          // JSON-encoded extras (diff, reason)
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action, createdAt])
 }
 
 // Global eTax Invoice Gateway config — single row (id=1). All tenants share

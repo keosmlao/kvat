@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { masterPrisma } from "@/lib/master-prisma";
+import { OdooListPage } from "@/components/odoo/sheet";
+import { t } from "@/lib/i18n/messages";
+
+const tm = (k: string) => t("lo", "manage", k);
 
 export default async function CustomersPage({
   searchParams,
@@ -33,54 +37,48 @@ export default async function CustomersPage({
   });
 
   return (
-    <div>
-      <div className="flex items-start justify-between mb-5 flex-wrap gap-3">
-        <div>
-          <h1 className="text-[22px] font-medium text-gray-900">
-            ລູກຄ້າ (Billing Customers)
-          </h1>
-          <p className="text-[12px] text-gray-500 mt-1">
-            ລູກຄ້າ SaaS (tenant) + ລູກຄ້າຊື້ລະບົບ/ບໍລິການອື່ນ
-          </p>
-        </div>
+    <OdooListPage
+      title={tm("billingCustTitle")}
+      subtitle="ລູກຄ້າ SaaS (tenant) + ລູກຄ້າຊື້ລະບົບ/ບໍລິການອື່ນ"
+      actions={
         <Link
           href="/manage/billing/customers/new"
           className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded text-[13px] font-medium"
         >
           + ເພີ່ມລູກຄ້າ
         </Link>
-      </div>
-
-      {/* Filter + search */}
-      <form className="bg-white border border-gray-200 rounded p-3 mb-3" method="get">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-2 text-[13px]">
-          <select
-            name="type"
-            defaultValue={typeFilter ?? ""}
-            className="px-2 py-1 border border-gray-300 rounded"
-          >
-            <option value="">ທຸກປະເພດ</option>
-            <option value="TENANT">SaaS Tenant</option>
-            <option value="EXTERNAL">ລູກຄ້າພາຍນອກ</option>
-          </select>
-          <div className="md:col-span-2 flex gap-1">
-            <input
-              type="text"
-              name="q"
-              defaultValue={sp.q ?? ""}
-              placeholder="ຄົ້ນຫາຊື່ / code / TIN / email..."
-              className="flex-1 px-2 py-1 border border-gray-300 rounded"
-            />
-            <button
-              type="submit"
-              className="px-3 py-1 bg-slate-900 text-white rounded"
+      }
+      filters={
+        <form className="bg-white border border-gray-200 rounded p-3" method="get">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 text-[13px]">
+            <select
+              name="type"
+              defaultValue={typeFilter ?? ""}
+              className="px-2 py-1 border border-gray-300 rounded"
             >
-              🔍
-            </button>
+              <option value="">ທຸກປະເພດ</option>
+              <option value="TENANT">SaaS Tenant</option>
+              <option value="EXTERNAL">ລູກຄ້າພາຍນອກ</option>
+            </select>
+            <div className="md:col-span-2 flex gap-1">
+              <input
+                type="text"
+                name="q"
+                defaultValue={sp.q ?? ""}
+                placeholder="ຄົ້ນຫາຊື່ / code / TIN / email..."
+                className="flex-1 px-2 py-1 border border-gray-300 rounded"
+              />
+              <button
+                type="submit"
+                className="px-3 py-1 bg-slate-900 text-white rounded"
+              >
+                🔍
+              </button>
+            </div>
           </div>
-        </div>
-      </form>
-
+        </form>
+      }
+    >
       <div className="bg-white border border-gray-200 rounded overflow-hidden">
         <table className="w-full text-[13px]">
           <thead className="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
@@ -109,7 +107,7 @@ export default async function CustomersPage({
                   </td>
                   <td className="py-2 px-3">
                     {c.type === "TENANT" ? (
-                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700">
+                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-odoo/10 text-odoo">
                         Tenant
                       </span>
                     ) : (
@@ -152,6 +150,6 @@ export default async function CustomersPage({
           </tbody>
         </table>
       </div>
-    </div>
+    </OdooListPage>
   );
 }

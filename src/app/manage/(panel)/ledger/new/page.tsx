@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { masterPrisma } from "@/lib/master-prisma";
 import { EntryForm } from "../entry-form";
+import { OdooListPage } from "@/components/odoo/sheet";
 
 export default async function NewEntryPage({
   searchParams,
@@ -18,8 +19,9 @@ export default async function NewEntryPage({
   });
 
   return (
-    <div>
-      <div className="mb-4">
+    <OdooListPage title={`ເພີ່ມ${defaultType === "INCOME" ? "ລາຍຮັບ" : "ລາຍຈ່າຍ"}`}>
+      <>
+      <div className="mb-3">
         <Link
           href="/manage/ledger"
           className="text-[12px] text-gray-500 hover:text-gray-800"
@@ -27,9 +29,6 @@ export default async function NewEntryPage({
           ← Ledger
         </Link>
       </div>
-      <h1 className="text-[22px] font-medium text-gray-900 mb-5">
-        ເພີ່ມ{defaultType === "INCOME" ? "ລາຍຮັບ" : "ລາຍຈ່າຍ"}
-      </h1>
       <div className="bg-white border border-gray-200 rounded p-5 max-w-2xl">
         <EntryForm
           mode="create"
@@ -48,6 +47,7 @@ export default async function NewEntryPage({
           }}
         />
       </div>
-    </div>
+      </>
+    </OdooListPage>
   );
 }

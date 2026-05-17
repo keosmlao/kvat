@@ -31,6 +31,8 @@ export type BillingInvoiceItemAvgAggregateOutputType = {
   quantity: number | null
   unitPrice: number | null
   discount: number | null
+  taxRate: number | null
+  taxAmount: number | null
   total: number | null
 }
 
@@ -39,6 +41,8 @@ export type BillingInvoiceItemSumAggregateOutputType = {
   quantity: number | null
   unitPrice: number | null
   discount: number | null
+  taxRate: number | null
+  taxAmount: number | null
   total: number | null
 }
 
@@ -46,12 +50,15 @@ export type BillingInvoiceItemMinAggregateOutputType = {
   id: string | null
   invoiceId: string | null
   productId: string | null
+  lineType: string | null
   sn: number | null
   description: string | null
   unit: string | null
   quantity: number | null
   unitPrice: number | null
   discount: number | null
+  taxRate: number | null
+  taxAmount: number | null
   total: number | null
 }
 
@@ -59,12 +66,15 @@ export type BillingInvoiceItemMaxAggregateOutputType = {
   id: string | null
   invoiceId: string | null
   productId: string | null
+  lineType: string | null
   sn: number | null
   description: string | null
   unit: string | null
   quantity: number | null
   unitPrice: number | null
   discount: number | null
+  taxRate: number | null
+  taxAmount: number | null
   total: number | null
 }
 
@@ -72,12 +82,15 @@ export type BillingInvoiceItemCountAggregateOutputType = {
   id: number
   invoiceId: number
   productId: number
+  lineType: number
   sn: number
   description: number
   unit: number
   quantity: number
   unitPrice: number
   discount: number
+  taxRate: number
+  taxAmount: number
   total: number
   _all: number
 }
@@ -88,6 +101,8 @@ export type BillingInvoiceItemAvgAggregateInputType = {
   quantity?: true
   unitPrice?: true
   discount?: true
+  taxRate?: true
+  taxAmount?: true
   total?: true
 }
 
@@ -96,6 +111,8 @@ export type BillingInvoiceItemSumAggregateInputType = {
   quantity?: true
   unitPrice?: true
   discount?: true
+  taxRate?: true
+  taxAmount?: true
   total?: true
 }
 
@@ -103,12 +120,15 @@ export type BillingInvoiceItemMinAggregateInputType = {
   id?: true
   invoiceId?: true
   productId?: true
+  lineType?: true
   sn?: true
   description?: true
   unit?: true
   quantity?: true
   unitPrice?: true
   discount?: true
+  taxRate?: true
+  taxAmount?: true
   total?: true
 }
 
@@ -116,12 +136,15 @@ export type BillingInvoiceItemMaxAggregateInputType = {
   id?: true
   invoiceId?: true
   productId?: true
+  lineType?: true
   sn?: true
   description?: true
   unit?: true
   quantity?: true
   unitPrice?: true
   discount?: true
+  taxRate?: true
+  taxAmount?: true
   total?: true
 }
 
@@ -129,12 +152,15 @@ export type BillingInvoiceItemCountAggregateInputType = {
   id?: true
   invoiceId?: true
   productId?: true
+  lineType?: true
   sn?: true
   description?: true
   unit?: true
   quantity?: true
   unitPrice?: true
   discount?: true
+  taxRate?: true
+  taxAmount?: true
   total?: true
   _all?: true
 }
@@ -229,12 +255,15 @@ export type BillingInvoiceItemGroupByOutputType = {
   id: string
   invoiceId: string
   productId: string | null
+  lineType: string
   sn: number
   description: string
   unit: string
   quantity: number
   unitPrice: number
   discount: number
+  taxRate: number
+  taxAmount: number
   total: number
   _count: BillingInvoiceItemCountAggregateOutputType | null
   _avg: BillingInvoiceItemAvgAggregateOutputType | null
@@ -265,12 +294,15 @@ export type BillingInvoiceItemWhereInput = {
   id?: Prisma.StringFilter<"BillingInvoiceItem"> | string
   invoiceId?: Prisma.StringFilter<"BillingInvoiceItem"> | string
   productId?: Prisma.StringNullableFilter<"BillingInvoiceItem"> | string | null
+  lineType?: Prisma.StringFilter<"BillingInvoiceItem"> | string
   sn?: Prisma.IntFilter<"BillingInvoiceItem"> | number
   description?: Prisma.StringFilter<"BillingInvoiceItem"> | string
   unit?: Prisma.StringFilter<"BillingInvoiceItem"> | string
   quantity?: Prisma.FloatFilter<"BillingInvoiceItem"> | number
   unitPrice?: Prisma.FloatFilter<"BillingInvoiceItem"> | number
   discount?: Prisma.FloatFilter<"BillingInvoiceItem"> | number
+  taxRate?: Prisma.FloatFilter<"BillingInvoiceItem"> | number
+  taxAmount?: Prisma.FloatFilter<"BillingInvoiceItem"> | number
   total?: Prisma.FloatFilter<"BillingInvoiceItem"> | number
   invoice?: Prisma.XOR<Prisma.BillingInvoiceScalarRelationFilter, Prisma.BillingInvoiceWhereInput>
   product?: Prisma.XOR<Prisma.BillingProductNullableScalarRelationFilter, Prisma.BillingProductWhereInput> | null
@@ -280,12 +312,15 @@ export type BillingInvoiceItemOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   invoiceId?: Prisma.SortOrder
   productId?: Prisma.SortOrderInput | Prisma.SortOrder
+  lineType?: Prisma.SortOrder
   sn?: Prisma.SortOrder
   description?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   quantity?: Prisma.SortOrder
   unitPrice?: Prisma.SortOrder
   discount?: Prisma.SortOrder
+  taxRate?: Prisma.SortOrder
+  taxAmount?: Prisma.SortOrder
   total?: Prisma.SortOrder
   invoice?: Prisma.BillingInvoiceOrderByWithRelationInput
   product?: Prisma.BillingProductOrderByWithRelationInput
@@ -298,12 +333,15 @@ export type BillingInvoiceItemWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.BillingInvoiceItemWhereInput | Prisma.BillingInvoiceItemWhereInput[]
   invoiceId?: Prisma.StringFilter<"BillingInvoiceItem"> | string
   productId?: Prisma.StringNullableFilter<"BillingInvoiceItem"> | string | null
+  lineType?: Prisma.StringFilter<"BillingInvoiceItem"> | string
   sn?: Prisma.IntFilter<"BillingInvoiceItem"> | number
   description?: Prisma.StringFilter<"BillingInvoiceItem"> | string
   unit?: Prisma.StringFilter<"BillingInvoiceItem"> | string
   quantity?: Prisma.FloatFilter<"BillingInvoiceItem"> | number
   unitPrice?: Prisma.FloatFilter<"BillingInvoiceItem"> | number
   discount?: Prisma.FloatFilter<"BillingInvoiceItem"> | number
+  taxRate?: Prisma.FloatFilter<"BillingInvoiceItem"> | number
+  taxAmount?: Prisma.FloatFilter<"BillingInvoiceItem"> | number
   total?: Prisma.FloatFilter<"BillingInvoiceItem"> | number
   invoice?: Prisma.XOR<Prisma.BillingInvoiceScalarRelationFilter, Prisma.BillingInvoiceWhereInput>
   product?: Prisma.XOR<Prisma.BillingProductNullableScalarRelationFilter, Prisma.BillingProductWhereInput> | null
@@ -313,12 +351,15 @@ export type BillingInvoiceItemOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   invoiceId?: Prisma.SortOrder
   productId?: Prisma.SortOrderInput | Prisma.SortOrder
+  lineType?: Prisma.SortOrder
   sn?: Prisma.SortOrder
   description?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   quantity?: Prisma.SortOrder
   unitPrice?: Prisma.SortOrder
   discount?: Prisma.SortOrder
+  taxRate?: Prisma.SortOrder
+  taxAmount?: Prisma.SortOrder
   total?: Prisma.SortOrder
   _count?: Prisma.BillingInvoiceItemCountOrderByAggregateInput
   _avg?: Prisma.BillingInvoiceItemAvgOrderByAggregateInput
@@ -334,23 +375,29 @@ export type BillingInvoiceItemScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"BillingInvoiceItem"> | string
   invoiceId?: Prisma.StringWithAggregatesFilter<"BillingInvoiceItem"> | string
   productId?: Prisma.StringNullableWithAggregatesFilter<"BillingInvoiceItem"> | string | null
+  lineType?: Prisma.StringWithAggregatesFilter<"BillingInvoiceItem"> | string
   sn?: Prisma.IntWithAggregatesFilter<"BillingInvoiceItem"> | number
   description?: Prisma.StringWithAggregatesFilter<"BillingInvoiceItem"> | string
   unit?: Prisma.StringWithAggregatesFilter<"BillingInvoiceItem"> | string
   quantity?: Prisma.FloatWithAggregatesFilter<"BillingInvoiceItem"> | number
   unitPrice?: Prisma.FloatWithAggregatesFilter<"BillingInvoiceItem"> | number
   discount?: Prisma.FloatWithAggregatesFilter<"BillingInvoiceItem"> | number
+  taxRate?: Prisma.FloatWithAggregatesFilter<"BillingInvoiceItem"> | number
+  taxAmount?: Prisma.FloatWithAggregatesFilter<"BillingInvoiceItem"> | number
   total?: Prisma.FloatWithAggregatesFilter<"BillingInvoiceItem"> | number
 }
 
 export type BillingInvoiceItemCreateInput = {
   id?: string
+  lineType?: string
   sn?: number
   description: string
   unit?: string
   quantity?: number
   unitPrice: number
   discount?: number
+  taxRate?: number
+  taxAmount?: number
   total: number
   invoice: Prisma.BillingInvoiceCreateNestedOneWithoutItemsInput
   product?: Prisma.BillingProductCreateNestedOneWithoutItemsInput
@@ -360,23 +407,29 @@ export type BillingInvoiceItemUncheckedCreateInput = {
   id?: string
   invoiceId: string
   productId?: string | null
+  lineType?: string
   sn?: number
   description: string
   unit?: string
   quantity?: number
   unitPrice: number
   discount?: number
+  taxRate?: number
+  taxAmount?: number
   total: number
 }
 
 export type BillingInvoiceItemUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  lineType?: Prisma.StringFieldUpdateOperationsInput | string
   sn?: Prisma.IntFieldUpdateOperationsInput | number
   description?: Prisma.StringFieldUpdateOperationsInput | string
   unit?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.FloatFieldUpdateOperationsInput | number
   unitPrice?: Prisma.FloatFieldUpdateOperationsInput | number
   discount?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxRate?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   total?: Prisma.FloatFieldUpdateOperationsInput | number
   invoice?: Prisma.BillingInvoiceUpdateOneRequiredWithoutItemsNestedInput
   product?: Prisma.BillingProductUpdateOneWithoutItemsNestedInput
@@ -386,12 +439,15 @@ export type BillingInvoiceItemUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   invoiceId?: Prisma.StringFieldUpdateOperationsInput | string
   productId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lineType?: Prisma.StringFieldUpdateOperationsInput | string
   sn?: Prisma.IntFieldUpdateOperationsInput | number
   description?: Prisma.StringFieldUpdateOperationsInput | string
   unit?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.FloatFieldUpdateOperationsInput | number
   unitPrice?: Prisma.FloatFieldUpdateOperationsInput | number
   discount?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxRate?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   total?: Prisma.FloatFieldUpdateOperationsInput | number
 }
 
@@ -399,23 +455,29 @@ export type BillingInvoiceItemCreateManyInput = {
   id?: string
   invoiceId: string
   productId?: string | null
+  lineType?: string
   sn?: number
   description: string
   unit?: string
   quantity?: number
   unitPrice: number
   discount?: number
+  taxRate?: number
+  taxAmount?: number
   total: number
 }
 
 export type BillingInvoiceItemUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  lineType?: Prisma.StringFieldUpdateOperationsInput | string
   sn?: Prisma.IntFieldUpdateOperationsInput | number
   description?: Prisma.StringFieldUpdateOperationsInput | string
   unit?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.FloatFieldUpdateOperationsInput | number
   unitPrice?: Prisma.FloatFieldUpdateOperationsInput | number
   discount?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxRate?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   total?: Prisma.FloatFieldUpdateOperationsInput | number
 }
 
@@ -423,12 +485,15 @@ export type BillingInvoiceItemUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   invoiceId?: Prisma.StringFieldUpdateOperationsInput | string
   productId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lineType?: Prisma.StringFieldUpdateOperationsInput | string
   sn?: Prisma.IntFieldUpdateOperationsInput | number
   description?: Prisma.StringFieldUpdateOperationsInput | string
   unit?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.FloatFieldUpdateOperationsInput | number
   unitPrice?: Prisma.FloatFieldUpdateOperationsInput | number
   discount?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxRate?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   total?: Prisma.FloatFieldUpdateOperationsInput | number
 }
 
@@ -446,12 +511,15 @@ export type BillingInvoiceItemCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   invoiceId?: Prisma.SortOrder
   productId?: Prisma.SortOrder
+  lineType?: Prisma.SortOrder
   sn?: Prisma.SortOrder
   description?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   quantity?: Prisma.SortOrder
   unitPrice?: Prisma.SortOrder
   discount?: Prisma.SortOrder
+  taxRate?: Prisma.SortOrder
+  taxAmount?: Prisma.SortOrder
   total?: Prisma.SortOrder
 }
 
@@ -460,6 +528,8 @@ export type BillingInvoiceItemAvgOrderByAggregateInput = {
   quantity?: Prisma.SortOrder
   unitPrice?: Prisma.SortOrder
   discount?: Prisma.SortOrder
+  taxRate?: Prisma.SortOrder
+  taxAmount?: Prisma.SortOrder
   total?: Prisma.SortOrder
 }
 
@@ -467,12 +537,15 @@ export type BillingInvoiceItemMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   invoiceId?: Prisma.SortOrder
   productId?: Prisma.SortOrder
+  lineType?: Prisma.SortOrder
   sn?: Prisma.SortOrder
   description?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   quantity?: Prisma.SortOrder
   unitPrice?: Prisma.SortOrder
   discount?: Prisma.SortOrder
+  taxRate?: Prisma.SortOrder
+  taxAmount?: Prisma.SortOrder
   total?: Prisma.SortOrder
 }
 
@@ -480,12 +553,15 @@ export type BillingInvoiceItemMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   invoiceId?: Prisma.SortOrder
   productId?: Prisma.SortOrder
+  lineType?: Prisma.SortOrder
   sn?: Prisma.SortOrder
   description?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   quantity?: Prisma.SortOrder
   unitPrice?: Prisma.SortOrder
   discount?: Prisma.SortOrder
+  taxRate?: Prisma.SortOrder
+  taxAmount?: Prisma.SortOrder
   total?: Prisma.SortOrder
 }
 
@@ -494,6 +570,8 @@ export type BillingInvoiceItemSumOrderByAggregateInput = {
   quantity?: Prisma.SortOrder
   unitPrice?: Prisma.SortOrder
   discount?: Prisma.SortOrder
+  taxRate?: Prisma.SortOrder
+  taxAmount?: Prisma.SortOrder
   total?: Prisma.SortOrder
 }
 
@@ -591,12 +669,15 @@ export type IntFieldUpdateOperationsInput = {
 
 export type BillingInvoiceItemCreateWithoutProductInput = {
   id?: string
+  lineType?: string
   sn?: number
   description: string
   unit?: string
   quantity?: number
   unitPrice: number
   discount?: number
+  taxRate?: number
+  taxAmount?: number
   total: number
   invoice: Prisma.BillingInvoiceCreateNestedOneWithoutItemsInput
 }
@@ -604,12 +685,15 @@ export type BillingInvoiceItemCreateWithoutProductInput = {
 export type BillingInvoiceItemUncheckedCreateWithoutProductInput = {
   id?: string
   invoiceId: string
+  lineType?: string
   sn?: number
   description: string
   unit?: string
   quantity?: number
   unitPrice: number
   discount?: number
+  taxRate?: number
+  taxAmount?: number
   total: number
 }
 
@@ -646,23 +730,29 @@ export type BillingInvoiceItemScalarWhereInput = {
   id?: Prisma.StringFilter<"BillingInvoiceItem"> | string
   invoiceId?: Prisma.StringFilter<"BillingInvoiceItem"> | string
   productId?: Prisma.StringNullableFilter<"BillingInvoiceItem"> | string | null
+  lineType?: Prisma.StringFilter<"BillingInvoiceItem"> | string
   sn?: Prisma.IntFilter<"BillingInvoiceItem"> | number
   description?: Prisma.StringFilter<"BillingInvoiceItem"> | string
   unit?: Prisma.StringFilter<"BillingInvoiceItem"> | string
   quantity?: Prisma.FloatFilter<"BillingInvoiceItem"> | number
   unitPrice?: Prisma.FloatFilter<"BillingInvoiceItem"> | number
   discount?: Prisma.FloatFilter<"BillingInvoiceItem"> | number
+  taxRate?: Prisma.FloatFilter<"BillingInvoiceItem"> | number
+  taxAmount?: Prisma.FloatFilter<"BillingInvoiceItem"> | number
   total?: Prisma.FloatFilter<"BillingInvoiceItem"> | number
 }
 
 export type BillingInvoiceItemCreateWithoutInvoiceInput = {
   id?: string
+  lineType?: string
   sn?: number
   description: string
   unit?: string
   quantity?: number
   unitPrice: number
   discount?: number
+  taxRate?: number
+  taxAmount?: number
   total: number
   product?: Prisma.BillingProductCreateNestedOneWithoutItemsInput
 }
@@ -670,12 +760,15 @@ export type BillingInvoiceItemCreateWithoutInvoiceInput = {
 export type BillingInvoiceItemUncheckedCreateWithoutInvoiceInput = {
   id?: string
   productId?: string | null
+  lineType?: string
   sn?: number
   description: string
   unit?: string
   quantity?: number
   unitPrice: number
   discount?: number
+  taxRate?: number
+  taxAmount?: number
   total: number
 }
 
@@ -708,23 +801,29 @@ export type BillingInvoiceItemUpdateManyWithWhereWithoutInvoiceInput = {
 export type BillingInvoiceItemCreateManyProductInput = {
   id?: string
   invoiceId: string
+  lineType?: string
   sn?: number
   description: string
   unit?: string
   quantity?: number
   unitPrice: number
   discount?: number
+  taxRate?: number
+  taxAmount?: number
   total: number
 }
 
 export type BillingInvoiceItemUpdateWithoutProductInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  lineType?: Prisma.StringFieldUpdateOperationsInput | string
   sn?: Prisma.IntFieldUpdateOperationsInput | number
   description?: Prisma.StringFieldUpdateOperationsInput | string
   unit?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.FloatFieldUpdateOperationsInput | number
   unitPrice?: Prisma.FloatFieldUpdateOperationsInput | number
   discount?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxRate?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   total?: Prisma.FloatFieldUpdateOperationsInput | number
   invoice?: Prisma.BillingInvoiceUpdateOneRequiredWithoutItemsNestedInput
 }
@@ -732,47 +831,59 @@ export type BillingInvoiceItemUpdateWithoutProductInput = {
 export type BillingInvoiceItemUncheckedUpdateWithoutProductInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   invoiceId?: Prisma.StringFieldUpdateOperationsInput | string
+  lineType?: Prisma.StringFieldUpdateOperationsInput | string
   sn?: Prisma.IntFieldUpdateOperationsInput | number
   description?: Prisma.StringFieldUpdateOperationsInput | string
   unit?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.FloatFieldUpdateOperationsInput | number
   unitPrice?: Prisma.FloatFieldUpdateOperationsInput | number
   discount?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxRate?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   total?: Prisma.FloatFieldUpdateOperationsInput | number
 }
 
 export type BillingInvoiceItemUncheckedUpdateManyWithoutProductInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   invoiceId?: Prisma.StringFieldUpdateOperationsInput | string
+  lineType?: Prisma.StringFieldUpdateOperationsInput | string
   sn?: Prisma.IntFieldUpdateOperationsInput | number
   description?: Prisma.StringFieldUpdateOperationsInput | string
   unit?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.FloatFieldUpdateOperationsInput | number
   unitPrice?: Prisma.FloatFieldUpdateOperationsInput | number
   discount?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxRate?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   total?: Prisma.FloatFieldUpdateOperationsInput | number
 }
 
 export type BillingInvoiceItemCreateManyInvoiceInput = {
   id?: string
   productId?: string | null
+  lineType?: string
   sn?: number
   description: string
   unit?: string
   quantity?: number
   unitPrice: number
   discount?: number
+  taxRate?: number
+  taxAmount?: number
   total: number
 }
 
 export type BillingInvoiceItemUpdateWithoutInvoiceInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  lineType?: Prisma.StringFieldUpdateOperationsInput | string
   sn?: Prisma.IntFieldUpdateOperationsInput | number
   description?: Prisma.StringFieldUpdateOperationsInput | string
   unit?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.FloatFieldUpdateOperationsInput | number
   unitPrice?: Prisma.FloatFieldUpdateOperationsInput | number
   discount?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxRate?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   total?: Prisma.FloatFieldUpdateOperationsInput | number
   product?: Prisma.BillingProductUpdateOneWithoutItemsNestedInput
 }
@@ -780,24 +891,30 @@ export type BillingInvoiceItemUpdateWithoutInvoiceInput = {
 export type BillingInvoiceItemUncheckedUpdateWithoutInvoiceInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   productId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lineType?: Prisma.StringFieldUpdateOperationsInput | string
   sn?: Prisma.IntFieldUpdateOperationsInput | number
   description?: Prisma.StringFieldUpdateOperationsInput | string
   unit?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.FloatFieldUpdateOperationsInput | number
   unitPrice?: Prisma.FloatFieldUpdateOperationsInput | number
   discount?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxRate?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   total?: Prisma.FloatFieldUpdateOperationsInput | number
 }
 
 export type BillingInvoiceItemUncheckedUpdateManyWithoutInvoiceInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   productId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lineType?: Prisma.StringFieldUpdateOperationsInput | string
   sn?: Prisma.IntFieldUpdateOperationsInput | number
   description?: Prisma.StringFieldUpdateOperationsInput | string
   unit?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.FloatFieldUpdateOperationsInput | number
   unitPrice?: Prisma.FloatFieldUpdateOperationsInput | number
   discount?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxRate?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   total?: Prisma.FloatFieldUpdateOperationsInput | number
 }
 
@@ -807,12 +924,15 @@ export type BillingInvoiceItemSelect<ExtArgs extends runtime.Types.Extensions.In
   id?: boolean
   invoiceId?: boolean
   productId?: boolean
+  lineType?: boolean
   sn?: boolean
   description?: boolean
   unit?: boolean
   quantity?: boolean
   unitPrice?: boolean
   discount?: boolean
+  taxRate?: boolean
+  taxAmount?: boolean
   total?: boolean
   invoice?: boolean | Prisma.BillingInvoiceDefaultArgs<ExtArgs>
   product?: boolean | Prisma.BillingInvoiceItem$productArgs<ExtArgs>
@@ -822,12 +942,15 @@ export type BillingInvoiceItemSelectCreateManyAndReturn<ExtArgs extends runtime.
   id?: boolean
   invoiceId?: boolean
   productId?: boolean
+  lineType?: boolean
   sn?: boolean
   description?: boolean
   unit?: boolean
   quantity?: boolean
   unitPrice?: boolean
   discount?: boolean
+  taxRate?: boolean
+  taxAmount?: boolean
   total?: boolean
   invoice?: boolean | Prisma.BillingInvoiceDefaultArgs<ExtArgs>
   product?: boolean | Prisma.BillingInvoiceItem$productArgs<ExtArgs>
@@ -837,12 +960,15 @@ export type BillingInvoiceItemSelectUpdateManyAndReturn<ExtArgs extends runtime.
   id?: boolean
   invoiceId?: boolean
   productId?: boolean
+  lineType?: boolean
   sn?: boolean
   description?: boolean
   unit?: boolean
   quantity?: boolean
   unitPrice?: boolean
   discount?: boolean
+  taxRate?: boolean
+  taxAmount?: boolean
   total?: boolean
   invoice?: boolean | Prisma.BillingInvoiceDefaultArgs<ExtArgs>
   product?: boolean | Prisma.BillingInvoiceItem$productArgs<ExtArgs>
@@ -852,16 +978,19 @@ export type BillingInvoiceItemSelectScalar = {
   id?: boolean
   invoiceId?: boolean
   productId?: boolean
+  lineType?: boolean
   sn?: boolean
   description?: boolean
   unit?: boolean
   quantity?: boolean
   unitPrice?: boolean
   discount?: boolean
+  taxRate?: boolean
+  taxAmount?: boolean
   total?: boolean
 }
 
-export type BillingInvoiceItemOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "invoiceId" | "productId" | "sn" | "description" | "unit" | "quantity" | "unitPrice" | "discount" | "total", ExtArgs["result"]["billingInvoiceItem"]>
+export type BillingInvoiceItemOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "invoiceId" | "productId" | "lineType" | "sn" | "description" | "unit" | "quantity" | "unitPrice" | "discount" | "taxRate" | "taxAmount" | "total", ExtArgs["result"]["billingInvoiceItem"]>
 export type BillingInvoiceItemInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   invoice?: boolean | Prisma.BillingInvoiceDefaultArgs<ExtArgs>
   product?: boolean | Prisma.BillingInvoiceItem$productArgs<ExtArgs>
@@ -885,12 +1014,15 @@ export type $BillingInvoiceItemPayload<ExtArgs extends runtime.Types.Extensions.
     id: string
     invoiceId: string
     productId: string | null
+    lineType: string
     sn: number
     description: string
     unit: string
     quantity: number
     unitPrice: number
     discount: number
+    taxRate: number
+    taxAmount: number
     total: number
   }, ExtArgs["result"]["billingInvoiceItem"]>
   composites: {}
@@ -1320,12 +1452,15 @@ export interface BillingInvoiceItemFieldRefs {
   readonly id: Prisma.FieldRef<"BillingInvoiceItem", 'String'>
   readonly invoiceId: Prisma.FieldRef<"BillingInvoiceItem", 'String'>
   readonly productId: Prisma.FieldRef<"BillingInvoiceItem", 'String'>
+  readonly lineType: Prisma.FieldRef<"BillingInvoiceItem", 'String'>
   readonly sn: Prisma.FieldRef<"BillingInvoiceItem", 'Int'>
   readonly description: Prisma.FieldRef<"BillingInvoiceItem", 'String'>
   readonly unit: Prisma.FieldRef<"BillingInvoiceItem", 'String'>
   readonly quantity: Prisma.FieldRef<"BillingInvoiceItem", 'Float'>
   readonly unitPrice: Prisma.FieldRef<"BillingInvoiceItem", 'Float'>
   readonly discount: Prisma.FieldRef<"BillingInvoiceItem", 'Float'>
+  readonly taxRate: Prisma.FieldRef<"BillingInvoiceItem", 'Float'>
+  readonly taxAmount: Prisma.FieldRef<"BillingInvoiceItem", 'Float'>
   readonly total: Prisma.FieldRef<"BillingInvoiceItem", 'Float'>
 }
     

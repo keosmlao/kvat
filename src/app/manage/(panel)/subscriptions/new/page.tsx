@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { masterPrisma } from "@/lib/master-prisma";
 import { SubForm } from "../sub-form";
+import { OdooListPage } from "@/components/odoo/sheet";
 
 export default async function NewSubscriptionPage() {
   const categories = await masterPrisma.ledgerCategory.findMany({
@@ -15,8 +16,9 @@ export default async function NewSubscriptionPage() {
   oneMonth.setMonth(oneMonth.getMonth() + 1);
 
   return (
-    <div>
-      <div className="mb-4">
+    <OdooListPage title="ເພີ່ມສັນຍາ / Subscription">
+      <>
+      <div className="mb-3">
         <Link
           href="/manage/subscriptions"
           className="text-[12px] text-gray-500 hover:text-gray-800"
@@ -24,9 +26,6 @@ export default async function NewSubscriptionPage() {
           ← Subscriptions
         </Link>
       </div>
-      <h1 className="text-[22px] font-medium text-gray-900 mb-5">
-        ເພີ່ມສັນຍາ / Subscription
-      </h1>
       <div className="bg-white border border-gray-200 rounded p-5 max-w-2xl">
         <SubForm
           mode="create"
@@ -45,6 +44,7 @@ export default async function NewSubscriptionPage() {
           }}
         />
       </div>
-    </div>
+      </>
+    </OdooListPage>
   );
 }

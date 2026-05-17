@@ -22,6 +22,9 @@ async function touchLastSeen(dbName: string, userId: string): Promise<void> {
     await tenantDb.user.update({
       where: { id: userId },
       data: { lastSeenAt: new Date(now) },
+      // Limit returned columns so newly-added schema fields that haven't been
+      // migrated in this tenant (eg. locale) don't break the throttled write.
+      select: { id: true },
     });
   } catch {
     // Non-critical — drop the cache entry so the next request retries.
@@ -155,7 +158,12 @@ export async function authenticate(
 
   const bcrypt = await import("bcryptjs");
   const tenantDb = getTenantPrisma(tenant.dbName);
-  const user = await tenantDb.user.findUnique({ where: { email: normalized } });
+  // Explicit select so we don't break when newly-added columns (eg. locale)
+  // are present in the schema but not yet migrated in this tenant's DB.
+  const user = await tenantDb.user.findUnique({
+    where: { email: normalized },
+    select: { id: true, email: true, name: true, role: true, password: true },
+  });
   if (!user) return { ok: false, reason: "invalid_credentials" };
   const okPw = await bcrypt.compare(password, user.password);
   if (!okPw) return { ok: false, reason: "invalid_credentials" };

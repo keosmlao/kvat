@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/session";
 import { masterPrisma } from "@/lib/master-prisma";
+import { recordActivity } from "@/lib/activity";
 
 const createSchema = z.object({
   email: z.email("ຮູບແບບ email ບໍ່ຖືກຕ້ອງ"),
@@ -49,16 +50,28 @@ export async function createUser(
   });
   if (taken) return { error: "Email ນີ້ມີຢູ່ແລ້ວໃນລະບົບ" };
 
-  const existsLocal = await prisma.user.findUnique({ where: { email } });
+  const existsLocal = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
   if (existsLocal) return { error: "Email ນີ້ມີຢູ່ແລ້ວ" };
 
   const hashed = await bcrypt.hash(v.password, 10);
-  await prisma.user.create({
+  const created = await prisma.user.create({
     data: { email, name: v.name, role: v.role, password: hashed },
+    select: { id: true },
   });
   // Write the master mapping so this user can log in via /login.
   await masterPrisma.tenantUserEmail.create({
     data: { email, tenantId: session.tenantId },
+  });
+  void recordActivity({
+    dbName: session.dbName,
+    userId: session.userId,
+    action: "CREATE",
+    recordType: "User",
+    recordId: created.id,
+    summary: `ສ້າງຜູ້ໃຊ້ ${v.name} (${email}) ${v.role === "ADMIN" ? "ຜູ້ດູແລ" : "ພະນັກງານ"}`,
   });
 
   revalidatePath("/users");
@@ -89,7 +102,10 @@ export async function updateUser(
     };
   }
 
-  const existing = await prisma.user.findUnique({ where: { id } });
+  const existing = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true, email: true, name: true, role: true },
+  });
   if (!existing) return { error: "ບໍ່ພົບຜູ້ໃຊ້" };
 
   // If email is being changed, ensure the new one isn't taken globally.
@@ -110,7 +126,11 @@ export async function updateUser(
     update.password = await bcrypt.hash(v.password, 10);
   }
 
-  await prisma.user.update({ where: { id }, data: update });
+  await prisma.user.update({
+    where: { id },
+    data: update,
+    select: { id: true },
+  });
 
   // Rotate the master mapping if the email changed.
   if (existing.email.toLowerCase() !== newEmail) {
@@ -119,6 +139,43 @@ export async function updateUser(
     });
     await masterPrisma.tenantUserEmail.create({
       data: { email: newEmail, tenantId: session.tenantId },
+    });
+  }
+
+  const changes: string[] = [];
+  if (existing.name !== v.name) changes.push(`ຊື່: ${existing.name} → ${v.name}`);
+  if (existing.email.toLowerCase() !== newEmail) {
+    changes.push(`email: ${existing.email} → ${newEmail}`);
+  }
+  if (existing.role !== v.role) {
+    void recordActivity({
+      dbName: session.dbName,
+      userId: session.userId,
+      action: "ROLE_CHANGE",
+      recordType: "User",
+      recordId: id,
+      summary: `ປ່ຽນບົດບາດ ${existing.name}: ${existing.role} → ${v.role}`,
+      meta: { from: existing.role, to: v.role },
+    });
+  }
+  if (v.password) {
+    void recordActivity({
+      dbName: session.dbName,
+      userId: session.userId,
+      action: "PASSWORD_CHANGE",
+      recordType: "User",
+      recordId: id,
+      summary: `ປ່ຽນລະຫັດຜ່ານໃຫ້ ${existing.name}`,
+    });
+  }
+  if (changes.length > 0) {
+    void recordActivity({
+      dbName: session.dbName,
+      userId: session.userId,
+      action: "UPDATE",
+      recordType: "User",
+      recordId: id,
+      summary: `ແກ້ໄຂຜູ້ໃຊ້ ${existing.name} (${changes.join(", ")})`,
     });
   }
 
@@ -131,7 +188,10 @@ export async function deleteUser(id: string) {
   if (session.userId === id) {
     throw new Error("ບໍ່ສາມາດລົບບັນຊີຕົນເອງ");
   }
-  const target = await prisma.user.findUnique({ where: { id } });
+  const target = await prisma.user.findUnique({
+    where: { id },
+    select: { email: true, name: true },
+  });
   if (!target) return;
   const invoices = await prisma.invoice.count({ where: { userId: id } });
   if (invoices > 0) {
@@ -141,4 +201,12 @@ export async function deleteUser(id: string) {
   await masterPrisma.tenantUserEmail
     .delete({ where: { email: target.email.toLowerCase() } })
     .catch(() => {});
+  void recordActivity({
+    dbName: session.dbName,
+    userId: session.userId,
+    action: "DELETE",
+    recordType: "User",
+    recordId: id,
+    summary: `ລົບຜູ້ໃຊ້ ${target.name} (${target.email})`,
+  });
 }

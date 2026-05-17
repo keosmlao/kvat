@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import type { ProductFormState } from "./actions";
 import { ImageUpload } from "@/components/image-upload";
+import { t, type Locale } from "@/lib/i18n/messages";
 
 type Action = (prev: ProductFormState, fd: FormData) => Promise<ProductFormState>;
 
@@ -35,6 +36,7 @@ export function ProductForm({
   types,
   warehouses,
   chatter,
+  locale,
 }: {
   action: Action;
   initial?: Initial;
@@ -43,7 +45,10 @@ export function ProductForm({
   types: Option[];
   warehouses: Option[];
   chatter?: React.ReactNode;
+  locale: Locale;
 }) {
+  const tp = (k: string) => t(locale, "product", k);
+  const tc = (k: string) => t(locale, "common", k);
   const [state, formAction, pending] = useActionState<ProductFormState, FormData>(
     action,
     undefined,
@@ -63,11 +68,11 @@ export function ProductForm({
       {/* Breadcrumb */}
       <div className="text-xs text-gray-500 px-1 mb-2">
         <Link href="/products" className="hover:underline">
-          ສິນຄ້າ
+          {tp("listTitle")}
         </Link>
         <span className="mx-1.5 text-gray-400">›</span>
         <span className="text-gray-700">
-          {isNew ? "ໃໝ່" : initial?.name ?? "ແກ້ໄຂ"}
+          {isNew ? tp("headingNew") : initial?.name ?? tp("editing")}
         </span>
       </div>
 
@@ -77,18 +82,18 @@ export function ProductForm({
           <button
             type="submit"
             disabled={pending}
-            className="bg-[#b91c1c] text-white px-3 py-1 rounded text-[13px] font-medium hover:bg-[#991b1b] disabled:opacity-50 transition tracking-wide"
+            className="bg-odoo text-white px-3 py-1 rounded text-[13px] font-medium hover:bg-odoo-hover disabled:opacity-50 transition tracking-wide"
           >
-            {pending ? "ກຳລັງບັນທຶກ..." : "ບັນທຶກ"}
+            {pending ? tc("saving") : tc("save")}
           </button>
           <Link
             href="/products"
             className="border border-gray-300 text-gray-700 px-3 py-1 rounded text-[13px] font-medium hover:bg-gray-50 transition"
           >
-            ຍົກເລີກ
+            {tc("cancel")}
           </Link>
         </div>
-        <StatusBar active={active} />
+        <StatusBar active={active} locale={locale} />
       </div>
 
       {/* Sheet */}
@@ -101,20 +106,20 @@ export function ProductForm({
               defaultUrl={initial?.imageUrl}
               shape="square"
               size="md"
-              placeholder="ຮູບສິນຄ້າ"
+              placeholder={tp("photo")}
             />
 
             <div className="flex-1 min-w-0">
               <label className="block text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">
-                ຊື່ສິນຄ້າ
+                {tp("productName")}
               </label>
               <input
                 name="name"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="ຊື່ສິນຄ້າ..."
-                className="w-full text-[24px] font-light text-gray-900 border-0 border-b border-gray-200 hover:border-gray-400 focus:border-[#b91c1c] focus:outline-none focus:ring-0 pb-1 mb-3 bg-transparent"
+                placeholder={tp("productNamePh")}
+                className="w-full text-[24px] font-light text-gray-900 border-0 border-b border-gray-200 hover:border-gray-400 focus:border-odoo focus:outline-none focus:ring-0 pb-1 mb-3 bg-transparent"
               />
               {fe.name && (
                 <p className="text-xs text-red-600 -mt-2 mb-2">{fe.name[0]}</p>
@@ -127,9 +132,9 @@ export function ProductForm({
                     name="active"
                     checked={active}
                     onChange={(e) => setActive(e.target.checked)}
-                    className="accent-[#b91c1c] w-4 h-4"
+                    className="accent-odoo w-4 h-4"
                   />
-                  <span className="text-gray-700">ສາມາດຂາຍໄດ້</span>
+                  <span className="text-gray-700">{tp("sellable")}</span>
                 </label>
               </div>
             </div>
@@ -142,19 +147,19 @@ export function ProductForm({
                 active={tab === "general"}
                 onClick={() => setTab("general")}
               >
-                ຂໍ້ມູນທົ່ວໄປ
+                {tp("tabGeneral")}
               </TabBtn>
               <TabBtn
                 active={tab === "inventory"}
                 onClick={() => setTab("inventory")}
               >
-                ຄັງສິນຄ້າ
+                {tp("tabInventory")}
               </TabBtn>
               <TabBtn
                 active={tab === "pricing"}
                 onClick={() => setTab("pricing")}
               >
-                ລາຄາ
+                {tp("tabPricing")}
               </TabBtn>
             </div>
           </div>
@@ -163,23 +168,23 @@ export function ProductForm({
           {tab === "general" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1">
               <div>
-                <Field label="ລະຫັດສິນຄ້າ" required error={fe.code?.[0]}>
+                <Field label={tp("productCode")} required error={fe.code?.[0]}>
                   <input
                     name="code"
                     required
                     defaultValue={initial?.code}
                     className="o-field"
-                    placeholder="ເຊັ່ນ: P0001"
+                    placeholder={tp("productCodeHint")}
                   />
                 </Field>
-                <Field label="ໜ່ວຍວັດແທກ" required error={fe.unit?.[0]}>
+                <Field label={tp("unitLabel")} required error={fe.unit?.[0]}>
                   <div className="flex gap-2 items-center w-full">
                     <select
                       name="unitId"
                       defaultValue={initial?.unitId ?? ""}
                       className="o-field flex-1"
                     >
-                      <option value="">— ເລືອກ —</option>
+                      <option value="">{tp("pickOption")}</option>
                       {units.map((u) => (
                         <option key={u.id} value={u.id}>
                           {u.name} ({u.code})
@@ -189,8 +194,8 @@ export function ProductForm({
                     <Link
                       href="/products/configuration"
                       target="_blank"
-                      className="text-[11px] text-[#b91c1c] hover:underline whitespace-nowrap"
-                      title="ຈັດການໜ່ວຍ"
+                      className="text-[11px] text-odoo hover:underline whitespace-nowrap"
+                      title={tp("manageUnits")}
                     >
                       ⚙
                     </Link>
@@ -198,19 +203,19 @@ export function ProductForm({
                   <input
                     type="hidden"
                     name="unit"
-                    defaultValue={initial?.unit ?? "ອັນ"}
+                    defaultValue={initial?.unit ?? tp("defaultUnit")}
                   />
                 </Field>
               </div>
               <div>
-                <Field label="ປະເພດ">
+                <Field label={tp("typeLabel")}>
                   <div className="flex gap-2 items-center w-full">
                     <select
                       name="typeId"
                       defaultValue={initial?.typeId ?? ""}
                       className="o-field flex-1"
                     >
-                      <option value="">— ເລືອກ —</option>
+                      <option value="">{tp("pickOption")}</option>
                       {types.map((t) => (
                         <option key={t.id} value={t.id}>
                           {t.name}
@@ -220,21 +225,21 @@ export function ProductForm({
                     <Link
                       href="/products/configuration"
                       target="_blank"
-                      className="text-[11px] text-[#b91c1c] hover:underline whitespace-nowrap"
-                      title="ຈັດການປະເພດ"
+                      className="text-[11px] text-odoo hover:underline whitespace-nowrap"
+                      title={tp("manageTypes")}
                     >
                       ⚙
                     </Link>
                   </div>
                 </Field>
-                <Field label="ໝວດໝູ່">
+                <Field label={tp("categoryLabel")}>
                   <div className="flex gap-2 items-center w-full">
                     <select
                       name="categoryId"
                       defaultValue={initial?.categoryId ?? ""}
                       className="o-field flex-1"
                     >
-                      <option value="">— ເລືອກ —</option>
+                      <option value="">{tp("pickOption")}</option>
                       {categories.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name}
@@ -244,8 +249,8 @@ export function ProductForm({
                     <Link
                       href="/products/configuration"
                       target="_blank"
-                      className="text-[11px] text-[#b91c1c] hover:underline whitespace-nowrap"
-                      title="ຈັດການໝວດໝູ່"
+                      className="text-[11px] text-odoo hover:underline whitespace-nowrap"
+                      title={tp("manageCategories")}
                     >
                       ⚙
                     </Link>
@@ -255,14 +260,14 @@ export function ProductForm({
 
               <div className="md:col-span-2 mt-3">
                 <label className="block text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">
-                  ລາຍລະອຽດ
+                  {tp("descLabel")}
                 </label>
                 <textarea
                   name="description"
                   defaultValue={initial?.description ?? ""}
                   rows={3}
                   className="o-field w-full resize-none"
-                  placeholder="ລາຍລະອຽດສິນຄ້າ..."
+                  placeholder={tp("descPh")}
                 />
                 {fe.description && (
                   <p className="text-xs text-red-600 mt-1">
@@ -277,7 +282,7 @@ export function ProductForm({
           {tab === "inventory" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1">
               <div>
-                <Field label="ຄັງເລີ່ມຕົ້ນ" error={fe.stock?.[0]}>
+                <Field label={tp("stockInitial")} error={fe.stock?.[0]}>
                   <input
                     name="stock"
                     type="number"
@@ -286,7 +291,7 @@ export function ProductForm({
                     className="o-field text-right tabular-nums"
                   />
                 </Field>
-                <Field label="ຄັງຂັ້ນຕ່ຳ" error={fe.minStock?.[0]} hint="(ເຕືອນ)">
+                <Field label={tp("stockMin")} error={fe.minStock?.[0]} hint={tp("stockMinHint")}>
                   <input
                     name="minStock"
                     type="number"
@@ -298,14 +303,14 @@ export function ProductForm({
                 </Field>
               </div>
               <div>
-                <Field label="ສະຖານທີ່ເກັບ">
+                <Field label={tp("warehouse")}>
                   <div className="flex gap-2 items-center w-full">
                     <select
                       name="warehouseId"
                       defaultValue={initial?.warehouseId ?? ""}
                       className="o-field flex-1"
                     >
-                      <option value="">— ເລືອກສາງ —</option>
+                      <option value="">{tp("pickWarehouse")}</option>
                       {warehouses.map((w) => (
                         <option key={w.id} value={w.id}>
                           {w.name} ({w.code})
@@ -315,22 +320,22 @@ export function ProductForm({
                     <Link
                       href="/products/configuration"
                       target="_blank"
-                      className="text-[11px] text-[#b91c1c] hover:underline whitespace-nowrap"
-                      title="ຈັດການສາງ"
+                      className="text-[11px] text-odoo hover:underline whitespace-nowrap"
+                      title={tp("manageWarehouses")}
                     >
                       ⚙
                     </Link>
                   </div>
                 </Field>
-                <Field label="ວິທີຄິດຄ່າ">
+                <Field label={tp("costingMethod")}>
                   <select
                     name="costingMethod"
                     defaultValue={initial?.costingMethod ?? "STANDARD"}
                     className="o-field"
                   >
-                    <option value="STANDARD">ລາຄາມາດຕະຖານ (Standard)</option>
-                    <option value="AVERAGE">ລາຄາສະເລ່ຍ (Average)</option>
-                    <option value="FIFO">ເຂົ້າກ່ອນ-ອອກກ່ອນ (FIFO)</option>
+                    <option value="STANDARD">{tp("costStandard")}</option>
+                    <option value="AVERAGE">{tp("costAverage")}</option>
+                    <option value="FIFO">{tp("costFifo")}</option>
                   </select>
                 </Field>
               </div>
@@ -342,10 +347,10 @@ export function ProductForm({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1">
               <div>
                 <Field
-                  label="ລາຄາຂາຍ"
+                  label={tp("sellPriceField")}
                   required
                   error={fe.priceLak?.[0]}
-                  hint="(ກີບ)"
+                  hint={tp("kip")}
                 >
                   <input
                     name="priceLak"
@@ -359,7 +364,7 @@ export function ProductForm({
                 </Field>
               </div>
               <div>
-                <Field label="ຕົ້ນທຶນ" error={fe.costLak?.[0]} hint="(ກີບ)">
+                <Field label={tp("costPrice")} error={fe.costLak?.[0]} hint={tp("kip")}>
                   <input
                     name="costLak"
                     type="number"
@@ -387,7 +392,7 @@ export function ProductForm({
       </div>
     ) : (
       <div className="mt-4 bg-white border border-gray-200 rounded-md px-6 md:px-10 py-3 text-[12px] text-gray-400 italic">
-        ບັນທຶກກ່ອນຈຶ່ງສາມາດສົ່ງຂໍ້ຄວາມ ຫລື ສ້າງກິດຈະກຳໄດ້
+        {tp("chatterHint")}
       </div>
     )}
     </>
@@ -439,7 +444,7 @@ function TabBtn({
       onClick={onClick}
       className={`px-3 py-2 border-b-2 -mb-px transition ${
         active
-          ? "border-[#b91c1c] text-[#b91c1c] font-medium"
+          ? "border-odoo text-odoo font-medium"
           : "border-transparent text-gray-500 hover:text-gray-800"
       }`}
     >
@@ -448,10 +453,11 @@ function TabBtn({
   );
 }
 
-function StatusBar({ active }: { active: boolean }) {
+function StatusBar({ active, locale }: { active: boolean; locale: Locale }) {
+  const tp = (k: string) => t(locale, "product", k);
   const steps = [
-    { key: "active", label: "ໃຊ້ງານ", on: active },
-    { key: "archived", label: "ປິດ", on: !active },
+    { key: "active", label: tp("statusActive"), on: active },
+    { key: "archived", label: tp("statusArchived"), on: !active },
   ];
   return (
     <div className="flex items-center gap-0">
@@ -460,7 +466,7 @@ function StatusBar({ active }: { active: boolean }) {
           <span
             className={`px-3 py-1 text-[12px] uppercase tracking-wider rounded-sm font-medium transition ${
               s.on
-                ? "bg-[#b91c1c] text-white"
+                ? "bg-odoo text-white"
                 : "text-gray-400"
             }`}
           >

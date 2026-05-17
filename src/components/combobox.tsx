@@ -75,16 +75,6 @@ export function Combobox({
     return () => document.removeEventListener("mousedown", onDown);
   }, [open]);
 
-  // Focus search input + reset state when opening
-  useEffect(() => {
-    if (open) {
-      setQuery("");
-      setHighlight(0);
-      // delay to ensure input mounted
-      requestAnimationFrame(() => inputRef.current?.focus());
-    }
-  }, [open]);
-
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
     if (!q) return options;
@@ -96,19 +86,19 @@ export function Combobox({
     });
   }, [options, query]);
 
-  // Keep highlight inside range when filter changes
-  useEffect(() => {
-    if (highlight >= filtered.length) setHighlight(0);
-  }, [filtered.length, highlight]);
+  const activeHighlight = Math.min(
+    highlight,
+    Math.max(0, filtered.length - 1),
+  );
 
   // Scroll highlighted item into view
   useEffect(() => {
     if (!open) return;
     const el = listRef.current?.querySelector<HTMLElement>(
-      `[data-idx="${highlight}"]`,
+      `[data-idx="${activeHighlight}"]`,
     );
     el?.scrollIntoView({ block: "nearest" });
-  }, [highlight, open]);
+  }, [activeHighlight, open]);
 
   const selected = options.find((o) => o.value === value);
 
@@ -121,7 +111,7 @@ export function Combobox({
       setHighlight((h) => Math.max(h - 1, 0));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      const opt = filtered[highlight];
+      const opt = filtered[activeHighlight];
       if (opt && !opt.disabled) {
         setValue(opt.value);
         setOpen(false);
@@ -132,15 +122,28 @@ export function Combobox({
     }
   };
 
+  function toggleOpen() {
+    if (disabled) return;
+    setOpen((current) => {
+      const next = !current;
+      if (next) {
+        setQuery("");
+        setHighlight(0);
+        requestAnimationFrame(() => inputRef.current?.focus());
+      }
+      return next;
+    });
+  }
+
   return (
     <div ref={rootRef} className={`relative ${className ?? ""}`}>
       <button
         type="button"
         disabled={disabled}
-        onClick={() => !disabled && setOpen((o) => !o)}
+        onClick={toggleOpen}
         className={`w-full flex items-center justify-between gap-2 text-left ${
           triggerClassName ??
-          "px-2 py-1.5 border-b border-gray-300 bg-transparent hover:border-gray-400 focus:outline-none focus:border-[#b91c1c] focus:bg-white text-[13px]"
+          "px-2 py-1.5 border-b border-gray-300 bg-transparent hover:border-gray-400 focus:outline-none focus:border-odoo focus:bg-white text-[13px]"
         } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -198,10 +201,13 @@ export function Combobox({
             <input
               ref={inputRef}
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setHighlight(0);
+              }}
               onKeyDown={onKey}
               placeholder="ຄົ້ນຫາ..."
-              className="w-full pl-7 pr-2 py-1 text-[13px] border border-transparent rounded focus:outline-none focus:border-[#b91c1c]"
+              className="w-full pl-7 pr-2 py-1 text-[13px] border border-transparent rounded focus:outline-none focus:border-odoo"
             />
           </div>
           <ul
@@ -216,7 +222,7 @@ export function Combobox({
             ) : (
               filtered.map((o, i) => {
                 const isSelected = o.value === value;
-                const isHighlighted = i === highlight;
+                const isHighlighted = i === activeHighlight;
                 return (
                   <li key={o.value} data-idx={i}>
                     <button
@@ -234,12 +240,12 @@ export function Combobox({
                           : "cursor-pointer"
                       } ${
                         isHighlighted
-                          ? "bg-[#b91c1c]/10 text-[#b91c1c]"
+                          ? "bg-odoo/10 text-odoo"
                           : "text-gray-800 hover:bg-gray-50"
                       }`}
                     >
                       {isSelected && (
-                        <span className="text-[#b91c1c] text-xs">✓</span>
+                        <span className="text-odoo text-xs">✓</span>
                       )}
                       {o.badge && (
                         <span className="font-mono text-[11px] text-gray-500 flex-shrink-0">

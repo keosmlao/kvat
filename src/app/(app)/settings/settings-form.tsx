@@ -6,7 +6,9 @@ import Link from "next/link";
 import { saveSettings, type SettingFormState } from "./actions";
 import { ImageUpload } from "@/components/image-upload";
 import { EtaxPanel } from "./etax-panel";
+import { EmailTab } from "./email-tab";
 import { UpgradeRequestForm } from "./upgrade-form";
+import { t, type Locale } from "@/lib/i18n/messages";
 
 type Initial = {
   shopName: string;
@@ -29,7 +31,17 @@ type Initial = {
   enableChatter: boolean;
   enableReports: boolean;
   enableDashboard: boolean;
+  enableTodo: boolean;
   etaxAutoSubmit: boolean;
+  // SMTP (Email tab) — only flags whether password exists; the value
+  // itself is never sent to the client.
+  smtpHost: string;
+  smtpPort: number;
+  smtpUser: string;
+  smtpHasPassword: boolean;
+  smtpFromName: string;
+  smtpFromEmail: string;
+  smtpSecure: boolean;
 };
 
 type Section =
@@ -38,6 +50,7 @@ type Section =
   | "invoicing"
   | "inventory"
   | "etax"
+  | "email"
   | "modules"
   | "users"
   | "about";
@@ -48,6 +61,7 @@ const SECTION_KEYS: readonly Section[] = [
   "invoicing",
   "inventory",
   "etax",
+  "email",
   "modules",
   "users",
   "about",
@@ -71,11 +85,14 @@ export function SettingsForm({
   initial,
   userCount,
   tenantInfo,
+  locale,
 }: {
   initial: Initial;
   userCount: number;
   tenantInfo: TenantInfo;
+  locale: Locale;
 }) {
+  const ts = (k: string) => t(locale, "settings", k);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [state, action, pending] = useActionState<SettingFormState, FormData>(
@@ -105,14 +122,15 @@ export function SettingsForm({
   }, [state?.success, router]);
 
   const sections: { key: Section; label: string; icon: string }[] = [
-    { key: "general", label: "ທົ່ວໄປ", icon: "⚙" },
-    { key: "company", label: "ບໍລິສັດ", icon: "🏢" },
-    { key: "invoicing", label: "ການອອກບິນ", icon: "🧾" },
-    { key: "inventory", label: "ສິນຄ້າ ແລະ ຄັງ", icon: "📦" },
-    { key: "etax", label: "eTax Gateway", icon: "🧾" },
-    { key: "modules", label: "ໂມດູນ (ເປີດ/ປິດ)", icon: "🧩" },
-    { key: "users", label: "ຜູ້ໃຊ້ ແລະ ສິດ", icon: "👥" },
-    { key: "about", label: "ກ່ຽວກັບ", icon: "ℹ" },
+    { key: "general",   label: ts("navGeneral"),   icon: "⚙" },
+    { key: "company",   label: ts("navCompany"),   icon: "🏢" },
+    { key: "invoicing", label: ts("navInvoicing"), icon: "🧾" },
+    { key: "inventory", label: ts("navInventory"), icon: "📦" },
+    { key: "etax",      label: "eTax Gateway",     icon: "🧾" },
+    { key: "email",     label: "Email (SMTP)",     icon: "📧" },
+    { key: "modules",   label: ts("navModules"),   icon: "🧩" },
+    { key: "users",     label: ts("navUsers"),     icon: "👥" },
+    { key: "about",     label: ts("navAbout"),     icon: "ℹ" },
   ];
 
   return (
@@ -124,20 +142,20 @@ export function SettingsForm({
             <button
               type="submit"
               disabled={pending}
-              className="bg-[#b91c1c] text-white px-3 py-1 rounded text-[13px] font-medium hover:bg-[#991b1b] disabled:opacity-50 transition tracking-wide"
+              className="bg-odoo text-white px-3 py-1 rounded text-[13px] font-medium hover:bg-odoo-hover disabled:opacity-50 transition tracking-wide"
             >
-              {pending ? "ກຳລັງບັນທຶກ..." : "ບັນທຶກ"}
+              {pending ? ts("saving") : ts("save")}
             </button>
             <button
               type="button"
               onClick={() => router.push("/dashboard")}
               className="border border-gray-300 text-gray-700 px-3 py-1 rounded text-[13px] font-medium hover:bg-gray-50 transition"
             >
-              ຍົກເລີກ
+              {ts("cancel")}
             </button>
             {state?.success && (
               <span className="ml-2 text-[12px] text-emerald-600 inline-flex items-center gap-1">
-                ✓ ບັນທຶກສຳເລັດ
+                {ts("savedOk")}
               </span>
             )}
             {state?.error && (
@@ -151,8 +169,8 @@ export function SettingsForm({
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="ຄົ້ນຫາການກຳນົດຄ່າ..."
-              className="w-full pl-9 pr-3 py-1.5 text-[13px] border border-gray-300 rounded focus:outline-none focus:border-[#b91c1c] focus:ring-2 focus:ring-[#b91c1c]/15 bg-white"
+              placeholder={ts("searchPh")}
+              className="w-full pl-9 pr-3 py-1.5 text-[13px] border border-gray-300 rounded focus:outline-none focus:border-odoo focus:ring-2 focus:ring-odoo/15 bg-white"
             />
             <svg
               className="absolute left-2.5 top-2 w-4 h-4 text-gray-400"
@@ -184,7 +202,7 @@ export function SettingsForm({
                   onClick={() => setSection(s.key)}
                   className={`w-full flex items-center gap-2.5 px-4 py-2 text-[13px] text-left transition ${
                     active
-                      ? "bg-[#b91c1c]/8 text-[#b91c1c] font-medium border-r-2 border-[#b91c1c]"
+                      ? "bg-odoo/8 text-odoo font-medium border-r-2 border-odoo"
                       : "text-gray-700 hover:bg-gray-50"
                   }`}
                 >
@@ -200,36 +218,36 @@ export function SettingsForm({
         <div className="flex-1 min-w-0 px-4 md:px-6 py-6 bg-gray-50">
           {section === "general" && (
             <SectionPanel
-              title="ການກຳນົດຄ່າທົ່ວໄປ"
-              description="ການກຳນົດຄ່າຫລັກຂອງລະບົບ"
+              title={ts("generalTitle")}
+              description={ts("generalDesc")}
             >
               <FeatureCard
-                title="ສະກຸນເງິນຫລັກ"
-                description="ສະກຸນເງິນທີ່ໃຊ້ໂດຍຄ່າເລີ່ມຕົ້ນສຳລັບການອອກບິນ"
+                title={ts("mainCurrency")}
+                description={ts("mainCurrencyDesc")}
               >
                 <select
                   name="defaultCurrency"
                   defaultValue={initial.defaultCurrency}
                   className="o-field w-32"
                 >
-                  <option value="LAK">LAK — ກີບ</option>
-                  <option value="USD">USD — ໂດລາ</option>
-                  <option value="THB">THB — ບາດ</option>
+                  <option value="LAK">{ts("curLak")}</option>
+                  <option value="USD">{ts("curUsd")}</option>
+                  <option value="THB">{ts("curThb")}</option>
                 </select>
               </FeatureCard>
 
               <FeatureCard
-                title="ພາສາຂອງລະບົບ"
-                description="ພາສາທີ່ໃຊ້ສະແດງຜົນ"
+                title={ts("uiLanguage")}
+                description={ts("uiLanguageDesc")}
               >
                 <select className="o-field w-40" disabled>
-                  <option>ລາວ (Lao)</option>
+                  <option>{ts("langLao")}</option>
                 </select>
               </FeatureCard>
 
               <FeatureCard
-                title="ໂມງເຂດເວລາ"
-                description="ເຂດເວລາສຳລັບການບັນທຶກວັນທີ"
+                title={ts("timezone")}
+                description={ts("timezoneDesc")}
               >
                 <select className="o-field w-48" disabled>
                   <option>Asia/Vientiane (UTC+7)</option>
@@ -240,8 +258,8 @@ export function SettingsForm({
 
           {section === "company" && (
             <SectionPanel
-              title="ຂໍ້ມູນບໍລິສັດ"
-              description="ຂໍ້ມູນທີ່ຈະປະກົດໃນໃບບິນ ແລະ ເອກະສານອື່ນໆ"
+              title={ts("companyTitle")}
+              description={ts("companyDesc")}
             >
               <div className="bg-white border border-gray-200 rounded p-6">
                 {/* Logo + main identity (Odoo header style) */}
@@ -251,19 +269,19 @@ export function SettingsForm({
                     defaultUrl={initial.logoUrl}
                     shape="square"
                     size="lg"
-                    placeholder="ໂລໂກ້"
+                    placeholder={ts("logo")}
                   />
                   <div className="flex-1 min-w-0">
                     <label className="block text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">
-                      ຊື່ບໍລິສັດ
+                      {ts("companyName")}
                       <span className="text-red-500 ml-0.5">*</span>
                     </label>
                     <input
                       name="shopName"
                       required
                       defaultValue={initial.shopName}
-                      placeholder="ຊື່ບໍລິສັດ..."
-                      className="w-full text-[22px] font-light text-gray-900 border-0 border-b border-gray-200 hover:border-gray-400 focus:border-[#b91c1c] focus:outline-none focus:ring-0 pb-1 mb-2 bg-transparent"
+                      placeholder={ts("companyNamePh")}
+                      className="w-full text-[22px] font-light text-gray-900 border-0 border-b border-gray-200 hover:border-gray-400 focus:border-odoo focus:outline-none focus:ring-0 pb-1 mb-2 bg-transparent"
                     />
                     {fe.shopName && (
                       <p className="text-xs text-red-600 mb-1">
@@ -274,10 +292,10 @@ export function SettingsForm({
                       name="shopNameEn"
                       defaultValue={initial.shopNameEn}
                       placeholder="Company name in English (optional)"
-                      className="w-full text-[14px] text-gray-600 border-0 border-b border-transparent hover:border-gray-300 focus:border-[#b91c1c] focus:outline-none focus:ring-0 pb-0.5 bg-transparent italic"
+                      className="w-full text-[14px] text-gray-600 border-0 border-b border-transparent hover:border-gray-300 focus:border-odoo focus:outline-none focus:ring-0 pb-0.5 bg-transparent italic"
                     />
                     <div className="text-[11px] text-gray-400 mt-2">
-                      ໂລໂກ້: PNG / JPG / WEBP (ສູງສຸດ 2MB)
+                      {ts("logoHint")}
                     </div>
                   </div>
                 </div>
@@ -285,8 +303,8 @@ export function SettingsForm({
                 {/* Contact details — 2-col compact grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-0">
                   <CompactField
-                    label="ເລກອາກອນ (TIN)"
-                    hint="ເລກປະຈຳຕົວຜູ້ເສຍອາກອນ"
+                    label={ts("taxId")}
+                    hint={ts("taxIdHint")}
                   >
                     <input
                       name="taxId"
@@ -296,7 +314,7 @@ export function SettingsForm({
                     />
                   </CompactField>
 
-                  <CompactField label="ໂທລະສັບ">
+                  <CompactField label={ts("phone")}>
                     <input
                       name="phone"
                       defaultValue={initial.phone}
@@ -324,13 +342,13 @@ export function SettingsForm({
                 {/* Address — full width */}
                 <div className="mt-3 pt-3 border-t border-gray-100">
                   <label className="block text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">
-                    ທີ່ຢູ່ບໍລິສັດ
+                    {ts("companyAddress")}
                   </label>
                   <textarea
                     name="address"
                     defaultValue={initial.address}
                     rows={2}
-                    placeholder="ບ້ານ, ເມືອງ, ແຂວງ..."
+                    placeholder={ts("addressPh")}
                     className="o-field w-full resize-none"
                   />
                 </div>
@@ -338,10 +356,10 @@ export function SettingsForm({
                 {/* Bank account — printed on invoice PDF */}
                 <div className="mt-3 pt-3 border-t border-gray-100">
                   <label className="block text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-2">
-                    ບັນຊີທະນາຄານ (ສຳລັບພິມໃນບິນ)
+                    {ts("bankAccount")}
                   </label>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-0">
-                    <CompactField label="ຊື່ບັນຊີ">
+                    <CompactField label={ts("bankAccountName")}>
                       <input
                         name="bankAccountName"
                         defaultValue={initial.bankAccountName}
@@ -349,7 +367,7 @@ export function SettingsForm({
                         className="o-field"
                       />
                     </CompactField>
-                    <CompactField label="ເລກບັນຊີ">
+                    <CompactField label={ts("bankAccountNumber")}>
                       <input
                         name="bankAccount"
                         defaultValue={initial.bankAccount}
@@ -357,7 +375,7 @@ export function SettingsForm({
                         className="o-field"
                       />
                     </CompactField>
-                    <CompactField label="ທະນາຄານ">
+                    <CompactField label={ts("bankName")}>
                       <input
                         name="bankName"
                         defaultValue={initial.bankName}
@@ -371,18 +389,18 @@ export function SettingsForm({
                 {/* Business license — printed at invoice footer */}
                 <div className="mt-3 pt-3 border-t border-gray-100">
                   <label className="block text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-2">
-                    ໃບອະນຸຍາດທຸລະກິດ (ສຳລັບພິມໃນທ້າຍບິນ)
+                    {ts("businessLicense")}
                   </label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-0">
-                    <CompactField label="ເລກທີ">
+                    <CompactField label={ts("licenseNumber")}>
                       <input
                         name="licenseNumber"
                         defaultValue={initial.licenseNumber}
-                        placeholder="201/ສອ.ມຊຖ"
+                        placeholder={ts("licenseNumberPh")}
                         className="o-field"
                       />
                     </CompactField>
-                    <CompactField label="ລົງວັນທີ">
+                    <CompactField label={ts("licenseDate")}>
                       <input
                         name="licenseDate"
                         defaultValue={initial.licenseDate}
@@ -398,12 +416,12 @@ export function SettingsForm({
 
           {section === "invoicing" && (
             <SectionPanel
-              title="ການອອກບິນ"
-              description="ການກຳນົດຄ່າສຳລັບການອອກໃບບິນອາກອນ"
+              title={ts("invoicingTitle")}
+              description={ts("invoicingDesc")}
             >
               <FeatureCard
-                title="ອັດຕາ VAT ເລີ່ມຕົ້ນ"
-                description="ອັດຕາພາສີມູນຄ່າເພີ່ມທີ່ໃຊ້ໂດຍຄ່າເລີ່ມຕົ້ນ"
+                title={ts("defaultVat")}
+                description={ts("defaultVatDesc")}
                 required
               >
                 <div className="flex items-center gap-2">
@@ -425,8 +443,8 @@ export function SettingsForm({
               </FeatureCard>
 
               <FeatureCard
-                title="Prefix ເລກບິນ"
-                description="ຄຳນຳໜ້າຂອງເລກບິນ ເຊັ່ນ INV ສຳລັບ INV-202605-0001"
+                title={ts("invoicePrefix")}
+                description={ts("invoicePrefixDesc")}
                 required
               >
                 <input
@@ -443,8 +461,8 @@ export function SettingsForm({
               </FeatureCard>
 
               <FeatureCard
-                title="ຮູບແບບເລກບິນ"
-                description="ຮູບແບບເລກບິນອັດຕະໂນມັດ"
+                title={ts("invoiceFormat")}
+                description={ts("invoiceFormatDesc")}
               >
                 <code className="px-2 py-1 bg-gray-100 rounded text-[12px] text-gray-700">
                   {initial.invoicePrefix}-YYYYMM-NNNN
@@ -452,15 +470,15 @@ export function SettingsForm({
               </FeatureCard>
 
               <FeatureCard
-                title="ການລົງຊື່ໃນບິນ"
-                description="ສະແດງຊ່ອງລາຍເຊັນຜູ້ຮັບ ແລະ ຜູ້ອອກ"
+                title={ts("signatureField")}
+                description={ts("signatureFieldDesc")}
               >
                 <ToggleSwitch defaultChecked />
               </FeatureCard>
 
               <FeatureCard
-                title="ສະແດງສ່ວນຫລຸດໃນບິນ"
-                description="ສະແດງລາຍການສ່ວນຫລຸດໃນຫົວບິນ"
+                title={ts("showDiscount")}
+                description={ts("showDiscountDesc")}
               >
                 <ToggleSwitch defaultChecked />
               </FeatureCard>
@@ -469,37 +487,37 @@ export function SettingsForm({
 
           {section === "inventory" && (
             <SectionPanel
-              title="ສິນຄ້າ ແລະ ຄັງ"
-              description="ການກຳນົດຄ່າສຳລັບສິນຄ້າ ແລະ ການຈັດການຄັງ"
+              title={ts("inventoryTitle")}
+              description={ts("inventoryDesc")}
             >
               <FeatureCard
-                title="ການແຈ້ງເຕືອນສິນຄ້າເຫລືອນ້ອຍ"
-                description="ສະແດງການແຈ້ງເຕືອນເມື່ອສິນຄ້າເຫລືອຕ່ຳກວ່າຄ່າຂັ້ນຕ່ຳ"
+                title={ts("lowStockAlert")}
+                description={ts("lowStockAlertDesc")}
               >
                 <ToggleSwitch defaultChecked />
               </FeatureCard>
 
               <FeatureCard
-                title="ປ້ອງກັນຂາຍຫລາຍກວ່າຄັງ"
-                description="ບໍ່ໃຫ້ອອກບິນຖ້າສິນຄ້າໃນຄັງບໍ່ພຽງພໍ"
+                title={ts("preventOversell")}
+                description={ts("preventOversellDesc")}
               >
                 <ToggleSwitch defaultChecked />
               </FeatureCard>
 
               <FeatureCard
-                title="ໜ່ວຍວັດແທກເລີ່ມຕົ້ນ"
-                description="ໜ່ວຍສຳລັບສິນຄ້າໃໝ່"
+                title={ts("defaultUnit")}
+                description={ts("defaultUnitDesc")}
               >
                 <select className="o-field w-32" disabled>
-                  <option>ອັນ</option>
-                  <option>ກິໂລ</option>
-                  <option>ກ່ອງ</option>
+                  <option>{ts("unitPiece")}</option>
+                  <option>{ts("unitKilo")}</option>
+                  <option>{ts("unitBox")}</option>
                 </select>
               </FeatureCard>
 
               <FeatureCard
-                title="ບັນທຶກການເຄື່ອນໄຫວຄັງ"
-                description="ບັນທຶກປະຫວັດການເຂົ້າ-ອອກສິນຄ້າ"
+                title={ts("stockMovements")}
+                description={ts("stockMovementsDesc")}
               >
                 <ToggleSwitch defaultChecked disabled />
               </FeatureCard>
@@ -509,11 +527,11 @@ export function SettingsForm({
           {section === "etax" && (
             <SectionPanel
               title="eTax Invoice Gateway"
-              description="ການເຊື່ອມຕໍ່ກັບລະບົບໃບອາກອນເອເລັກໂຕຣນິກ ກົມສ່ວຍສາ (HMAC-SHA256)"
+              description={ts("etaxDesc")}
             >
               <FeatureCard
-                title="ສົ່ງເຂົ້າ eTax ອັດຕະໂນມັດ"
-                description="ເມື່ອອອກບິນສຳເລັດ ລະບົບຈະສົ່ງເຂົ້າ eTax ທັນທີ ເພື່ອຮັບເລກບິນ + QR ມາແສດງ. ຖ້າປິດ → ຕ້ອງກົດ 'ສົ່ງເຂົ້າ eTax' ໃນແຕ່ລະບິນເອງ"
+                title={ts("etaxAutoSubmit")}
+                description={ts("etaxAutoSubmitDesc")}
               >
                 <ToggleSwitchInput
                   name="etaxAutoSubmit"
@@ -523,26 +541,45 @@ export function SettingsForm({
 
               <div className="bg-white border border-gray-200 rounded p-4 text-[12px] text-gray-600">
                 <p className="font-medium text-gray-700 mb-1">
-                  ຂໍ້ມູນປະຈຳຕົວ eTax (Username / Secret / TIN)
+                  {ts("etaxCredentials")}
                 </p>
                 <p>
-                  ການຕັ້ງຄ່ານີ້ຍ້າຍໄປ admin global ແລ້ວ — ທຸກ tenant ໃຊ້ບັນຊີ eTax ດຽວກັນ.
-                  ຕິດຕໍ່ admin SMLAO ຖ້າຈຳເປັນຕ້ອງປ່ຽນ.
+                  {ts("etaxAdminMoved")} {ts("etaxContactAdmin")}
                 </p>
               </div>
 
-              <EtaxPanel />
+              <EtaxPanel locale={locale} />
+            </SectionPanel>
+          )}
+
+          {section === "email" && (
+            <SectionPanel
+              title="Email (SMTP)"
+              description={ts("emailDesc")}
+            >
+              <EmailTab
+                locale={locale}
+                initial={{
+                  smtpHost: initial.smtpHost ?? "",
+                  smtpPort: initial.smtpPort ?? 587,
+                  smtpUser: initial.smtpUser ?? "",
+                  smtpHasPassword: Boolean(initial.smtpHasPassword),
+                  smtpFromName: initial.smtpFromName ?? "",
+                  smtpFromEmail: initial.smtpFromEmail ?? "",
+                  smtpSecure: initial.smtpSecure ?? false,
+                }}
+              />
             </SectionPanel>
           )}
 
           {section === "modules" && (
             <SectionPanel
-              title="ໂມດູນທີ່ໃຊ້ງານ"
-              description="ເປີດ/ປິດໂມດູນ — ໂມດູນທີ່ປິດຈະບໍ່ປະກົດໃນເມນູ"
+              title={ts("modulesTitle")}
+              description={ts("modulesDesc")}
             >
               <FeatureCard
-                title="📋 ໜ້າຫຼັກ (Dashboard)"
-                description="ສະຫລຸບ KPI ແລະ ບິນຫຼ້າສຸດ"
+                title={ts("modDashboardTitle")}
+                description={ts("modDashboardDesc")}
               >
                 <ToggleSwitchInput
                   name="enableDashboard"
@@ -550,8 +587,17 @@ export function SettingsForm({
                 />
               </FeatureCard>
               <FeatureCard
-                title="🛒 ໜ້າຂາຍ (POS)"
-                description="ໜ້າຂາຍດ່ວນ touch-friendly ສຳລັບໜ້າຮ້ານ"
+                title="✓ Todo"
+                description="Odoo-style task board for personal and team work."
+              >
+                <ToggleSwitchInput
+                  name="enableTodo"
+                  defaultChecked={initial.enableTodo}
+                />
+              </FeatureCard>
+              <FeatureCard
+                title={ts("modPosTitle")}
+                description={ts("modPosDesc")}
               >
                 <ToggleSwitchInput
                   name="enablePos"
@@ -559,8 +605,8 @@ export function SettingsForm({
                 />
               </FeatureCard>
               <FeatureCard
-                title="🔄 ໃບລົດໜີ້ (Credit Notes)"
-                description="ປຸ່ມສ້າງໃບລົດໜີ້/ຄືນສິນຄ້າຈາກບິນ"
+                title={ts("modCreditTitle")}
+                description={ts("modCreditDesc")}
               >
                 <ToggleSwitchInput
                   name="enableCreditNotes"
@@ -569,7 +615,7 @@ export function SettingsForm({
               </FeatureCard>
               <FeatureCard
                 title="💬 Chatter"
-                description="ການສື່ສານ + ກິດຈະກຳ + ຜູ້ຕິດຕາມ ໃນບິນ/ສິນຄ້າ/ລູກຄ້າ"
+                description={ts("modChatterDesc")}
               >
                 <ToggleSwitchInput
                   name="enableChatter"
@@ -577,8 +623,8 @@ export function SettingsForm({
                 />
               </FeatureCard>
               <FeatureCard
-                title="📊 ລາຍງານ (Reports)"
-                description="ໜ້າລາຍງານການຂາຍ + KPI ໄລຍະເວລາ"
+                title={ts("modReportsTitle")}
+                description={ts("modReportsDesc")}
               >
                 <ToggleSwitchInput
                   name="enableReports"
@@ -590,42 +636,42 @@ export function SettingsForm({
 
           {section === "users" && (
             <SectionPanel
-              title="ຜູ້ໃຊ້ ແລະ ສິດເຂົ້າເຖິງ"
-              description="ການຈັດການຜູ້ໃຊ້ ແລະ ສິດໃນລະບົບ"
+              title={ts("usersTitle")}
+              description={ts("usersDesc")}
             >
               <FeatureCard
-                title="ຜູ້ໃຊ້ໃນລະບົບ"
-                description={`ປະຈຸບັນມີ ${userCount} ຜູ້ໃຊ້`}
+                title={ts("usersInSystem")}
+                description={ts("currentUsers").replace("{n}", String(userCount))}
                 fullRow
               >
                 <div className="flex items-center gap-2">
                   <Link
                     href="/users"
-                    className="bg-[#b91c1c] hover:bg-[#991b1b] text-white px-3 py-1 rounded text-[13px] font-medium transition"
+                    className="bg-odoo hover:bg-odoo-hover text-white px-3 py-1 rounded text-[13px] font-medium transition"
                   >
-                    ຈັດການຜູ້ໃຊ້
+                    {ts("manageUsers")}
                   </Link>
                   <Link
                     href="/users/new"
                     className="border border-gray-300 text-gray-700 px-3 py-1 rounded text-[13px] hover:bg-gray-50"
                   >
-                    + ເພີ່ມຜູ້ໃຊ້
+                    {ts("addUser")}
                   </Link>
                 </div>
               </FeatureCard>
 
               <FeatureCard
-                title="ບົດບາດ (Roles)"
-                description="ສິດໃນລະບົບ"
+                title={ts("rolesTitle")}
+                description={ts("rolesDesc")}
                 fullRow
               >
                 <div className="space-y-2 text-[13px]">
                   <div className="flex items-start gap-2">
-                    <span className="px-2 py-0.5 rounded bg-[#b91c1c]/10 text-[#b91c1c] text-[11px] font-medium uppercase tracking-wider">
+                    <span className="px-2 py-0.5 rounded bg-odoo/10 text-odoo text-[11px] font-medium uppercase tracking-wider">
                       ADMIN
                     </span>
                     <span className="text-gray-600">
-                      ສິດທິເຕັມ ເຂົ້າເຖິງທຸກໂມດູນ ແລະ ການກຳນົດຄ່າ
+                      {ts("adminRoleDesc")}
                     </span>
                   </div>
                   <div className="flex items-start gap-2">
@@ -633,36 +679,36 @@ export function SettingsForm({
                       STAFF
                     </span>
                     <span className="text-gray-600">
-                      ອອກບິນ, ຈັດການລູກຄ້າ, ສິນຄ້າ — ບໍ່ສາມາດເຂົ້າການກຳນົດຄ່າ
+                      {ts("staffRoleDesc")}
                     </span>
                   </div>
                 </div>
               </FeatureCard>
 
               <FeatureCard
-                title="ລະຫັດຜ່ານ"
-                description="ບັງຄັບໃຊ້ລະຫັດຜ່ານທີ່ມີຄວາມຍາວຢ່າງໜ້ອຍ 8 ຕົວ"
+                title={ts("passwordTitle")}
+                description={ts("passwordDesc")}
               >
                 <ToggleSwitch defaultChecked />
               </FeatureCard>
 
               <FeatureCard
                 title="Session Timeout"
-                description="ໝົດອາຍຸ session ອັດຕະໂນມັດ"
+                description={ts("sessionExpiry")}
               >
                 <select className="o-field w-32" disabled>
-                  <option>7 ມື້</option>
-                  <option>30 ມື້</option>
+                  <option>{ts("days7")}</option>
+                  <option>{ts("days30")}</option>
                 </select>
               </FeatureCard>
             </SectionPanel>
           )}
 
           {section === "about" && (
-            <SectionPanel title="ກ່ຽວກັບ" description="ຂໍ້ມູນລະບົບ">
+            <SectionPanel title={ts("aboutTitle")} description={ts("aboutDesc")}>
               <div className="bg-white border border-gray-200 rounded p-6">
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="w-14 h-14 rounded bg-[#b91c1c] text-white font-bold text-xl flex items-center justify-center">
+                  <div className="w-14 h-14 rounded bg-odoo text-white font-bold text-xl flex items-center justify-center">
                     S
                   </div>
                   <div>
@@ -670,14 +716,14 @@ export function SettingsForm({
                       SMLAO
                     </h3>
                     <p className="text-[13px] text-gray-500">
-                      ລະບົບອອກບິນອາກອນສຳລັບຮ້ານຄ້າ
+                      {ts("systemTagline")}
                     </p>
                   </div>
                 </div>
                 <dl className="grid grid-cols-[140px_1fr] gap-y-2 text-[13px]">
-                  <dt className="text-gray-500">ສະບັບ:</dt>
+                  <dt className="text-gray-500">{ts("version")}:</dt>
                   <dd className="text-gray-800">1.0.0</dd>
-                  <dt className="text-gray-500">ຖານຂໍ້ມູນ:</dt>
+                  <dt className="text-gray-500">{ts("database")}:</dt>
                   <dd className="text-gray-800">
                     PostgreSQL —{" "}
                     <span className="font-mono">{tenantInfo.dbName}</span>
@@ -686,16 +732,16 @@ export function SettingsForm({
                   <dd className="text-gray-800 font-mono">
                     {tenantInfo.slug}
                   </dd>
-                  <dt className="text-gray-500">ແພັກເກດ:</dt>
+                  <dt className="text-gray-500">{ts("plan")}:</dt>
                   <dd className="text-gray-800">
                     {tenantInfo.plan}
                     <span className="ml-2 text-gray-500">
-                      · ສະຖານະ {tenantInfo.status}
+                      · {ts("status")} {tenantInfo.status}
                     </span>
                   </dd>
                   {tenantInfo.status === "TRIAL" && tenantInfo.trialEndsAt && (
                     <>
-                      <dt className="text-gray-500">ໝົດທົດລອງ:</dt>
+                      <dt className="text-gray-500">{ts("trialEnds")}:</dt>
                       <dd className="text-gray-800">
                         {new Date(tenantInfo.trialEndsAt).toLocaleDateString(
                           "en-GB",
@@ -706,7 +752,7 @@ export function SettingsForm({
                   )}
                   {tenantInfo.paidUntil && (
                     <>
-                      <dt className="text-gray-500">ຈ່າຍຮອດ:</dt>
+                      <dt className="text-gray-500">{ts("paidUntil")}:</dt>
                       <dd className="text-gray-800">
                         {new Date(tenantInfo.paidUntil).toLocaleDateString(
                           "en-GB",
@@ -715,9 +761,9 @@ export function SettingsForm({
                       </dd>
                     </>
                   )}
-                  <dt className="text-gray-500">ໂມດູນ:</dt>
+                  <dt className="text-gray-500">{ts("modules")}:</dt>
                   <dd className="text-gray-800">
-                    ບິນອາກອນ, ສິນຄ້າ, ລູກຄ້າ, ລາຍງານ
+                    {ts("modulesList")}
                   </dd>
                 </dl>
 
@@ -725,10 +771,10 @@ export function SettingsForm({
                   tenantInfo.plan !== "LIFETIME" && (
                     <div className="mt-6 pt-4 border-t border-gray-200">
                       <h4 className="text-[13px] font-medium text-gray-800">
-                        ຂໍຍ້າຍແພັກເກດ
+                        {ts("requestUpgrade")}
                       </h4>
                       <p className="text-[11px] text-gray-500 mt-0.5">
-                        ສົ່ງຄຳຂໍຫາທີມ — ຈະ approve ໃຫ້ໃຊ້ງານແບບເຕັມຮູບແບບ
+                        {ts("requestUpgradeDesc")}
                       </p>
                       <UpgradeRequestForm
                         pending={tenantInfo.hasPendingRequest}
@@ -830,6 +876,11 @@ function HiddenInputs({
             type="hidden"
             name="enableDashboard"
             defaultValue={initial.enableDashboard ? "true" : "false"}
+          />
+          <input
+            type="hidden"
+            name="enableTodo"
+            defaultValue={initial.enableTodo ? "true" : "false"}
           />
           <input
             type="hidden"
@@ -957,7 +1008,7 @@ function ToggleSwitch({
       disabled={disabled}
       onClick={() => !disabled && setOn(!on)}
       className={`relative inline-flex items-center w-10 h-5 rounded-full transition flex-shrink-0 ${
-        on ? "bg-[#b91c1c]" : "bg-gray-300"
+        on ? "bg-odoo" : "bg-gray-300"
       } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
     >
       <span
@@ -995,7 +1046,7 @@ function ToggleSwitchInput({
         defaultChecked={defaultChecked}
         className="peer sr-only"
       />
-      <span className="absolute inset-0 rounded-full bg-gray-300 transition peer-checked:bg-[#b91c1c]" />
+      <span className="absolute inset-0 rounded-full bg-gray-300 transition peer-checked:bg-odoo" />
       <span className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-[20px]" />
     </label>
   );

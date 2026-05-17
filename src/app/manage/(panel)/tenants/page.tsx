@@ -1,21 +1,17 @@
 import Link from "next/link";
 import { masterPrisma } from "@/lib/master-prisma";
 import { TenantStatus, TenantPlan } from "@/generated/master/client";
+import { OdooListPage } from "@/components/odoo/sheet";
+import { t } from "@/lib/i18n/messages";
+
+const LOCALE = "lo";
+const tm = (k: string) => t(LOCALE, "manage", k);
 
 const STATUS_LABEL: Record<TenantStatus, { label: string; cls: string }> = {
-  TRIAL: { label: "ທົດລອງ", cls: "bg-blue-50 text-blue-700 border-blue-200" },
-  ACTIVE: {
-    label: "ໃຊ້ງານ",
-    cls: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  },
-  SUSPENDED: {
-    label: "ໂມດສ",
-    cls: "bg-amber-50 text-amber-700 border-amber-200",
-  },
-  CANCELLED: {
-    label: "ຍົກເລີກ",
-    cls: "bg-gray-100 text-gray-700 border-gray-200",
-  },
+  TRIAL:     { label: tm("filterTrial"),     cls: "bg-odoo/10 text-odoo border-odoo/30" },
+  ACTIVE:    { label: tm("filterActive"),    cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  SUSPENDED: { label: tm("filterSuspended"), cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  CANCELLED: { label: tm("filterCancelled"), cls: "bg-gray-100 text-gray-700 border-gray-200" },
 };
 
 const PLAN_LABEL: Record<TenantPlan, string> = {
@@ -84,15 +80,10 @@ export default async function TenantsListPage({
   const totalCount = counts.reduce((s, c) => s + c._count._all, 0);
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <div>
-          <h1 className="text-[18px] font-medium text-gray-900">Tenants</h1>
-          <p className="text-[12px] text-gray-500 mt-0.5">
-            {totalCount} tenant
-            {q && ` · ຄົ້ນຫາ "${q}"`}
-          </p>
-        </div>
+    <OdooListPage
+      title={tm("tenantsTitle")}
+      subtitle={`${totalCount} tenant${q ? ` · "${q}"` : ""}`}
+      actions={
         <form
           action="/manage/tenants"
           className="flex items-center gap-2 text-[12px]"
@@ -103,40 +94,41 @@ export default async function TenantsListPage({
           <input
             name="q"
             defaultValue={q}
-            placeholder="ຄົ້ນຫາ slug / ຊື່ / email…"
+            placeholder={tm("search")}
             className="px-2 py-1 border border-gray-300 rounded text-[12px] focus:outline-none focus:border-slate-700 w-64"
           />
         </form>
-      </div>
-
-      <div className="flex items-center gap-1 mb-4 text-[12px]">
-        <FilterTab
-          href="/manage/tenants"
-          active={!statusFilter}
-          label="ທັງໝົດ"
-          count={totalCount}
-        />
-        {(Object.keys(STATUS_LABEL) as TenantStatus[]).map((s) => (
+      }
+      filters={
+        <div className="flex items-center gap-1 text-[12px]">
           <FilterTab
-            key={s}
-            href={`/manage/tenants?status=${s.toLowerCase()}`}
-            active={statusFilter === s}
-            label={STATUS_LABEL[s].label}
-            count={countByStatus[s] ?? 0}
+            href="/manage/tenants"
+            active={!statusFilter}
+            label={tm("filterAll")}
+            count={totalCount}
           />
-        ))}
-      </div>
-
+          {(Object.keys(STATUS_LABEL) as TenantStatus[]).map((s) => (
+            <FilterTab
+              key={s}
+              href={`/manage/tenants?status=${s.toLowerCase()}`}
+              active={statusFilter === s}
+              label={STATUS_LABEL[s].label}
+              count={countByStatus[s] ?? 0}
+            />
+          ))}
+        </div>
+      }
+    >
       <div className="bg-white border border-gray-200 rounded overflow-hidden">
         <table className="w-full text-[13px]">
           <thead className="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
             <tr>
               <th className="px-3 py-2 text-left">Tenant</th>
               <th className="px-3 py-2 text-left">Email</th>
-              <th className="px-3 py-2 text-left">Plan</th>
-              <th className="px-3 py-2 text-left">ສະຖານະ</th>
+              <th className="px-3 py-2 text-left">{tm("colTenantPlan")}</th>
+              <th className="px-3 py-2 text-left">{tm("colTenantStatus")}</th>
               <th className="px-3 py-2 text-left">Trial / Paid until</th>
-              <th className="px-3 py-2 text-left">ສ້າງເມື່ອ</th>
+              <th className="px-3 py-2 text-left">{tm("colTenantSignup")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -146,7 +138,7 @@ export default async function TenantsListPage({
                   colSpan={6}
                   className="px-3 py-8 text-center text-gray-400 italic"
                 >
-                  ບໍ່ມີ tenant
+                  {tm("tenantsNoData")}
                 </td>
               </tr>
             )}
@@ -166,7 +158,7 @@ export default async function TenantsListPage({
                     <div className="text-[11px] text-gray-500 font-mono">
                       /t/{t.slug}
                       {t.isTemplate && (
-                        <span className="ml-1 px-1 py-0.5 rounded bg-purple-50 text-purple-700 text-[10px] uppercase tracking-wider">
+                        <span className="ml-1 px-1 py-0.5 rounded bg-odoo/10 text-odoo text-[10px] uppercase tracking-wider">
                           template
                         </span>
                       )}
@@ -210,7 +202,7 @@ export default async function TenantsListPage({
           </tbody>
         </table>
       </div>
-    </div>
+    </OdooListPage>
   );
 }
 

@@ -7,15 +7,19 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { generateInvoiceNumber } from "@/lib/invoice-number";
-import { computeVat } from "@/lib/vat";
 import { isEtaxConfigured } from "@/lib/etax";
 import { pollEtaxStatus, submitInvoiceToEtax } from "./etax-actions";
+import { recordActivity } from "@/lib/activity";
 
 const itemSchema = z.object({
-  productId: z.string().min(1),
-  quantity: z.coerce.number().positive(),
-  priceLak: z.coerce.number().min(0),
+  kind: z.enum(["product", "section", "note"]).default("product"),
+  productId: z.string().optional(),
+  label: z.string().optional(),
+  unit: z.string().optional(),
+  quantity: z.coerce.number().min(0).default(0),
+  priceLak: z.coerce.number().min(0).default(0),
   discount: z.coerce.number().min(0).default(0),
+  taxRate: z.coerce.number().min(0).max(1).optional(),
 });
 
 const invoiceSchema = z.object({
@@ -54,6 +58,54 @@ type ParseResult =
 const ETAX_APPROVED = "1";
 const ETAX_TERMINAL_FAILURES = new Set(["3", "6"]);
 
+type InvoiceLineCreate = {
+  lineType: "PRODUCT" | "SECTION" | "NOTE";
+  productId: string | null;
+  productName: string;
+  unit: string;
+  quantity: number;
+  priceLak: number;
+  discount: number;
+  total: number;
+  taxRate: number;
+  taxAmount: number;
+};
+
+function round2(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+function applyLineTaxes(
+  items: InvoiceLineCreate[],
+  subtotal: number,
+  discount: number,
+  vatMode: "EXCLUSIVE" | "INCLUSIVE" | "EXEMPT",
+) {
+  const afterDiscount = Math.max(0, subtotal - discount);
+  const discountRatio = subtotal > 0 ? afterDiscount / subtotal : 0;
+  let vatAmount = 0;
+
+  for (const item of items) {
+    if (item.lineType !== "PRODUCT" || vatMode === "EXEMPT") {
+      item.taxAmount = 0;
+      continue;
+    }
+    const base = item.total * discountRatio;
+    item.taxAmount =
+      vatMode === "INCLUSIVE"
+        ? round2((base * item.taxRate) / (1 + item.taxRate))
+        : round2(base * item.taxRate);
+    vatAmount += item.taxAmount;
+  }
+
+  vatAmount = round2(vatAmount);
+  return {
+    afterDiscount,
+    vatAmount,
+    total: vatMode === "EXCLUSIVE" ? afterDiscount + vatAmount : afterDiscount,
+  };
+}
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -91,10 +143,15 @@ function parseForm(formData: FormData): ParseResult {
   const parsed = invoiceSchema.safeParse({
     customerId: formData.get("customerId"),
     date: formData.get("date"),
+    dueDate: formData.get("dueDate"),
+    paymentTermId: formData.get("paymentTermId"),
     currency: formData.get("currency"),
     exchangeRate: formData.get("exchangeRate"),
     discount: formData.get("discount"),
     vatRate: formData.get("vatRate"),
+    vatMode: formData.get("vatMode"),
+    paymentMethod: formData.get("paymentMethod"),
+    paymentRef: formData.get("paymentRef"),
     note: formData.get("note"),
     items,
   });
@@ -127,32 +184,51 @@ export async function createInvoice(
   const settings = await prisma.setting.findUnique({ where: { id: "default" } });
   const prefix = settings?.invoicePrefix ?? "INV";
 
+  const productLines = data.items.filter((i) => i.kind === "product");
   const products = await prisma.product.findMany({
-    where: { id: { in: data.items.map((i) => i.productId) } },
+    where: { id: { in: productLines.flatMap((i) => (i.productId ? [i.productId] : [])) } },
   });
   const productMap = new Map(products.map((p) => [p.id, p]));
 
   let subtotal = 0;
-  const itemsToCreate = data.items.map((it) => {
+  const itemsToCreate: InvoiceLineCreate[] = data.items.map((it) => {
+    if (it.kind !== "product") {
+      return {
+        lineType: it.kind === "section" ? "SECTION" : "NOTE",
+        productId: null,
+        productName: it.label?.trim() || (it.kind === "section" ? "Section" : "Note"),
+        unit: "",
+        quantity: 0,
+        priceLak: 0,
+        discount: 0,
+        total: 0,
+        taxRate: 0,
+        taxAmount: 0,
+      };
+    }
+    if (!it.productId) throw new Error("Product not found");
     const product = productMap.get(it.productId);
     if (!product) throw new Error("Product not found");
     const lineTotal = it.quantity * it.priceLak - it.discount;
     subtotal += lineTotal;
     return {
+      lineType: "PRODUCT",
       productId: it.productId,
       productName: product.name,
-      unit: product.unit,
+      unit: it.unit?.trim() || product.unit,
       quantity: it.quantity,
       priceLak: it.priceLak,
       discount: it.discount,
       total: lineTotal,
+      taxRate: it.taxRate ?? data.vatRate,
+      taxAmount: 0,
     };
   });
 
-  const afterDiscount = subtotal - data.discount;
-  const { vatAmount, total } = computeVat(
-    afterDiscount,
-    data.vatRate,
+  const { vatAmount, total } = applyLineTaxes(
+    itemsToCreate,
+    subtotal,
+    data.discount,
     data.vatMode,
   );
 
@@ -191,7 +267,8 @@ export async function createInvoice(
           },
         });
 
-        for (const it of data.items) {
+        for (const it of productLines) {
+          if (!it.productId) continue;
           await tx.product.update({
             where: { id: it.productId },
             data: { stock: { decrement: it.quantity } },
@@ -240,6 +317,15 @@ export async function createInvoice(
     }
   }
 
+  void recordActivity({
+    dbName: session.dbName,
+    userId: session.userId,
+    action: "ISSUE",
+    recordType: "Invoice",
+    recordId: invoice.id,
+    summary: `ອອກບິນ ${invoice.number} (${total.toLocaleString()} ${data.currency})`,
+  });
+
   revalidatePath("/invoices");
   revalidatePath("/products");
   return {
@@ -270,31 +356,50 @@ export async function updateInvoice(
     return { error: "ບໍ່ສາມາດແກ້ໄຂບິນທີ່ຍົກເລີກແລ້ວ" };
 
   const products = await prisma.product.findMany({
-    where: { id: { in: data.items.map((i) => i.productId) } },
+    where: { id: { in: data.items.flatMap((i) => (i.kind === "product" && i.productId ? [i.productId] : [])) } },
   });
   const productMap = new Map(products.map((p) => [p.id, p]));
+  const productLines = data.items.filter((i) => i.kind === "product");
 
   let subtotal = 0;
-  const itemsToCreate = data.items.map((it) => {
+  const itemsToCreate: InvoiceLineCreate[] = data.items.map((it) => {
+    if (it.kind !== "product") {
+      return {
+        lineType: it.kind === "section" ? "SECTION" : "NOTE",
+        productId: null,
+        productName: it.label?.trim() || (it.kind === "section" ? "Section" : "Note"),
+        unit: "",
+        quantity: 0,
+        priceLak: 0,
+        discount: 0,
+        total: 0,
+        taxRate: 0,
+        taxAmount: 0,
+      };
+    }
+    if (!it.productId) throw new Error("Product not found");
     const product = productMap.get(it.productId);
     if (!product) throw new Error("Product not found");
     const lineTotal = it.quantity * it.priceLak - it.discount;
     subtotal += lineTotal;
     return {
+      lineType: "PRODUCT",
       productId: it.productId,
       productName: product.name,
-      unit: product.unit,
+      unit: it.unit?.trim() || product.unit,
       quantity: it.quantity,
       priceLak: it.priceLak,
       discount: it.discount,
       total: lineTotal,
+      taxRate: it.taxRate ?? data.vatRate,
+      taxAmount: 0,
     };
   });
 
-  const afterDiscount = subtotal - data.discount;
-  const { vatAmount, total } = computeVat(
-    afterDiscount,
-    data.vatRate,
+  const { vatAmount, total } = applyLineTaxes(
+    itemsToCreate,
+    subtotal,
+    data.discount,
     data.vatMode,
   );
 
@@ -302,6 +407,7 @@ export async function updateInvoice(
     await prisma.$transaction(async (tx) => {
       // Restore stock from previous items (was ISSUED → stock was decremented)
       for (const it of existing.items) {
+        if (it.lineType !== "PRODUCT" || !it.productId) continue;
         await tx.product.update({
           where: { id: it.productId },
           data: { stock: { increment: it.quantity } },
@@ -340,7 +446,8 @@ export async function updateInvoice(
       });
 
       // Apply new stock decrements
-      for (const it of data.items) {
+      for (const it of productLines) {
+        if (!it.productId) continue;
         await tx.product.update({
           where: { id: it.productId },
           data: { stock: { decrement: it.quantity } },
@@ -369,7 +476,7 @@ export async function updateInvoice(
 }
 
 export async function cancelInvoice(id: string) {
-  await requireUser();
+  const session = await requireUser();
   const inv = await prisma.invoice.findUnique({
     where: { id },
     include: { items: true },
@@ -382,6 +489,7 @@ export async function cancelInvoice(id: string) {
       data: { status: "CANCELLED" },
     });
     for (const it of inv.items) {
+      if (it.lineType !== "PRODUCT" || !it.productId) continue;
       await tx.product.update({
         where: { id: it.productId },
         data: { stock: { increment: it.quantity } },
@@ -398,13 +506,22 @@ export async function cancelInvoice(id: string) {
     }
   });
 
+  void recordActivity({
+    dbName: session.dbName,
+    userId: session.userId,
+    action: "CANCEL",
+    recordType: "Invoice",
+    recordId: id,
+    summary: `ຍົກເລີກບິນ ${inv.number}`,
+  });
+
   revalidatePath("/invoices");
   revalidatePath(`/invoices/${id}`);
   revalidatePath("/products");
 }
 
 export async function deleteInvoice(id: string) {
-  await requireUser();
+  const session = await requireUser();
   const inv = await prisma.invoice.findUnique({
     where: { id },
     include: { items: true },
@@ -413,9 +530,10 @@ export async function deleteInvoice(id: string) {
 
   await prisma.$transaction(async (tx) => {
     // If still ISSUED, restore stock before deleting
-    if (inv.status === "ISSUED") {
-      for (const it of inv.items) {
-        await tx.product.update({
+      if (inv.status === "ISSUED") {
+        for (const it of inv.items) {
+          if (it.lineType !== "PRODUCT" || !it.productId) continue;
+          await tx.product.update({
           where: { id: it.productId },
           data: { stock: { increment: it.quantity } },
         });
@@ -432,6 +550,15 @@ export async function deleteInvoice(id: string) {
     }
     // Items cascade-delete via schema
     await tx.invoice.delete({ where: { id } });
+  });
+
+  void recordActivity({
+    dbName: session.dbName,
+    userId: session.userId,
+    action: "DELETE",
+    recordType: "Invoice",
+    recordId: id,
+    summary: `ລົບບິນ ${inv.number}`,
   });
 
   revalidatePath("/invoices");

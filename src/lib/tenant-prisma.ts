@@ -74,7 +74,12 @@ export function getTenantPrisma(dbName: string): PrismaClient {
     return cached.client;
   }
   const client = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: tenantConnectionString(dbName) }),
+    adapter: new PrismaPg({
+      connectionString: tenantConnectionString(dbName),
+      connectionTimeoutMillis: 15_000,
+      idleTimeoutMillis: 30_000,
+      max: 10,
+    }),
   });
   cache.set(dbName, { client, lastUsed: Date.now() });
   // Fire-and-forget — don't await so the caller isn't slowed by eviction.

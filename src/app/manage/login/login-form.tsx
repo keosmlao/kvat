@@ -20,7 +20,7 @@ export function ManagementLoginForm() {
           type="email"
           required
           autoComplete="email"
-          defaultValue="admin@smlao.la"
+          defaultValue={state?.email ?? ""}
           className="w-full px-3 py-2 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-slate-700 focus:ring-2 focus:ring-slate-700/15 transition"
         />
       </div>

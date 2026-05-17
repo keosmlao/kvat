@@ -25,6 +25,25 @@ export async function nextBillingInvoiceNumber(): Promise<string> {
   return `${yearPrefix}${String(next).padStart(4, "0")}`;
 }
 
+export async function nextBillingQuoteNumber(): Promise<string> {
+  const year = new Date().getFullYear();
+  const yearPrefix = `QT-${year}-`;
+
+  const latest = await masterPrisma.billingQuote.findFirst({
+    where: { number: { startsWith: yearPrefix } },
+    orderBy: { number: "desc" },
+    select: { number: true },
+  });
+
+  let next = 1;
+  if (latest) {
+    const tail = latest.number.slice(yearPrefix.length);
+    const parsed = parseInt(tail, 10);
+    if (Number.isFinite(parsed)) next = parsed + 1;
+  }
+  return `${yearPrefix}${String(next).padStart(4, "0")}`;
+}
+
 export type PlanProduct = {
   id: string;
   code: string;

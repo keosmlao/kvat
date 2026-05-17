@@ -8,6 +8,7 @@ import {
   previewEtaxPayload,
   type SubmitResult,
 } from "../etax-actions";
+import { t, type Locale } from "@/lib/i18n/messages";
 
 export type EtaxState = {
   serialNum: string | null;
@@ -23,24 +24,15 @@ export type EtaxState = {
   errorMsg: string | null;
 };
 
-const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
-  "0": {
-    label: "ລໍຖ້າຢືນຢັນ",
-    cls: "bg-blue-50 text-blue-700 border-blue-200",
-  },
-  "1": {
-    label: "ຢືນຢັນແລ້ວ",
-    cls: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  },
-  "3": {
-    label: "ບໍ່ຜ່ານ",
-    cls: "bg-red-50 text-red-700 border-red-200",
-  },
-  "6": {
-    label: "ຍົກເລີກແລ້ວ",
-    cls: "bg-gray-100 text-gray-700 border-gray-200",
-  },
-};
+function getStatusLabels(locale: Locale) {
+  const tp = (k: string) => t(locale, "etaxPanel", k);
+  return {
+    "0": { label: tp("pending"),   cls: "bg-odoo/10 text-odoo border-odoo/30" },
+    "1": { label: tp("approved"),  cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    "3": { label: tp("failed"),    cls: "bg-red-50 text-red-700 border-red-200" },
+    "6": { label: tp("cancelled"), cls: "bg-gray-100 text-gray-700 border-gray-200" },
+  } as Record<string, { label: string; cls: string }>;
+}
 
 // Pin formatting to Asia/Vientiane so server (UTC) and client (browser TZ)
 // produce identical strings — otherwise React reports a hydration mismatch.
@@ -62,10 +54,14 @@ function formatTime(d: Date | string | null) {
 export function EtaxPanel({
   invoiceId,
   initial,
+  locale = "lo",
 }: {
   invoiceId: string;
   initial: EtaxState;
+  locale?: Locale;
 }) {
+  const tp = (k: string) => t(locale, "etaxPanel", k);
+  const STATUS_LABEL = getStatusLabels(locale);
   const [feedback, setFeedback] = useState<
     { kind: "ok" | "err"; msg: string; requestId?: string } | null
   >(null);
@@ -83,7 +79,7 @@ export function EtaxPanel({
       if (r.ok) {
         setFeedback({
           kind: "ok",
-          msg: `✓ ສົ່ງສຳເລັດ — ${r.invoiceNumber}`,
+          msg: `${tp("sentOk")} — ${r.invoiceNumber}`,
           requestId: r.requestId,
         });
       } else {
@@ -104,7 +100,7 @@ export function EtaxPanel({
         const label = STATUS_LABEL[r.status]?.label ?? r.status;
         setFeedback({
           kind: "ok",
-          msg: `✓ ສະຖານະ: ${label}`,
+          msg: `${tp("statusOk")}: ${label}`,
           requestId: r.requestId,
         });
       } else {
@@ -118,21 +114,20 @@ export function EtaxPanel({
   };
 
   const onCancel = () => {
-    if (!confirm("ຍົກເລີກບິນທີ່ eTax? (ໃຊ້ໄດ້ສະເພາະບິນທີ່ສະຖານະ Invalid)"))
-      return;
+    if (!confirm(tp("cancelConfirm"))) return;
     setFeedback(null);
     start(async () => {
       const r = await cancelEtaxInvoice(invoiceId);
       if (r.ok) {
         setFeedback({
           kind: "ok",
-          msg: "✓ ຍົກເລີກສຳເລັດ",
+          msg: tp("cancelOk"),
           requestId: r.requestId,
         });
       } else {
         setFeedback({
           kind: "err",
-          msg: r.error ?? "ບໍ່ສຳເລັດ",
+          msg: r.error ?? tp("genericFailed"),
           requestId: r.requestId,
         });
       }
@@ -144,10 +139,10 @@ export function EtaxPanel({
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div>
           <h3 className="text-[11px] uppercase tracking-widest text-gray-500 font-medium">
-            ໃບອາກອນເອເລັກໂຕຣນິກ (eTax)
+            {tp("title")}
           </h3>
           <p className="text-[11px] text-gray-500 mt-0.5">
-            ສົ່ງເຂົ້າລະບົບກົມສ່ວຍສາ
+            {tp("sendToGov")}
           </p>
         </div>
         <div className="flex gap-1.5">
@@ -163,23 +158,23 @@ export function EtaxPanel({
                     if (r.ok) {
                       setPayloadPreview(JSON.stringify(r.payload, null, 2));
                     } else {
-                      setFeedback({ kind: "err", msg: r.error ?? "ບໍ່ສຳເລັດ" });
+                      setFeedback({ kind: "err", msg: r.error ?? tp("genericFailed") });
                     }
                   });
                 }}
                 disabled={pending}
                 className="border border-gray-300 text-gray-700 px-3 py-1 rounded text-[13px] font-medium hover:bg-gray-50 disabled:opacity-50"
-                title="ເບິ່ງ JSON ທີ່ຈະສົ່ງ — ບໍ່ໄດ້ສົ່ງຈິງ"
+                title={tp("viewPayload")}
               >
-                ເບິ່ງ payload
+                {tp("viewPayloadBtn")}
               </button>
               <button
                 type="button"
                 onClick={onSubmit}
                 disabled={pending}
-                className="bg-[#b91c1c] hover:bg-[#991b1b] text-white px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
+                className="bg-odoo hover:bg-odoo-hover text-white px-3 py-1 rounded text-[13px] font-medium disabled:opacity-50"
               >
-                {pending ? "ກຳລັງສົ່ງ..." : "ສົ່ງເຂົ້າ eTax"}
+                {pending ? tp("submitting") : tp("submitBtn")}
               </button>
             </>
           )}
@@ -191,7 +186,7 @@ export function EtaxPanel({
                 disabled={pending}
                 className="border border-gray-300 text-gray-700 px-3 py-1 rounded text-[13px] font-medium hover:bg-gray-50 disabled:opacity-50"
               >
-                {pending ? "..." : "ກວດສະຖານະ"}
+                {pending ? "..." : tp("checkStatusBtn")}
               </button>
               {status === "3" && (
                 <button
@@ -200,7 +195,7 @@ export function EtaxPanel({
                   disabled={pending}
                   className="border border-red-300 text-red-700 px-3 py-1 rounded text-[13px] font-medium hover:bg-red-50 disabled:opacity-50"
                 >
-                  ຍົກເລີກໃນ eTax
+                  {tp("cancelEtaxBtn")}
                 </button>
               )}
             </>
@@ -212,10 +207,10 @@ export function EtaxPanel({
       {hasSubmitted ? (
         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
           <div className="bg-gray-50 border border-gray-200 rounded p-3 space-y-1.5 text-[13px]">
-            <Row label="ເລກບິນ eTax">
+            <Row label={tp("etaxNumber")}>
               <span className="font-mono">{initial.invoiceNumber}</span>
             </Row>
-            <Row label="ສະຖານະ">
+            <Row label={tp("statusLabel")}>
               {statusInfo ? (
                 <span
                   className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${statusInfo.cls}`}
@@ -231,7 +226,7 @@ export function EtaxPanel({
                 </span>
               )}
             </Row>
-            <Row label="ວັນທີອອກ">
+            <Row label={tp("issuedAt")}>
               <span className="font-mono">{initial.issueTime || "—"}</span>
             </Row>
             <Row label="Check Code">
@@ -242,13 +237,13 @@ export function EtaxPanel({
                 {initial.serialNum || "—"}
               </span>
             </Row>
-            <Row label="ສົ່ງເມື່ອ">
+            <Row label={tp("submittedAt")}>
               <span className="text-[12px] text-gray-600">
                 {formatTime(initial.submittedAt)}
               </span>
             </Row>
             {initial.lastCheckedAt && (
-              <Row label="ກວດຄັ້ງລ້າສຸດ">
+              <Row label={tp("lastChecked")}>
                 <span className="text-[12px] text-gray-600">
                   {formatTime(initial.lastCheckedAt)}
                 </span>
@@ -269,23 +264,22 @@ export function EtaxPanel({
                 href={initial.qrUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="text-[11px] text-[#b91c1c] hover:underline"
+                className="text-[11px] text-odoo hover:underline"
               >
-                ເປີດ URL
+                {tp("openUrl")}
               </a>
             </div>
           )}
         </div>
       ) : (
         <div className="bg-gray-50 border border-dashed border-gray-300 rounded p-3 text-[12px] text-gray-500 italic text-center">
-          ບິນນີ້ຍັງບໍ່ໄດ້ສົ່ງເຂົ້າ eTax — ກົດ "ສົ່ງເຂົ້າ eTax" ເພື່ອອອກ
-          ໃບອາກອນເອເລັກໂຕຣນິກ
+          {tp("notSentYet")}
         </div>
       )}
 
       {initial.errorCode && initial.errorMsg && (
         <div className="mt-2 bg-red-50 border border-red-200 rounded p-2 text-[12px] text-red-700">
-          <div className="font-medium">⚠ ການສົ່ງລ້າສຸດຜິດພາດ:</div>
+          <div className="font-medium">{tp("lastErrorTitle")}</div>
           <div>{initial.errorMsg}</div>
           <div className="text-[11px] font-mono mt-0.5">
             code: {initial.errorCode}
@@ -304,7 +298,7 @@ export function EtaxPanel({
               onClick={() => setPayloadPreview(null)}
               className="text-[11px] text-gray-500 hover:text-gray-800"
             >
-              ປິດ
+              {tp("closeBtn")}
             </button>
           </div>
           <pre className="bg-gray-900 text-gray-100 text-[11px] p-3 rounded overflow-auto max-h-96 font-mono">
